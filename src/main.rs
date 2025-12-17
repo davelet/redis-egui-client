@@ -1,5 +1,9 @@
-mod redis_client;
 mod app_state;
+mod redis_client;
+mod translations;
+
+use app_state::Language;
+use translations::tr;
 
 use app_state::AppState;
 use eframe::egui;
@@ -10,7 +14,7 @@ use tokio::sync::RwLock;
 fn main() -> Result<(), eframe::Error> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let _guard = runtime.enter();
-    
+
     std::thread::spawn(move || {
         runtime.block_on(async {
             loop {
@@ -53,6 +57,7 @@ impl Default for RedisApp {
 
 impl eframe::App for RedisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        configure_fonts(ctx); // Configure fonts for Chinese characters
         ctx.request_repaint();
 
         self.render_top_panel(ctx);
@@ -61,80 +66,155 @@ impl eframe::App for RedisApp {
     }
 }
 
+// Function to configure fonts for Chinese characters
+fn configure_fonts(ctx: &egui::Context) {
+    use egui::FontFamily;
+
+    let mut fonts = egui::FontDefinitions::default();
+
+    // Add the Songti.ttc font for Chinese characters
+    fonts.font_data.insert("songti".to_owned(), {
+        let font_data = std::fs::read("/System/Library/Fonts/Supplemental/Songti.ttc")
+            .expect("Failed to read Songti font file");
+        egui::FontData::from_owned(font_data).into()
+    });
+
+    // Use the Songti font for proportional text
+    fonts
+        .families
+        .entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, "songti".to_owned());
+
+    // Use the Songti font for monospace text
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .insert(0, "songti".to_owned());
+
+    ctx.set_fonts(fonts);
+}
+
 impl RedisApp {
     fn render_top_panel(&mut self, ctx: &egui::Context) {
+        let current_lang = self.poll_language(self.state.language.clone());
+        
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label("连接:");
-                ui.text_edit_singleline(&mut self.connection_url_input);
+                // Left side - Connection controls
+                ui.horizontal(|ui| {
 
-                let connected = self.poll_bool(self.state.connected.clone());
-                
-                if connected {
-                    if ui.button("断开").clicked() {
-                        self.state.spawn_disconnect();
-                    }
-                    
-                    ui.separator();
-                    ui.label("数据库:");
-                    
-                    let current_db = self.poll_u32(self.state.current_db.clone());
-                    let databases = self.poll_vec_u32(self.state.databases.clone());
-                    
-                    egui::ComboBox::from_id_salt("db_select")
-                        .selected_text(format!("DB {}", current_db))
-                        .show_ui(ui, |ui| {
-                            for db in databases {
-                                if ui.selectable_label(current_db == db, format!("DB {}", db)).clicked() {
-                                    self.state.spawn_select_db(db);
+                    // Connection section
+                    ui.label(tr("connection_url", current_lang));
+                    ui.text_edit_singleline(&mut self.connection_url_input);
+
+                    let connected = self.poll_bool(self.state.connected.clone());
+
+                    if connected {
+                        if ui.button(tr("disconnect", current_lang)).clicked() {
+                            self.state.spawn_disconnect();
+                        }
+
+                        ui.separator();
+                        ui.label(tr("database", current_lang));
+
+                        let current_db = self.poll_u32(self.state.current_db.clone());
+                        let databases = self.poll_vec_u32(self.state.databases.clone());
+
+                        egui::ComboBox::from_id_salt("db_select")
+                            .selected_text(format!("DB {}", current_db))
+                            .show_ui(ui, |ui| {
+                                for db in databases {
+                                    if ui
+                                        .selectable_label(current_db == db, format!("DB {}", db))
+                                        .clicked()
+                                    {
+                                        self.state.spawn_select_db(db);
+                                    }
                                 }
+                            });
+                    } else {
+                        if ui.button(tr("connect", current_lang)).clicked() {
+                            self.update_string(
+                                self.state.connection_url.clone(),
+                                self.connection_url_input.clone(),
+                            );
+                            self.state.spawn_connect();
+                        }
+                    }
+
+                    let loading = self.poll_bool(self.state.loading.clone());
+                    if loading {
+                        ui.spinner();
+                    }
+                });
+
+                // Right side - Language selector
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let current_lang = self.poll_language(self.state.language.clone());
+                    egui::ComboBox::from_id_salt("lang_select")
+                        .selected_text(match current_lang {
+                            Language::English => tr("english", current_lang),
+                            Language::Chinese => tr("chinese", current_lang),
+                        })
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(
+                                matches!(current_lang, Language::English),
+                                tr("english", current_lang),
+                            ).clicked() {
+                                self.update_language(Language::English);
+                            }
+                            if ui.selectable_label(
+                                matches!(current_lang, Language::Chinese),
+                                tr("chinese", current_lang),
+                            ).clicked() {
+                                self.update_language(Language::Chinese);
                             }
                         });
-                } else {
-                    if ui.button("连接").clicked() {
-                        self.update_string(self.state.connection_url.clone(), self.connection_url_input.clone());
-                        self.state.spawn_connect();
-                    }
-                }
-                
-                let loading = self.poll_bool(self.state.loading.clone());
-                if loading {
-                    ui.spinner();
-                }
+                    ui.label(tr("language", current_lang));
+                });
             });
         });
     }
 
     fn render_side_panel(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("left_panel").min_width(250.0).show(ctx, |ui| {
-            ui.heading("Keys");
-            
-            ui.horizontal(|ui| {
-                ui.label("过滤:");
-                let mut changed = false;
-                if ui.text_edit_singleline(&mut self.key_filter_input).changed() {
-                    changed = true;
-                }
-                if ui.button("刷新").clicked() || changed {
-                    self.update_string(self.state.key_filter.clone(), self.key_filter_input.clone());
-                    self.state.spawn_load_keys();
-                }
+        egui::SidePanel::left("side_panel")
+            .min_width(250.0)
+            .show(ctx, |ui| {
+                let current_lang = self.poll_language(self.state.language.clone());
+
+                ui.vertical(|ui| {
+                    ui.heading(tr("keys", current_lang));
+
+                    ui.horizontal(|ui| {
+                        ui.label(tr("filter", current_lang));
+                        if ui
+                            .text_edit_singleline(&mut self.key_filter_input)
+                            .changed()
+                        {
+                            self.update_string(
+                                self.state.key_filter.clone(),
+                                self.key_filter_input.clone(),
+                            );
+                            self.state.spawn_load_keys();
+                        }
+                    });
+
+                    let keys = self.poll_vec_string(self.state.keys.clone());
+                    let selected_key = self.poll_option_string(self.state.selected_key.clone());
+
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for key in keys {
+                            let is_selected = selected_key.as_ref() == Some(&key);
+                            if ui.selectable_label(is_selected, &key).clicked() {
+                                *self.state.selected_key.blocking_write() = Some(key.clone());
+                                self.state.spawn_load_value(key);
+                            }
+                        }
+                    });
+                });
             });
-
-            ui.separator();
-
-            let keys = self.poll_vec_string(self.state.keys.clone());
-            let selected_key = self.poll_option_string(self.state.selected_key.clone());
-
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for key in keys {
-                    let is_selected = selected_key.as_ref() == Some(&key);
-                    if ui.selectable_label(is_selected, &key).clicked() {
-                        self.state.spawn_load_value(key.clone());
-                    }
-                }
-            });
-        });
     }
 
     fn render_central_panel(&mut self, ctx: &egui::Context) {
@@ -142,13 +222,13 @@ impl RedisApp {
             ui.horizontal(|ui| {
                 ui.label("命令:");
                 let response = ui.text_edit_singleline(&mut self.command_input_buffer);
-                
+
                 if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                     let cmd = self.command_input_buffer.clone();
                     self.state.spawn_execute_command(cmd);
                     self.command_input_buffer.clear();
                 }
-                
+
                 if ui.button("执行").clicked() {
                     let cmd = self.command_input_buffer.clone();
                     self.state.spawn_execute_command(cmd);
@@ -162,9 +242,11 @@ impl RedisApp {
             if !command_output.is_empty() {
                 ui.group(|ui| {
                     ui.label("输出:");
-                    egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
-                        ui.label(&command_output);
-                    });
+                    egui::ScrollArea::vertical()
+                        .max_height(150.0)
+                        .show(ui, |ui| {
+                            ui.label(&command_output);
+                        });
                 });
                 ui.separator();
             }
@@ -172,9 +254,9 @@ impl RedisApp {
             let selected_key = self.poll_option_string(self.state.selected_key.clone());
             if let Some(key) = selected_key {
                 ui.heading(format!("Key: {}", key));
-                
+
                 let value = self.poll_option_value(self.state.key_value.clone());
-                
+
                 if let Some(val) = value {
                     match val {
                         ValueData::String(s) => {
@@ -185,7 +267,7 @@ impl RedisApp {
                         }
                         ValueData::List { len, items } => {
                             ui.label(format!("类型: List (长度: {})", len));
-                            
+
                             if items.is_empty() && len > 0 {
                                 if ui.button("加载前100项").clicked() {
                                     self.state.spawn_load_list_range(key.clone(), 0, 99);
@@ -200,7 +282,7 @@ impl RedisApp {
                         }
                         ValueData::Hash { len, fields } => {
                             ui.label(format!("类型: Hash (字段数: {})", len));
-                            
+
                             if fields.is_empty() && len > 0 {
                                 if ui.button("加载字段").clicked() {
                                     self.state.spawn_load_hash_fields(key.clone());
@@ -257,12 +339,18 @@ impl RedisApp {
     }
 
     fn poll_option_value(&self, lock: Arc<RwLock<Option<ValueData>>>) -> Option<ValueData> {
-        lock.try_read().ok().and_then(|v| v.clone())
+        lock.blocking_read().clone()
+    }
+
+    fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {
+        *lock.blocking_read()
     }
 
     fn update_string(&self, lock: Arc<RwLock<String>>, value: String) {
-        if let Ok(mut v) = lock.try_write() {
-            *v = value;
-        }
+        *lock.blocking_write() = value;
+    }
+
+    fn update_language(&self, lang: Language) {
+        *self.state.language.blocking_write() = lang;
     }
 }

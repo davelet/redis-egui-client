@@ -1,6 +1,19 @@
 use crate::redis_client::{RedisClient, ValueData};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub enum Language {
+    Chinese,
+    English,
+}
+
+impl Default for Language {
+    fn default() -> Self {
+        Language::English
+    }
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -16,6 +29,7 @@ pub struct AppState {
     pub command_output: Arc<RwLock<String>>,
     pub key_filter: Arc<RwLock<String>>,
     pub loading: Arc<RwLock<bool>>,
+    pub language: Arc<RwLock<Language>>,
 }
 
 impl Default for AppState {
@@ -33,6 +47,7 @@ impl Default for AppState {
             command_output: Arc::new(RwLock::new(String::new())),
             key_filter: Arc::new(RwLock::new("*".to_string())),
             loading: Arc::new(RwLock::new(false)),
+            language: Arc::new(RwLock::new(Language::English)),
         }
     }
 }
