@@ -1,15 +1,16 @@
 mod app_state;
 mod redis_client;
+mod config;
 mod translations;
 
-use app_state::Language;
-use translations::tr;
-
 use app_state::AppState;
+use config::Config;
 use eframe::egui;
 use redis_client::ValueData;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+use crate::{app_state::Language, translations::tr};
 
 fn main() -> Result<(), eframe::Error> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -39,25 +40,36 @@ fn main() -> Result<(), eframe::Error> {
 
 struct RedisApp {
     state: AppState,
-    connection_url_input: String,
+    config: Config,
+    selected_connection: Option<usize>,
     command_input_buffer: String,
     key_filter_input: String,
+    show_new_connection_dialog: bool,
+    new_connection_name: String,
+    new_connection_url: String,
+    error_message: String,
 }
 
 impl Default for RedisApp {
     fn default() -> Self {
+        let config = Config::load().unwrap_or_default();
         Self {
             state: AppState::new(),
-            connection_url_input: "redis://127.0.0.1:6379".to_string(),
+            config,
+            selected_connection: None,
             command_input_buffer: String::new(),
             key_filter_input: "*".to_string(),
+            show_new_connection_dialog: false,
+            new_connection_name: String::new(),
+            new_connection_url: "redis://127.0.0.1:6379".to_string(),
+            error_message: String::new(),
         }
     }
 }
 
 impl eframe::App for RedisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        configure_fonts(ctx); // Configure fonts for Chinese characters
+        configure_fonts(ctx);
         ctx.request_repaint();
 
         self.render_top_panel(ctx);
@@ -65,6 +77,7 @@ impl eframe::App for RedisApp {
         self.render_central_panel(ctx);
     }
 }
+
 
 // Function to configure fonts for Chinese characters
 fn configure_fonts(ctx: &egui::Context) {
@@ -96,86 +109,114 @@ fn configure_fonts(ctx: &egui::Context) {
     ctx.set_fonts(fonts);
 }
 
+
 impl RedisApp {
     fn render_top_panel(&mut self, ctx: &egui::Context) {
-        let current_lang = self.poll_language(self.state.language.clone());
-        
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                // Left side - Connection controls
-                ui.horizontal(|ui| {
-
-                    // Connection section
-                    ui.label(tr("connection_url", current_lang));
-                    ui.text_edit_singleline(&mut self.connection_url_input);
-
-                    let connected = self.poll_bool(self.state.connected.clone());
-
-                    if connected {
-                        if ui.button(tr("disconnect", current_lang)).clicked() {
-                            self.state.spawn_disconnect();
-                        }
-
-                        ui.separator();
-                        ui.label(tr("database", current_lang));
-
-                        let current_db = self.poll_u32(self.state.current_db.clone());
-                        let databases = self.poll_vec_u32(self.state.databases.clone());
-
-                        egui::ComboBox::from_id_salt("db_select")
-                            .selected_text(format!("DB {}", current_db))
-                            .show_ui(ui, |ui| {
-                                for db in databases {
-                                    if ui
-                                        .selectable_label(current_db == db, format!("DB {}", db))
-                                        .clicked()
-                                    {
-                                        self.state.spawn_select_db(db);
-                                    }
-                                }
-                            });
-                    } else {
-                        if ui.button(tr("connect", current_lang)).clicked() {
-                            self.update_string(
-                                self.state.connection_url.clone(),
-                                self.connection_url_input.clone(),
-                            );
-                            self.state.spawn_connect();
-                        }
-                    }
-
-                    let loading = self.poll_bool(self.state.loading.clone());
-                    if loading {
-                        ui.spinner();
-                    }
-                });
-
-                // Right side - Language selector
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let current_lang = self.poll_language(self.state.language.clone());
-                    egui::ComboBox::from_id_salt("lang_select")
-                        .selected_text(match current_lang {
-                            Language::English => tr("english", current_lang),
-                            Language::Chinese => tr("chinese", current_lang),
-                        })
-                        .show_ui(ui, |ui| {
-                            if ui.selectable_label(
-                                matches!(current_lang, Language::English),
-                                tr("english", current_lang),
-                            ).clicked() {
-                                self.update_language(Language::English);
+                ui.label("连接:");
+                
+                // 连接下拉框
+                let selected_name = self.selected_connection
+                    .and_then(|idx| self.config.connections.get(idx))
+                    .map(|c| c.name.clone())
+                    .unwrap_or_else(|| "选择连接".to_string());
+                
+                egui::ComboBox::from_id_salt("connection_select")
+                    .selected_text(selected_name)
+                    .show_ui(ui, |ui| {
+                        for (idx, conn) in self.config.connections.iter().enumerate() {
+                            let is_selected = self.selected_connection == Some(idx);
+                            if ui.selectable_label(is_selected, &conn.name).clicked() {
+                                self.selected_connection = Some(idx);
                             }
-                            if ui.selectable_label(
-                                matches!(current_lang, Language::Chinese),
-                                tr("chinese", current_lang),
-                            ).clicked() {
-                                self.update_language(Language::Chinese);
+                        }
+                    });
+                
+                // 新增连接按钮
+                if ui.button("+ 新建").clicked() {
+                    self.show_new_connection_dialog = true;
+                    self.new_connection_name.clear();
+                    self.new_connection_url = "redis://127.0.0.1:6379".to_string();
+                    self.error_message.clear();
+                }
+                
+                ui.separator();
+                
+                let connected = self.poll_bool(self.state.connected.clone());
+                
+                if connected {
+                    if ui.button("断开").clicked() {
+                        self.state.spawn_disconnect();
+                    }
+                    
+                    ui.separator();
+                    ui.label("数据库:");
+                    
+                    let current_db = self.poll_u32(self.state.current_db.clone());
+                    let databases = self.poll_vec_u32(self.state.databases.clone());
+                    
+                    egui::ComboBox::from_id_salt("db_select")
+                        .selected_text(format!("DB {}", current_db))
+                        .show_ui(ui, |ui| {
+                            for db in databases {
+                                if ui.selectable_label(current_db == db, format!("DB {}", db)).clicked() {
+                                    self.state.spawn_select_db(db);
+                                }
                             }
                         });
-                    ui.label(tr("language", current_lang));
-                });
+                } else {
+                    if ui.button("连接").clicked() {
+                        if let Some(idx) = self.selected_connection {
+                            if let Some(conn) = self.config.connections.get(idx) {
+                                self.update_string(
+                                    self.state.connection_url.clone(),
+                                    conn.url.clone(),
+                                );
+                                self.state.spawn_connect();
+                            }
+                        } else {
+                            self.error_message = "请先选择一个连接".to_string();
+                        }
+                    }
+                }
+                
+                let loading = self.poll_bool(self.state.loading.clone());
+                if loading {
+                    ui.spinner();
+                }
+            });
+
+            // Right side - Language selector
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let current_lang = self.poll_language(self.state.language.clone());
+                egui::ComboBox::from_id_salt("lang_select")
+                    .selected_text(match current_lang {
+                        Language::English => tr("english", current_lang),
+                        Language::Chinese => tr("chinese", current_lang),
+                    })
+                    .show_ui(ui, |ui| {
+                        if ui.selectable_label(
+                            matches!(current_lang, Language::English),
+                            tr("english", current_lang),
+                        ).clicked() {
+                            self.update_language(Language::English);
+                        }
+                        if ui.selectable_label(
+                            matches!(current_lang, Language::Chinese),
+                            tr("chinese", current_lang),
+                        ).clicked() {
+                            self.update_language(Language::Chinese);
+                        }
+                    });
+                ui.label(tr("language", current_lang));
             });
         });
+        
+        // 新建连接对话框
+        if self.show_new_connection_dialog {
+            self.render_new_connection_dialog(ctx);
+        }
     }
 
     fn render_side_panel(&mut self, ctx: &egui::Context) {
@@ -211,6 +252,57 @@ impl RedisApp {
                                 *self.state.selected_key.blocking_write() = Some(key.clone());
                                 self.state.spawn_load_value(key);
                             }
+                        }
+                    });
+                });
+            });
+    }
+    
+    fn render_new_connection_dialog(&mut self, ctx: &egui::Context) {
+        egui::Window::new("新建 Redis 连接")
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("连接名称:");
+                        ui.text_edit_singleline(&mut self.new_connection_name);
+                    });
+                    
+                    ui.horizontal(|ui| {
+                        ui.label("连接地址:");
+                        ui.text_edit_singleline(&mut self.new_connection_url);
+                    });
+                    
+                    if !self.error_message.is_empty() {
+                        ui.colored_label(egui::Color32::RED, &self.error_message);
+                    }
+                    
+                    ui.horizontal(|ui| {
+                        if ui.button("保存").clicked() {
+                            if self.new_connection_name.trim().is_empty() {
+                                self.error_message = "请输入连接名称".to_string();
+                            } else if self.new_connection_url.trim().is_empty() {
+                                self.error_message = "请输入连接地址".to_string();
+                            } else {
+                                match self.config.add_connection(
+                                    self.new_connection_name.clone(),
+                                    self.new_connection_url.clone(),
+                                ) {
+                                    Ok(_) => {
+                                        self.show_new_connection_dialog = false;
+                                        self.error_message.clear();
+                                    }
+                                    Err(e) => {
+                                        self.error_message = e;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if ui.button("取消").clicked() {
+                            self.show_new_connection_dialog = false;
+                            self.error_message.clear();
                         }
                     });
                 });
@@ -342,12 +434,14 @@ impl RedisApp {
         lock.blocking_read().clone()
     }
 
-    fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {
-        *lock.blocking_read()
+    fn update_string(&self, lock: Arc<RwLock<String>>, value: String) {
+        if let Ok(mut v) = lock.try_write() {
+            *v = value;
+        }
     }
 
-    fn update_string(&self, lock: Arc<RwLock<String>>, value: String) {
-        *lock.blocking_write() = value;
+    fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {
+        *lock.blocking_read()
     }
 
     fn update_language(&self, lang: Language) {

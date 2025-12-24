@@ -1,0 +1,27 @@
+# Redis 连接配置示例
+# 此文件应放置在: ~/.config/rudist/config.toml
+
+[[connections]]
+name = "本地开发环境"
+url = "redis://127.0.0.1:6379"
+
+[[connections]]
+name = "测试环境"
+url = "redis://test.example.com:6379"
+
+[[connections]]
+name = "生产环境(需要密码)"
+url = "redis://:password@prod.example.com:6379"
+
+[[connections]]
+name = "Redis Cluster"
+url = "redis://cluster.example.com:6379"
+
+# URL 格式说明:
+# redis://[username]:[password]@[host]:[port]/[database]
+# 
+# 示例:
+# - 无密码: redis://localhost:6379
+# - 有密码: redis://:mypassword@localhost:6379
+# - 指定数据库: redis://localhost:6379/1
+# - 完整格式: redis://user:pass@host:6379/0
