@@ -36,7 +36,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             redis_client: RedisClient::new(),
-            connection_url: Arc::new(RwLock::new("redis://127.0.0.1:6379".to_string())),
+            connection_url: Arc::new(RwLock::new(crate::constants::DEFAULT_REDIS_URL.to_string())),
             connected: Arc::new(RwLock::new(false)),
             current_db: Arc::new(RwLock::new(0)),
             databases: Arc::new(RwLock::new(vec![])),
@@ -45,7 +45,7 @@ impl Default for AppState {
             key_value: Arc::new(RwLock::new(None)),
             command_input: Arc::new(RwLock::new(String::new())),
             command_output: Arc::new(RwLock::new(String::new())),
-            key_filter: Arc::new(RwLock::new("*".to_string())),
+            key_filter: Arc::new(RwLock::new(crate::constants::DEFAULT_KEY_FILTER.to_string())),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
         }

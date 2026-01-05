@@ -32,7 +32,7 @@ impl Config {
                 connections: vec![
                     RedisConnection {
                         name: "本地 Redis".to_string(),
-                        url: "redis://127.0.0.1:6379".to_string(),
+                        url: crate::constants::DEFAULT_REDIS_URL.to_string(),
                     }
                 ],
             };
