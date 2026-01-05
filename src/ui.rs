@@ -1,6 +1,6 @@
 use crate::app_state::{AppState, Language};
 use crate::config::Config;
-use crate::translations::tr;
+use crate::translations::{tr, tr_fmt};
 use eframe::egui;
 use crate::redis_client::ValueData;
 use std::sync::Arc;
@@ -80,15 +80,17 @@ fn configure_fonts(ctx: &egui::Context) {
 
 impl RedisApp {
     fn render_top_panel(&mut self, ctx: &egui::Context) {
+        let current_lang = self.poll_language(self.state.language.clone());
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label("连接:");
+                ui.label(tr("connection_url", current_lang));
                 
                 // 连接下拉框
                 let selected_name = self.selected_connection
                     .and_then(|idx| self.config.connections.get(idx))
                     .map(|c| c.name.clone())
-                    .unwrap_or_else(|| "选择连接".to_string());
+                    .unwrap_or_else(|| tr("select_connection", current_lang).to_string());
                 
                 egui::ComboBox::from_id_salt("connection_select")
                     .selected_text(selected_name)
@@ -102,7 +104,7 @@ impl RedisApp {
                     });
                 
                 // 新增连接按钮
-                if ui.button("+ 新建").clicked() {
+                if ui.button(format!("+ {}", tr("new_connection", current_lang))).clicked() {
                     self.show_new_connection_dialog = true;
                     self.new_connection_name.clear();
                     self.new_connection_url = crate::constants::DEFAULT_REDIS_URL.to_string();
@@ -113,12 +115,12 @@ impl RedisApp {
                 let connected = self.poll_bool(self.state.connected.clone());
                 
                 if connected {
-                    if ui.button("断开").clicked() {
+                    if ui.button(tr("disconnect", current_lang)).clicked() {
                         self.state.spawn_disconnect();
                     }
                     
                     ui.separator();
-                    ui.label("数据库:");
+                    ui.label(tr("database", current_lang));
                     
                     let current_db = self.poll_u32(self.state.current_db.clone());
                     let databases = self.poll_vec_u32(self.state.databases.clone());
@@ -133,7 +135,7 @@ impl RedisApp {
                             }
                         });
                 } else {
-                    if ui.button("连接").clicked() {
+                    if ui.button(tr("connect", current_lang)).clicked() {
                         if let Some(idx) = self.selected_connection {
                             if let Some(conn) = self.config.connections.get(idx) {
                                 self.update_string(
@@ -143,7 +145,7 @@ impl RedisApp {
                                 self.state.spawn_connect();
                             }
                         } else {
-                            self.error_message = "请先选择一个连接".to_string();
+                            self.error_message = tr("please_select_connection", current_lang).to_string();
                         }
                     }
                 }
@@ -156,33 +158,33 @@ impl RedisApp {
 
             // Right side - Language selector
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let current_lang = self.poll_language(self.state.language.clone());
+                let lang = self.poll_language(self.state.language.clone());
                 egui::ComboBox::from_id_salt("lang_select")
-                    .selected_text(match current_lang {
-                        Language::English => tr("english", current_lang),
-                        Language::Chinese => tr("chinese", current_lang),
+                    .selected_text(match lang {
+                        Language::English => tr("english", lang),
+                        Language::Chinese => tr("chinese", lang),
                     })
                     .show_ui(ui, |ui| {
                         if ui.selectable_label(
-                            matches!(current_lang, Language::English),
-                            tr("english", current_lang),
+                            matches!(lang, Language::English),
+                            tr("english", lang),
                         ).clicked() {
                             self.update_language(Language::English);
                         }
                         if ui.selectable_label(
-                            matches!(current_lang, Language::Chinese),
-                            tr("chinese", current_lang),
+                            matches!(lang, Language::Chinese),
+                            tr("chinese", lang),
                         ).clicked() {
                             self.update_language(Language::Chinese);
                         }
                     });
-                ui.label(tr("language", current_lang));
+                ui.label(tr("language", lang));
             });
         });
         
         // 新建连接对话框
         if self.show_new_connection_dialog {
-            self.render_new_connection_dialog(ctx);
+            self.render_new_connection_dialog(ctx, current_lang);
         }
     }
 
@@ -225,19 +227,19 @@ impl RedisApp {
             });
     }
     
-    fn render_new_connection_dialog(&mut self, ctx: &egui::Context) {
-        egui::Window::new("新建 Redis 连接")
+    fn render_new_connection_dialog(&mut self, ctx: &egui::Context, current_lang: Language) {
+        egui::Window::new(tr("new_connection_dialog", current_lang))
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.label("连接名称:");
+                        ui.label(tr("connection_name", current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_name);
                     });
                     
                     ui.horizontal(|ui| {
-                        ui.label("连接地址:");
+                        ui.label(tr("connection_address", current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_url);
                     });
                     
@@ -246,11 +248,11 @@ impl RedisApp {
                     }
                     
                     ui.horizontal(|ui| {
-                        if ui.button("保存").clicked() {
+                        if ui.button(tr("save", current_lang)).clicked() {
                             if self.new_connection_name.trim().is_empty() {
-                                self.error_message = "请输入连接名称".to_string();
+                                self.error_message = tr("please_enter_connection_name", current_lang).to_string();
                             } else if self.new_connection_url.trim().is_empty() {
-                                self.error_message = "请输入连接地址".to_string();
+                                self.error_message = tr("please_enter_connection_address", current_lang).to_string();
                             } else {
                                 match self.config.add_connection(
                                     self.new_connection_name.clone(),
@@ -267,7 +269,7 @@ impl RedisApp {
                             }
                         }
                         
-                        if ui.button("取消").clicked() {
+                        if ui.button(tr("cancel", current_lang)).clicked() {
                             self.show_new_connection_dialog = false;
                             self.error_message.clear();
                         }
@@ -277,9 +279,11 @@ impl RedisApp {
     }
 
     fn render_central_panel(&mut self, ctx: &egui::Context) {
+        let current_lang = self.poll_language(self.state.language.clone());
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label("命令:");
+                ui.label(tr("command_label", current_lang));
                 let response = ui.text_edit_singleline(&mut self.command_input_buffer);
 
                 if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
@@ -288,7 +292,7 @@ impl RedisApp {
                     self.command_input_buffer.clear();
                 }
 
-                if ui.button("执行").clicked() {
+                if ui.button(tr("execute", current_lang)).clicked() {
                     let cmd = self.command_input_buffer.clone();
                     self.state.spawn_execute_command(cmd);
                     self.command_input_buffer.clear();
@@ -300,7 +304,7 @@ impl RedisApp {
             let command_output = self.poll_string(self.state.command_output.clone());
             if !command_output.is_empty() {
                 ui.group(|ui| {
-                    ui.label("输出:");
+                    ui.label(tr("output", current_lang));
                     egui::ScrollArea::vertical()
                         .max_height(150.0)
                         .show(ui, |ui| {
@@ -312,23 +316,23 @@ impl RedisApp {
 
             let selected_key = self.poll_option_string(self.state.selected_key.clone());
             if let Some(key) = selected_key {
-                ui.heading(format!("Key: {}", key));
+                ui.heading(tr_fmt("key_heading", current_lang, &[&key]));
 
                 let value = self.poll_option_value(self.state.key_value.clone());
 
                 if let Some(val) = value {
                     match val {
                         ValueData::String(s) => {
-                            ui.label("类型: String");
+                            ui.label(tr("type_string", current_lang));
                             egui::ScrollArea::vertical().show(ui, |ui| {
                                 ui.text_edit_multiline(&mut s.as_str());
                             });
                         }
                         ValueData::List { len, items } => {
-                            ui.label(format!("类型: List (长度: {})", len));
+                            ui.label(tr_fmt("type_list", current_lang, &[&len.to_string()]));
 
                             if items.is_empty() && len > 0 {
-                                if ui.button("加载前100项").clicked() {
+                                if ui.button(tr("load_first_100", current_lang)).clicked() {
                                     self.state.spawn_load_list_range(key.clone(), 0, 99);
                                 }
                             } else {
@@ -340,10 +344,10 @@ impl RedisApp {
                             }
                         }
                         ValueData::Hash { len, fields } => {
-                            ui.label(format!("类型: Hash (字段数: {})", len));
+                            ui.label(tr_fmt("type_hash", current_lang, &[&len.to_string()]));
 
                             if fields.is_empty() && len > 0 {
-                                if ui.button("加载字段").clicked() {
+                                if ui.button(tr("load_fields", current_lang)).clicked() {
                                     self.state.spawn_load_hash_fields(key.clone());
                                 }
                             } else {
@@ -357,18 +361,18 @@ impl RedisApp {
                             }
                         }
                         ValueData::Set { len, .. } => {
-                            ui.label(format!("类型: Set (成员数: {})", len));
+                            ui.label(tr_fmt("type_set", current_lang, &[&len.to_string()]));
                         }
                         ValueData::ZSet { len, .. } => {
-                            ui.label(format!("类型: ZSet (成员数: {})", len));
+                            ui.label(tr_fmt("type_zset", current_lang, &[&len.to_string()]));
                         }
                         ValueData::None => {
-                            ui.label("Key 不存在");
+                            ui.label(tr("key_not_exist", current_lang));
                         }
                     }
                 }
             } else {
-                ui.label("选择一个 key 查看详情");
+                ui.label(tr("select_key_prompt", current_lang));
             }
         });
     }

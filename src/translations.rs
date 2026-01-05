@@ -113,6 +113,154 @@ impl Default for Translator {
             m
         });
 
+        // Other UI strings
+        strings.insert("select_connection", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Select connection");
+            m.insert(Language::Chinese, "选择连接");
+            m
+        });
+
+        strings.insert("please_select_connection", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Please select a connection");
+            m.insert(Language::Chinese, "请先选择一个连接");
+            m
+        });
+
+        strings.insert("save", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Save");
+            m.insert(Language::Chinese, "保存");
+            m
+        });
+
+        strings.insert("cancel", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Cancel");
+            m.insert(Language::Chinese, "取消");
+            m
+        });
+
+        strings.insert("connection_name", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection name:");
+            m.insert(Language::Chinese, "连接名称:");
+            m
+        });
+
+        strings.insert("connection_address", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection address:");
+            m.insert(Language::Chinese, "连接地址:");
+            m
+        });
+
+        strings.insert("please_enter_connection_name", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Please enter connection name");
+            m.insert(Language::Chinese, "请输入连接名称");
+            m
+        });
+
+        strings.insert("please_enter_connection_address", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Please enter connection address");
+            m.insert(Language::Chinese, "请输入连接地址");
+            m
+        });
+
+        strings.insert("new_connection_dialog", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "New Redis Connection");
+            m.insert(Language::Chinese, "新建 Redis 连接");
+            m
+        });
+
+        strings.insert("command_label", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Command:");
+            m.insert(Language::Chinese, "命令:");
+            m
+        });
+
+        strings.insert("output", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Output:");
+            m.insert(Language::Chinese, "输出:");
+            m
+        });
+
+        strings.insert("select_key_prompt", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Select a key to view details");
+            m.insert(Language::Chinese, "选择一个 key 查看详情");
+            m
+        });
+
+        strings.insert("key_not_exist", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Key does not exist");
+            m.insert(Language::Chinese, "Key 不存在");
+            m
+        });
+
+        strings.insert("key_heading", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Key: {}");
+            m.insert(Language::Chinese, "Key: {}");
+            m
+        });
+
+        strings.insert("type_string", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type: String");
+            m.insert(Language::Chinese, "类型: String");
+            m
+        });
+
+        strings.insert("type_list", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type: List (length: {})");
+            m.insert(Language::Chinese, "类型: List (长度: {})");
+            m
+        });
+
+        strings.insert("type_hash", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type: Hash (fields: {})");
+            m.insert(Language::Chinese, "类型: Hash (字段数: {})");
+            m
+        });
+
+        strings.insert("type_set", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type: Set (members: {})");
+            m.insert(Language::Chinese, "类型: Set (成员数: {})");
+            m
+        });
+
+        strings.insert("type_zset", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type: ZSet (members: {})");
+            m.insert(Language::Chinese, "类型: ZSet (成员数: {})");
+            m
+        });
+
+        strings.insert("load_first_100", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Load first 100 items");
+            m.insert(Language::Chinese, "加载前100项");
+            m
+        });
+
+        strings.insert("load_fields", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Load fields");
+            m.insert(Language::Chinese, "加载字段");
+            m
+        });
+
         Self { strings }
     }
 }
