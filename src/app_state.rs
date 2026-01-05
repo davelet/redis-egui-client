@@ -62,6 +62,7 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
             let url = state.connection_url.read().await.clone();
+            let lang = *state.language.read().await;
             
             match state.redis_client.connect(&url).await {
                 Ok(_) => {
@@ -74,7 +75,7 @@ impl AppState {
                     state.spawn_load_keys();
                 }
                 Err(e) => {
-                    *state.command_output.write().await = format!("连接失败: {}", e);
+                    *state.command_output.write().await = crate::translations::tr_fmt("connection_failed", lang, &[&e.to_string()]);
                     *state.connected.write().await = false;
                 }
             }
@@ -134,6 +135,7 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
+            let lang = *state.language.read().await;
             
             match state.redis_client.get_value(&key).await {
                 Ok(value) => {
@@ -141,7 +143,7 @@ impl AppState {
                     *state.key_value.write().await = Some(value);
                 }
                 Err(e) => {
-                    *state.command_output.write().await = format!("获取值失败: {}", e);
+                    *state.command_output.write().await = crate::translations::tr_fmt("get_value_failed", lang, &[&e.to_string()]);
                 }
             }
             
@@ -153,13 +155,20 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
-            
+            let lang = *state.language.read().await;
+
+            if cmd.trim().is_empty() {
+                *state.command_output.write().await = crate::translations::tr("empty_command", lang).to_string();
+                *state.loading.write().await = false;
+                return;
+            }
+
             match state.redis_client.execute_command(&cmd).await {
                 Ok(result) => {
                     *state.command_output.write().await = result;
                 }
                 Err(e) => {
-                    *state.command_output.write().await = format!("错误: {}", e);
+                    *state.command_output.write().await = crate::translations::tr_fmt("generic_error", lang, &[&e.to_string()]);
                 }
             }
             

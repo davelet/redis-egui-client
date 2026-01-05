@@ -263,7 +263,7 @@ impl RedisApp {
                                         self.error_message.clear();
                                     }
                                     Err(e) => {
-                                        self.error_message = e;
+                                        self.error_message = e.to_message(current_lang);
                                     }
                                 }
                             }

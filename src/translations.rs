@@ -261,6 +261,78 @@ impl Default for Translator {
             m
         });
 
+        // Config error messages
+        strings.insert("config_home_dir_missing", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Could not determine home directory");
+            m.insert(Language::Chinese, "无法获取用户目录");
+            m
+        });
+
+        strings.insert("config_read_failed", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Failed to read config file: {}");
+            m.insert(Language::Chinese, "读取配置文件失败: {}");
+            m
+        });
+
+        strings.insert("config_parse_failed", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Failed to parse config file: {}");
+            m.insert(Language::Chinese, "解析配置文件失败: {}");
+            m
+        });
+
+        strings.insert("config_create_dir_failed", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Failed to create config directory: {}");
+            m.insert(Language::Chinese, "创建配置目录失败: {}");
+            m
+        });
+
+        strings.insert("config_write_failed", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Failed to write config file: {}");
+            m.insert(Language::Chinese, "写入配置文件失败: {}");
+            m
+        });
+
+        strings.insert("connection_name_exists", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection name already exists");
+            m.insert(Language::Chinese, "连接名称已存在");
+            m
+        });
+
+        strings.insert("connection_not_found", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection not found");
+            m.insert(Language::Chinese, "连接不存在");
+            m
+        });
+
+        // Generic / command errors
+        strings.insert("empty_command", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Empty command");
+            m.insert(Language::Chinese, "命令为空");
+            m
+        });
+
+        strings.insert("generic_error", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Error: {}");
+            m.insert(Language::Chinese, "错误: {}");
+            m
+        });
+
+        strings.insert("get_value_failed", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Failed to get value: {}");
+            m.insert(Language::Chinese, "获取值失败: {}");
+            m
+        });
+
         Self { strings }
     }
 }
