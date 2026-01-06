@@ -16,8 +16,20 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.8"
 dirs = "5.0"
+image = "0.25.9"
 
 [profile.release]
 lto = true
 codegen-units = 1
 strip = true
+
+[package.metadata.bundle]
+name = "Rudist"
+identifier = "com.sheldon.client.rudist"
+icon = ["assets/icon.icns"]
+resources = ["config.toml.example"]
+category = "public.app-category.developer-tools"
+short_description = "A small Redis GUI client built with egui/eframe"
+
+[package.metadata.bundle.macOS]
+entitlements = "entitlements.plist"

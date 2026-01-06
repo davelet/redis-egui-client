@@ -30,6 +30,61 @@
 cargo run
 ```
 
+### macOS App Bundle
+
+To build a macOS `.app` bundle and installer packages use `cargo-bundle`.
+
+1. Install the packaging tool:
+
+```bash
+cargo install cargo-bundle
+```
+
+2. Build a macOS app (local host arch):
+
+```bash
+./scripts/build-macos.sh
+```
+
+3. Build for specific architectures (optional):
+
+```bash
+# Apple Silicon
+cargo bundle --release --target aarch64-apple-darwin
+
+# Intel
+cargo bundle --release --target x86_64-apple-darwin
+```
+
+4. The generated bundles and installers will be in `./dist/`.
+
+Notes:
+- To distribute on the App Store or notarize, you must code sign and notarize the packages using your Apple Developer account.
+- Provide a proper `assets/icon.icns` file to set the app icon and update `identifier` in `Cargo.toml`.
+
+Alternative: simple manual bundle
+
+If you prefer a minimal manual bundling step (no extra tools), build the release binary and run:
+
+```bash
+cargo build --release
+./scripts/make-macos-app.sh
+```
+
+This will create `RedisGUI.app` in the workspace root; it does not perform codesigning or notarization.
+
+Generating a default app icon
+
+Note: `cargo-bundle` reads the icon path from `Cargo.toml` (`package.metadata.bundle.icon = "assets/icon.icns"`). The manual bundler (`scripts/make-macos-app.sh`) copies any `assets/icon.icns` into the app as `AppIcon.icns` (this matches the `CFBundleIconFile` used in the generated `Info.plist`).
+
+A simple placeholder vector icon is included at `assets/icon.svg`. To generate `assets/icon.icns` from the SVG (required by `cargo-bundle` and the manual bundler), run:
+
+```bash
+./scripts/generate-icon.sh
+```
+
+This script uses either `rsvg-convert` or ImageMagick's `convert` to rasterize the SVG, then uses macOS `sips` and `iconutil` to produce `assets/icon.icns`.
+
 ### Release 模式(优化启动速度)
 
 ```bash

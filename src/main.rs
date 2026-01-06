@@ -1,13 +1,13 @@
 mod app_state;
-mod redis_client;
 mod config;
-mod translations;
 mod constants;
+mod icon;
+mod redis_client;
+mod translations;
 mod ui;
 
 use eframe::egui;
 use tokio::runtime::Runtime;
-
 use constants::APP_NAME;
 use ui::RedisApp;
 
@@ -26,6 +26,7 @@ fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([crate::constants::WINDOW_WIDTH, crate::constants::WINDOW_HEIGHT])
+            .with_icon(icon::load_icon())
             .with_title(APP_NAME),
         ..Default::default()
     };
