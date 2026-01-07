@@ -3,10 +3,21 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use std::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Language {
     Chinese,
     English,
+}
+
+impl fmt::Display for Language {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Language::Chinese => write!(f, "zh"),
+            Language::English => write!(f, "en"),
+        }
+    }
 }
 
 impl Default for Language {
@@ -45,7 +56,9 @@ impl Default for AppState {
             key_value: Arc::new(RwLock::new(None)),
             command_input: Arc::new(RwLock::new(String::new())),
             command_output: Arc::new(RwLock::new(String::new())),
-            key_filter: Arc::new(RwLock::new(crate::constants::DEFAULT_KEY_FILTER.to_string())),
+            key_filter: Arc::new(RwLock::new(
+                crate::constants::DEFAULT_KEY_FILTER.to_string(),
+            )),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
         }
@@ -63,19 +76,20 @@ impl AppState {
             *state.loading.write().await = true;
             let url = state.connection_url.read().await.clone();
             let lang = *state.language.read().await;
-            
+
             match state.redis_client.connect(&url).await {
                 Ok(_) => {
                     *state.connected.write().await = true;
-                    
+
                     if let Ok(dbs) = state.redis_client.get_databases().await {
                         *state.databases.write().await = dbs;
                     }
-                    
+
                     state.spawn_load_keys();
                 }
                 Err(e) => {
-                    *state.command_output.write().await = crate::translations::tr_fmt("connection_failed", lang, &[&e.to_string()]);
+                    *state.command_output.write().await =
+                        crate::translations::tr_fmt("connection_failed", lang, &[&e.to_string()]);
                     *state.connected.write().await = false;
                 }
             }
@@ -136,17 +150,18 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
             let lang = *state.language.read().await;
-            
+
             match state.redis_client.get_value(&key).await {
                 Ok(value) => {
                     *state.selected_key.write().await = Some(key);
                     *state.key_value.write().await = Some(value);
                 }
                 Err(e) => {
-                    *state.command_output.write().await = crate::translations::tr_fmt("get_value_failed", lang, &[&e.to_string()]);
+                    *state.command_output.write().await =
+                        crate::translations::tr_fmt("get_value_failed", lang, &[&e.to_string()]);
                 }
             }
-            
+
             *state.loading.write().await = false;
         });
     }
@@ -158,7 +173,8 @@ impl AppState {
             let lang = *state.language.read().await;
 
             if cmd.trim().is_empty() {
-                *state.command_output.write().await = crate::translations::tr("empty_command", lang).to_string();
+                *state.command_output.write().await =
+                    crate::translations::tr("empty_command", lang).to_string();
                 *state.loading.write().await = false;
                 return;
             }
@@ -168,10 +184,11 @@ impl AppState {
                     *state.command_output.write().await = result;
                 }
                 Err(e) => {
-                    *state.command_output.write().await = crate::translations::tr_fmt("generic_error", lang, &[&e.to_string()]);
+                    *state.command_output.write().await =
+                        crate::translations::tr_fmt("generic_error", lang, &[&e.to_string()]);
                 }
             }
-            
+
             *state.loading.write().await = false;
         });
     }
@@ -182,7 +199,11 @@ impl AppState {
             match state.redis_client.get_list_range(&key, start, stop).await {
                 Ok(items) => {
                     let mut value = state.key_value.write().await;
-                    if let Some(ValueData::List { items: ref mut existing, .. }) = value.as_mut() {
+                    if let Some(ValueData::List {
+                        items: ref mut existing,
+                        ..
+                    }) = value.as_mut()
+                    {
                         *existing = items;
                     }
                 }
@@ -197,7 +218,11 @@ impl AppState {
             match state.redis_client.get_hash_fields(&key, 0, 100).await {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
-                    if let Some(ValueData::Hash { fields: ref mut existing, .. }) = value.as_mut() {
+                    if let Some(ValueData::Hash {
+                        fields: ref mut existing,
+                        ..
+                    }) = value.as_mut()
+                    {
                         *existing = fields;
                     }
                 }

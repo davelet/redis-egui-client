@@ -2,15 +2,33 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedisConnection {
     pub name: String,
     pub url: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct WindowConfig {
+    pub width: f32,
+    pub height: f32,
+    pub x: f32,
+    pub y: f32,
+    #[serde(default = "default_maximized")]
+    pub maximized: bool,
+}
+
+fn default_maximized() -> bool {
+    false
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     pub connections: Vec<RedisConnection>,
+    #[serde(default)]
+    pub window: WindowConfig,
+    #[serde(default)]
+    pub language: String,
 }
 
 #[derive(Debug)]
@@ -51,41 +69,42 @@ impl Config {
 
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_file_path()?;
-        
+
         if !path.exists() {
             // 如果配置文件不存在,创建默认配置
             let default_config = Config {
-                connections: vec![
-                    RedisConnection {
-                        name: "本地 Redis".to_string(),
-                        url: crate::constants::DEFAULT_REDIS_URL.to_string(),
-                    }
-                ],
+                connections: vec![RedisConnection {
+                    name: "本地 Redis".to_string(),
+                    url: crate::constants::DEFAULT_REDIS_URL.to_string(),
+                }],
+                window: WindowConfig {
+                    width: 1024.0,
+                    height: 768.0,
+                    x: 100.0,
+                    y: 100.0,
+                    maximized: false,
+                },
+                language: "zh".to_string(),
             };
             default_config.save()?;
             return Ok(default_config);
         }
 
-        let content = fs::read_to_string(&path)
-            .map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
-        
-        toml::from_str(&content)
-            .map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
+        let content =
+            fs::read_to_string(&path).map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
+
+        toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
     }
 
     pub fn save(&self) -> Result<(), ConfigError> {
-        let config_dir = Self::config_path()?;
-        
-        // 确保配置目录存在
-        fs::create_dir_all(&config_dir)
-            .map_err(|e| ConfigError::CreateDirFailed(format!("{}", e)))?;
+        let config_path = Self::config_path()?;
+        std::fs::create_dir_all(&config_path)
+            .map_err(|e| ConfigError::CreateDirFailed(e.to_string()))?;
 
-        let config_file = Self::config_file_path()?;
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| ConfigError::WriteFailed(format!("{}", e)))?;
-
-        fs::write(&config_file, content)
-            .map_err(|e| ConfigError::WriteFailed(format!("{}", e)))?;
+        let toml =
+            toml::to_string_pretty(self).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        std::fs::write(Self::config_file_path()?, toml)
+            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
 
         Ok(())
     }
@@ -107,19 +126,51 @@ impl Config {
         Ok(())
     }
 
-    pub fn update_connection(&mut self, old_name: &str, new_name: String, new_url: String) -> Result<(), ConfigError> {
-        // 如果改名了,检查新名称是否已存在
+    pub fn update_connection(
+        &mut self,
+        old_name: &str,
+        new_name: String,
+        new_url: String,
+    ) -> Result<(), ConfigError> {
+        // First check if the connection exists
+        if !self.connections.iter().any(|c| c.name == old_name) {
+            return Err(ConfigError::ConnectionNotFound);
+        }
+
+        // Then check for name conflicts if the name is being changed
         if old_name != new_name && self.connections.iter().any(|c| c.name == new_name) {
             return Err(ConfigError::ConnectionNameExists);
         }
 
+        // Now we can safely update the connection
         if let Some(conn) = self.connections.iter_mut().find(|c| c.name == old_name) {
             conn.name = new_name;
             conn.url = new_url;
             self.save()?;
-            Ok(())
-        } else {
-            Err(ConfigError::ConnectionNotFound)
         }
+
+        Ok(())
+    }
+
+    pub fn update_window_size(&mut self, width: f32, height: f32) -> Result<(), ConfigError> {
+        self.window.width = width.max(100.0);
+        self.window.height = height.max(100.0);
+        self.save()
+    }
+
+    pub fn update_window_position(&mut self, x: f32, y: f32) -> Result<(), ConfigError> {
+        self.window.x = x;
+        self.window.y = y;
+        self.save()
+    }
+
+    pub fn update_maximized(&mut self, maximized: bool) -> Result<(), ConfigError> {
+        self.window.maximized = maximized;
+        self.save()
+    }
+
+    pub fn update_language(&mut self, language: &str) -> Result<(), ConfigError> {
+        self.language = language.to_string();
+        self.save()
     }
 }

@@ -1,8 +1,8 @@
 use crate::app_state::{AppState, Language};
 use crate::config::Config;
+use crate::redis_client::ValueData;
 use crate::translations::{tr, tr_fmt};
 use eframe::egui;
-use crate::redis_client::ValueData;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -18,11 +18,22 @@ pub struct RedisApp {
     error_message: String,
 }
 
-impl Default for RedisApp {
-    fn default() -> Self {
-        let config = Config::load().unwrap_or_default();
+impl RedisApp {
+    pub fn with_config(config: Config) -> Self {
+        let mut state = AppState::new();
+        
+        // Initialize language from config
+        if !config.language.is_empty() {
+            let lang = if config.language == "zh" {
+                Language::Chinese
+            } else {
+                Language::English
+            };
+            state.language = Arc::new(RwLock::new(lang));
+        }
+
         Self {
-            state: AppState::new(),
+            state,
             config,
             selected_connection: None,
             command_input_buffer: String::new(),
@@ -35,17 +46,58 @@ impl Default for RedisApp {
     }
 }
 
+impl Default for RedisApp {
+    fn default() -> Self {
+        let config = Config::load().unwrap_or_default();
+        Self::with_config(config)
+    }
+}
+
 impl eframe::App for RedisApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         configure_fonts(ctx);
         ctx.request_repaint();
 
+        // Get the viewport information before the async block
+        let viewport = ctx.input(|i| i.viewport().clone());
+        let is_maximized = viewport.maximized.unwrap_or(false);
+        let rect = viewport.outer_rect;
+
+        // Clone only what we need for the async block
+        let mut config = self.config.clone();
+
+        // Spawn the async task for saving window state
+        if let Some(rect) = rect {
+            if !config.window.maximized {
+                let _ = config.update_window_position(rect.min.x, rect.min.y);
+                let _ = config.update_window_size(rect.width(), rect.height());
+            }
+
+            if is_maximized != config.window.maximized {
+                let _ = config.update_maximized(is_maximized);
+            }
+        }
+
+        // Handle language updates
+        {
+            let current_lang = self.state.language.blocking_read();
+            let current_lang_str = current_lang.to_string();
+            if self.config.language != current_lang_str {
+                if let Err(e) = self.config.update_language(&current_lang_str) {
+                    eprintln!(
+                        "Failed to update language: {}",
+                        e.to_message(Language::English)
+                    );
+                }
+            }
+        } // current_lang is dropped here, releasing the read lock
+
+        // Update UI
         self.render_top_panel(ctx);
         self.render_side_panel(ctx);
         self.render_central_panel(ctx);
     }
 }
-
 
 // Function to configure fonts for Chinese characters
 fn configure_fonts(ctx: &egui::Context) {
@@ -77,7 +129,6 @@ fn configure_fonts(ctx: &egui::Context) {
     ctx.set_fonts(fonts);
 }
 
-
 impl RedisApp {
     fn render_top_panel(&mut self, ctx: &egui::Context) {
         let current_lang = self.poll_language(self.state.language.clone());
@@ -85,13 +136,14 @@ impl RedisApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label(tr("connection_url", current_lang));
-                
+
                 // 连接下拉框
-                let selected_name = self.selected_connection
+                let selected_name = self
+                    .selected_connection
                     .and_then(|idx| self.config.connections.get(idx))
                     .map(|c| c.name.clone())
                     .unwrap_or_else(|| tr("select_connection", current_lang).to_string());
-                
+
                 egui::ComboBox::from_id_salt("connection_select")
                     .selected_text(selected_name)
                     .show_ui(ui, |ui| {
@@ -102,34 +154,40 @@ impl RedisApp {
                             }
                         }
                     });
-                
+
                 // 新增连接按钮
-                if ui.button(format!("+ {}", tr("new_connection", current_lang))).clicked() {
+                if ui
+                    .button(format!("+ {}", tr("new_connection", current_lang)))
+                    .clicked()
+                {
                     self.show_new_connection_dialog = true;
                     self.new_connection_name.clear();
                     self.new_connection_url = crate::constants::DEFAULT_REDIS_URL.to_string();
                     self.error_message.clear();
                 }
                 ui.separator();
-                
+
                 let connected = self.poll_bool(self.state.connected.clone());
-                
+
                 if connected {
                     if ui.button(tr("disconnect", current_lang)).clicked() {
                         self.state.spawn_disconnect();
                     }
-                    
+
                     ui.separator();
                     ui.label(tr("database", current_lang));
-                    
+
                     let current_db = self.poll_u32(self.state.current_db.clone());
                     let databases = self.poll_vec_u32(self.state.databases.clone());
-                    
+
                     egui::ComboBox::from_id_salt("db_select")
                         .selected_text(format!("DB {}", current_db))
                         .show_ui(ui, |ui| {
                             for db in databases {
-                                if ui.selectable_label(current_db == db, format!("DB {}", db)).clicked() {
+                                if ui
+                                    .selectable_label(current_db == db, format!("DB {}", db))
+                                    .clicked()
+                                {
                                     self.state.spawn_select_db(db);
                                 }
                             }
@@ -145,11 +203,12 @@ impl RedisApp {
                                 self.state.spawn_connect();
                             }
                         } else {
-                            self.error_message = tr("please_select_connection", current_lang).to_string();
+                            self.error_message =
+                                tr("please_select_connection", current_lang).to_string();
                         }
                     }
                 }
-                
+
                 let loading = self.poll_bool(self.state.loading.clone());
                 if loading {
                     ui.spinner();
@@ -165,23 +224,29 @@ impl RedisApp {
                         Language::Chinese => tr("chinese", lang),
                     })
                     .show_ui(ui, |ui| {
-                        if ui.selectable_label(
-                            matches!(lang, Language::English),
-                            tr("english", lang),
-                        ).clicked() {
+                        if ui
+                            .selectable_label(
+                                matches!(lang, Language::English),
+                                tr("english", lang),
+                            )
+                            .clicked()
+                        {
                             self.update_language(Language::English);
                         }
-                        if ui.selectable_label(
-                            matches!(lang, Language::Chinese),
-                            tr("chinese", lang),
-                        ).clicked() {
+                        if ui
+                            .selectable_label(
+                                matches!(lang, Language::Chinese),
+                                tr("chinese", lang),
+                            )
+                            .clicked()
+                        {
                             self.update_language(Language::Chinese);
                         }
                     });
                 ui.label(tr("language", lang));
             });
         });
-        
+
         // 新建连接对话框
         if self.show_new_connection_dialog {
             self.render_new_connection_dialog(ctx, current_lang);
@@ -226,7 +291,7 @@ impl RedisApp {
                 });
             });
     }
-    
+
     fn render_new_connection_dialog(&mut self, ctx: &egui::Context, current_lang: Language) {
         egui::Window::new(tr("new_connection_dialog", current_lang))
             .collapsible(false)
@@ -237,22 +302,24 @@ impl RedisApp {
                         ui.label(tr("connection_name", current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_name);
                     });
-                    
+
                     ui.horizontal(|ui| {
                         ui.label(tr("connection_address", current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_url);
                     });
-                    
+
                     if !self.error_message.is_empty() {
                         ui.colored_label(egui::Color32::RED, &self.error_message);
                     }
-                    
+
                     ui.horizontal(|ui| {
                         if ui.button(tr("save", current_lang)).clicked() {
                             if self.new_connection_name.trim().is_empty() {
-                                self.error_message = tr("please_enter_connection_name", current_lang).to_string();
+                                self.error_message =
+                                    tr("please_enter_connection_name", current_lang).to_string();
                             } else if self.new_connection_url.trim().is_empty() {
-                                self.error_message = tr("please_enter_connection_address", current_lang).to_string();
+                                self.error_message =
+                                    tr("please_enter_connection_address", current_lang).to_string();
                             } else {
                                 match self.config.add_connection(
                                     self.new_connection_name.clone(),
@@ -268,7 +335,7 @@ impl RedisApp {
                                 }
                             }
                         }
-                        
+
                         if ui.button(tr("cancel", current_lang)).clicked() {
                             self.show_new_connection_dialog = false;
                             self.error_message.clear();

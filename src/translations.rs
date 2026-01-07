@@ -17,12 +17,12 @@ impl Default for Translator {
             m
         });
 
-            strings.insert("new_connection", {
-        let mut m = HashMap::new();
-        m.insert(Language::Chinese, "新建连接");
-        m.insert(Language::English, "New Connection");
-        m
-    });
+        strings.insert("new_connection", {
+            let mut m = HashMap::new();
+            m.insert(Language::Chinese, "新建连接");
+            m.insert(Language::English, "New Connection");
+            m
+        });
 
         strings.insert("disconnect", {
             let mut m = HashMap::new();

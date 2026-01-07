@@ -61,7 +61,12 @@ impl RedisClient {
                 .await
                 .unwrap_or_else(|_| "16".to_string());
 
-            let db_count: u32 = config.split_whitespace().last().unwrap_or("16").parse().unwrap_or(16);
+            let db_count: u32 = config
+                .split_whitespace()
+                .last()
+                .unwrap_or("16")
+                .parse()
+                .unwrap_or(16);
             Ok((0..db_count).collect())
         } else {
             Ok(vec![])
@@ -80,7 +85,12 @@ impl RedisClient {
         }
     }
 
-    pub async fn scan_keys(&self, cursor: u64, pattern: &str, count: usize) -> Result<(u64, Vec<String>), RedisError> {
+    pub async fn scan_keys(
+        &self,
+        cursor: u64,
+        pattern: &str,
+        count: usize,
+    ) -> Result<(u64, Vec<String>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
             let (new_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
@@ -109,7 +119,7 @@ impl RedisClient {
     pub async fn get_value(&self, key: &str) -> Result<ValueData, RedisError> {
         let key_type = self.get_key_type(key).await?;
         let mut manager = self.manager.write().await;
-        
+
         if let Some(conn) = manager.as_mut() {
             match key_type.as_str() {
                 "string" => {
@@ -130,7 +140,10 @@ impl RedisClient {
                 }
                 "hash" => {
                     let len: usize = conn.hlen(key).await?;
-                    Ok(ValueData::Hash { len, fields: vec![] })
+                    Ok(ValueData::Hash {
+                        len,
+                        fields: vec![],
+                    })
                 }
                 _ => Ok(ValueData::None),
             }
@@ -139,7 +152,12 @@ impl RedisClient {
         }
     }
 
-    pub async fn get_list_range(&self, key: &str, start: isize, stop: isize) -> Result<Vec<String>, RedisError> {
+    pub async fn get_list_range(
+        &self,
+        key: &str,
+        start: isize,
+        stop: isize,
+    ) -> Result<Vec<String>, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
             conn.lrange(key, start, stop).await
@@ -148,7 +166,12 @@ impl RedisClient {
         }
     }
 
-    pub async fn get_hash_fields(&self, key: &str, cursor: u64, count: usize) -> Result<(u64, Vec<(String, String)>), RedisError> {
+    pub async fn get_hash_fields(
+        &self,
+        key: &str,
+        cursor: u64,
+        count: usize,
+    ) -> Result<(u64, Vec<(String, String)>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
             let (new_cursor, items): (u64, Vec<String>) = redis::cmd("HSCAN")
@@ -158,7 +181,7 @@ impl RedisClient {
                 .arg(count)
                 .query_async(conn)
                 .await?;
-            
+
             let mut pairs = vec![];
             for i in (0..items.len()).step_by(2) {
                 if i + 1 < items.len() {
@@ -175,10 +198,22 @@ impl RedisClient {
 #[derive(Debug, Clone)]
 pub enum ValueData {
     String(String),
-    List { len: usize, items: Vec<String> },
-    Set { len: usize, items: Vec<String> },
-    ZSet { len: usize, items: Vec<(String, f64)> },
-    Hash { len: usize, fields: Vec<(String, String)> },
+    List {
+        len: usize,
+        items: Vec<String>,
+    },
+    Set {
+        len: usize,
+        items: Vec<String>,
+    },
+    ZSet {
+        len: usize,
+        items: Vec<(String, f64)>,
+    },
+    Hash {
+        len: usize,
+        fields: Vec<(String, String)>,
+    },
     None,
 }
 
