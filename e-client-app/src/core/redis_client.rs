@@ -45,7 +45,7 @@ impl RedisClient {
             Ok(format_redis_value(&result))
         } else {
             Err(RedisError::from((
-                redis::ErrorKind::IoError,
+                redis::ErrorKind::Io,
                 "Not connected",
             )))
         }
@@ -79,7 +79,7 @@ impl RedisClient {
             redis::cmd("SELECT").arg(db).query_async(conn).await
         } else {
             Err(RedisError::from((
-                redis::ErrorKind::IoError,
+                redis::ErrorKind::Io,
                 "Not connected",
             )))
         }

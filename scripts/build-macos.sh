@@ -8,13 +8,13 @@ set -euo pipefail
 #  - (Optional) codesign identity and notarization credentials for distribution
 
 # Build for current host architecture (recommended for local testing)
-cargo bundle --release
+cargo bundle -p e-client-app --release
 
 # For Apple Silicon (aarch64) explicit target:
 # cargo bundle --release --target aarch64-apple-darwin
 
 # For Intel (x86_64) explicit target:
-cargo bundle --release --target x86_64-apple-darwin
+#cargo bundle -p e-client-app --release --target x86_64-apple-darwin
 
 # After running, look in dist/ for the generated .app and installer packages.
 

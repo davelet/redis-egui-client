@@ -1,10 +1,11 @@
-use crate::app_state::{AppState, Language};
-use crate::config::Config;
-use crate::redis_client::ValueData;
-use crate::translations::{tr, tr_fmt};
-use eframe::egui;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use e_client_config::config::Config;
+use e_client_config::constants::{DEFAULT_KEY_FILTER, DEFAULT_REDIS_URL};
+use e_client_config::language::Language;
+use e_client_config::translations::{tr, tr_fmt};
+use crate::core::app_state::AppState;
+use crate::core::redis_client::ValueData;
 
 pub struct RedisApp {
     state: AppState,
@@ -18,45 +19,9 @@ pub struct RedisApp {
     error_message: String,
 }
 
-impl RedisApp {
-    pub fn with_config(config: Config) -> Self {
-        let mut state = AppState::new();
-        
-        // Initialize language from config
-        if !config.language.is_empty() {
-            let lang = if config.language == "zh" {
-                Language::Chinese
-            } else {
-                Language::English
-            };
-            state.language = Arc::new(RwLock::new(lang));
-        }
-
-        Self {
-            state,
-            config,
-            selected_connection: None,
-            command_input_buffer: String::new(),
-            key_filter_input: crate::constants::DEFAULT_KEY_FILTER.to_string(),
-            show_new_connection_dialog: false,
-            new_connection_name: String::new(),
-            new_connection_url: crate::constants::DEFAULT_REDIS_URL.to_string(),
-            error_message: String::new(),
-        }
-    }
-}
-
-impl Default for RedisApp {
-    fn default() -> Self {
-        let config = Config::load().unwrap_or_default();
-        Self::with_config(config)
-    }
-}
-
 impl eframe::App for RedisApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        configure_fonts(ctx);
-        ctx.request_repaint();
+        // ctx.request_repaint();
 
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
@@ -99,37 +64,32 @@ impl eframe::App for RedisApp {
     }
 }
 
-// Function to configure fonts for Chinese characters
-fn configure_fonts(ctx: &egui::Context) {
-    use egui::FontFamily;
-
-    let mut fonts = egui::FontDefinitions::default();
-
-    // Add the Songti.ttc font for Chinese characters
-    fonts.font_data.insert("songti".to_owned(), {
-        let font_data = std::fs::read("/System/Library/Fonts/Supplemental/Songti.ttc")
-            .expect("Failed to read Songti font file");
-        egui::FontData::from_owned(font_data).into()
-    });
-
-    // Use the Songti font for proportional text
-    fonts
-        .families
-        .entry(FontFamily::Proportional)
-        .or_default()
-        .insert(0, "songti".to_owned());
-
-    // Use the Songti font for monospace text
-    fonts
-        .families
-        .entry(FontFamily::Monospace)
-        .or_default()
-        .insert(0, "songti".to_owned());
-
-    ctx.set_fonts(fonts);
-}
-
 impl RedisApp {
+    pub fn with_config(config: Config) -> Self {
+        let mut state = AppState::new();
+
+        // Initialize language from config
+        if !config.language.is_empty() {
+            let lang = if config.language == "zh" {
+                Language::Chinese
+            } else {
+                Language::English
+            };
+            state.language = Arc::new(RwLock::new(lang));
+        }
+
+        Self {
+            state,
+            config,
+            selected_connection: None, // todo - remember the last opened
+            command_input_buffer: String::new(),
+            key_filter_input: DEFAULT_KEY_FILTER.to_string(),
+            show_new_connection_dialog: false,
+            new_connection_name: String::new(),
+            new_connection_url: DEFAULT_REDIS_URL.to_string(),
+            error_message: String::new(),
+        }
+    }
     fn render_top_panel(&mut self, ctx: &egui::Context) {
         let current_lang = self.poll_language(self.state.language.clone());
 
@@ -137,7 +97,7 @@ impl RedisApp {
             ui.horizontal(|ui| {
                 ui.label(tr("connection_url", current_lang));
 
-                // 连接下拉框
+                // Connection dropdown
                 let selected_name = self
                     .selected_connection
                     .and_then(|idx| self.config.connections.get(idx))
@@ -155,14 +115,14 @@ impl RedisApp {
                         }
                     });
 
-                // 新增连接按钮
+                // Add new connection button
                 if ui
                     .button(format!("+ {}", tr("new_connection", current_lang)))
                     .clicked()
                 {
                     self.show_new_connection_dialog = true;
                     self.new_connection_name.clear();
-                    self.new_connection_url = crate::constants::DEFAULT_REDIS_URL.to_string();
+                    self.new_connection_url = DEFAULT_REDIS_URL.to_string();
                     self.error_message.clear();
                 }
                 ui.separator();
@@ -247,7 +207,7 @@ impl RedisApp {
             });
         });
 
-        // 新建连接对话框
+        // New connection dialog
         if self.show_new_connection_dialog {
             self.render_new_connection_dialog(ctx, current_lang);
         }

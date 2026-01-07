@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use e_client_bilingual::constants::DEFAULT_REDIS_URL;
+use e_client_bilingual::language::Language;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedisConnection {
@@ -43,8 +45,8 @@ pub enum ConfigError {
 }
 
 impl ConfigError {
-    pub fn to_message(&self, lang: crate::app_state::Language) -> String {
-        use crate::translations::{tr, tr_fmt};
+    pub fn to_message(&self, lang: Language) -> String {
+        use e_client_bilingual::translations::{tr, tr_fmt};
         match self {
             ConfigError::HomeDirMissing => tr("config_home_dir_missing", lang).to_string(),
             ConfigError::ReadFailed(e) => tr_fmt("config_read_failed", lang, &[e]),
@@ -71,11 +73,11 @@ impl Config {
         let path = Self::config_file_path()?;
 
         if !path.exists() {
-            // 如果配置文件不存在,创建默认配置
+            // If the config file doesn't exist, create a default configuration
             let default_config = Config {
                 connections: vec![RedisConnection {
                     name: "本地 Redis".to_string(),
-                    url: crate::constants::DEFAULT_REDIS_URL.to_string(),
+                    url: DEFAULT_REDIS_URL.to_string(),
                 }],
                 window: WindowConfig {
                     width: 1024.0,
@@ -110,7 +112,7 @@ impl Config {
     }
 
     pub fn add_connection(&mut self, name: String, url: String) -> Result<(), ConfigError> {
-        // 检查是否已存在同名连接
+        // Check if a connection with the same name already exists
         if self.connections.iter().any(|c| c.name == name) {
             return Err(ConfigError::ConnectionNameExists);
         }

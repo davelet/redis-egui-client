@@ -1,30 +1,10 @@
-use crate::redis_client::{RedisClient, ValueData};
-use serde::{Deserialize, Serialize};
+use crate::core::redis_client::{RedisClient, ValueData};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use std::fmt;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub enum Language {
-    Chinese,
-    English,
-}
-
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Language::Chinese => write!(f, "zh"),
-            Language::English => write!(f, "en"),
-        }
-    }
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language::English
-    }
-}
+use e_client_config::constants::{DEFAULT_KEY_FILTER, DEFAULT_REDIS_URL};
+use e_client_config::language::Language;
+use e_client_config::translations::{tr, tr_fmt};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -47,7 +27,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             redis_client: RedisClient::new(),
-            connection_url: Arc::new(RwLock::new(crate::constants::DEFAULT_REDIS_URL.to_string())),
+            connection_url: Arc::new(RwLock::new(DEFAULT_REDIS_URL.to_string())),
             connected: Arc::new(RwLock::new(false)),
             current_db: Arc::new(RwLock::new(0)),
             databases: Arc::new(RwLock::new(vec![])),
@@ -57,7 +37,7 @@ impl Default for AppState {
             command_input: Arc::new(RwLock::new(String::new())),
             command_output: Arc::new(RwLock::new(String::new())),
             key_filter: Arc::new(RwLock::new(
-                crate::constants::DEFAULT_KEY_FILTER.to_string(),
+                DEFAULT_KEY_FILTER.to_string(),
             )),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
@@ -88,8 +68,7 @@ impl AppState {
                     state.spawn_load_keys();
                 }
                 Err(e) => {
-                    *state.command_output.write().await =
-                        crate::translations::tr_fmt("connection_failed", lang, &[&e.to_string()]);
+                    *state.command_output.write().await = tr_fmt("connection_failed", lang, &[&e.to_string()]);
                     *state.connected.write().await = false;
                 }
             }
@@ -158,7 +137,7 @@ impl AppState {
                 }
                 Err(e) => {
                     *state.command_output.write().await =
-                        crate::translations::tr_fmt("get_value_failed", lang, &[&e.to_string()]);
+                        tr_fmt("get_value_failed", lang, &[&e.to_string()]);
                 }
             }
 
@@ -173,8 +152,7 @@ impl AppState {
             let lang = *state.language.read().await;
 
             if cmd.trim().is_empty() {
-                *state.command_output.write().await =
-                    crate::translations::tr("empty_command", lang).to_string();
+                *state.command_output.write().await = tr("empty_command", lang).to_string();
                 *state.loading.write().await = false;
                 return;
             }
@@ -185,7 +163,7 @@ impl AppState {
                 }
                 Err(e) => {
                     *state.command_output.write().await =
-                        crate::translations::tr_fmt("generic_error", lang, &[&e.to_string()]);
+                        tr_fmt("generic_error", lang, &[&e.to_string()]);
                 }
             }
 
@@ -200,7 +178,7 @@ impl AppState {
                 Ok(items) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::List {
-                        items: ref mut existing,
+                        items: existing,
                         ..
                     }) = value.as_mut()
                     {
@@ -219,7 +197,7 @@ impl AppState {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Hash {
-                        fields: ref mut existing,
+                        fields: existing,
                         ..
                     }) = value.as_mut()
                     {

@@ -1,5 +1,5 @@
-use super::app_state::Language;
 use std::collections::HashMap;
+use crate::language::Language;
 
 pub struct Translator {
     strings: HashMap<&'static str, HashMap<Language, &'static str>>,

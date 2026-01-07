@@ -1,7 +1,7 @@
 use eframe::egui::IconData;
 
 pub fn load_icon() -> IconData {
-    let bytes = include_bytes!("../assets/icon-1024.png");
+    let bytes = include_bytes!("../../../assets/icon-1024.png");
 
     let image = image::load_from_memory(bytes).unwrap_or_else(|e| {
         panic!("Failed to load icon {}", e);

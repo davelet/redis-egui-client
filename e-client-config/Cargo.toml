@@ -1,0 +1,10 @@
+[package]
+name = "e-client-config"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+e-client-bilingual = { path = "../e-client-bilingual" }
+serde = { version = "1.0.228", features = ["derive"] }
+dirs = "6.0.0"
+toml = "0.9.10"

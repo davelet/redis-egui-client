@@ -1,37 +1,10 @@
-[package]
-name = "redis-egui-client"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-egui = "0.30"
-eframe = { version = "0.30", default-features = false, features = [
-    "default_fonts",
-    "glow",
-    "wgpu",
-] }
-tokio = { version = "1.0", features = ["full"] }
-redis = { version = "0.27", features = ["tokio-native-tls-comp", "connection-manager"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.8"
-dirs = "5.0"
-image = "0.25.9"
-log = "0.4"
-winit = { version = "0.30", features = ["rwh_05"] }
-
+[workspace]
+members = ["e-client-app",
+    "e-client-basics",
+    "e-client-bilingual",
+    "e-client-config"]
+resolver = "3"
 [profile.release]
 lto = true
 codegen-units = 1
 strip = true
-
-[package.metadata.bundle]
-name = "Rudist"
-identifier = "com.sheldon.client.rudist"
-icon = ["assets/icon.icns"]
-resources = ["config.toml.example"]
-category = "public.app-category.developer-tools"
-short_description = "A small Redis GUI client built with egui/eframe"
-
-[package.metadata.bundle.macOS]
-entitlements = "entitlements.plist"
