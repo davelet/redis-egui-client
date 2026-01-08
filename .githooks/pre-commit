@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+# 1. 暂存所有未暂存的修改（保留索引/暂存区内容）
+git stash save -q --keep-index "pre-commit backup"
+
+# 2. 运行格式化工具（它会修改工作区中的所有相关文件）
+echo "running 'cargo fmt --all'"
+cargo fmt --all
+
+# 3. 只添加已跟踪文件的修改到暂存区（排除了新文件）
+# 注意：这会将所有已跟踪文件的修改全部加入暂存区
+git add -u
+
+# 4. 恢复之前未暂存的修改到工作区（再次成为未暂存状态）
+git stash pop -q
+
+# 5. 如果第4步有冲突，需要处理错误（可选，但推荐）
+if [ $? -ne 0 ]; then
+  echo "Warning: Stash pop had conflicts. Please resolve them manually."
+  # 退出并保留冲突状态供用户手动解决
+  exit 1
+fi
+exit 0

@@ -1,8 +1,8 @@
-use tokio::runtime::Runtime;
 use crate::ui::start_app;
+use tokio::runtime::Runtime;
 
-mod ui;
 mod core;
+mod ui;
 
 fn main() -> Result<(), eframe::Error> {
     let runtime = Runtime::new().unwrap();
@@ -16,5 +16,5 @@ fn main() -> Result<(), eframe::Error> {
         });
     });
 
-   start_app()
+    start_app()
 }

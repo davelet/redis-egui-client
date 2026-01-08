@@ -1,4 +1,4 @@
-use redis::{aio::ConnectionManager, AsyncCommands, Client, RedisError};
+use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -44,10 +44,7 @@ impl RedisClient {
 
             Ok(format_redis_value(&result))
         } else {
-            Err(RedisError::from((
-                redis::ErrorKind::Io,
-                "Not connected",
-            )))
+            Err(RedisError::from((redis::ErrorKind::Io, "Not connected")))
         }
     }
 
@@ -78,10 +75,7 @@ impl RedisClient {
         if let Some(conn) = manager.as_mut() {
             redis::cmd("SELECT").arg(db).query_async(conn).await
         } else {
-            Err(RedisError::from((
-                redis::ErrorKind::Io,
-                "Not connected",
-            )))
+            Err(RedisError::from((redis::ErrorKind::Io, "Not connected")))
         }
     }
 

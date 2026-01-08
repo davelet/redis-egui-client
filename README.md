@@ -30,6 +30,21 @@
 cargo run
 ```
 
+### 开发 & Git hooks
+
+项目包含一个 pre-commit hook，用于在提交前自动运行格式化。要启用仓库内的 hooks（只需在本地运行一次）：
+
+```bash
+sh scripts/setup-git-hooks.sh
+# 之后每次 git commit 时会自动运行 `cargo fmt --all`，并将格式化改动暂存
+```
+
+如果你更喜欢手动运行格式化：
+
+```bash
+cargo fmt --all
+```
+
 ### macOS App Bundle
 
 To build a macOS `.app` bundle and installer packages use `cargo-bundle`.

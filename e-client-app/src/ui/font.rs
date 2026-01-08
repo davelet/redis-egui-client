@@ -28,4 +28,3 @@ pub(crate) fn configure_fonts(ctx: &egui::Context) {
 
     ctx.set_fonts(fonts);
 }
-

@@ -4,6 +4,7 @@ use tokio::sync::RwLock;
 
 use e_client_config::constants::{DEFAULT_KEY_FILTER, DEFAULT_REDIS_URL};
 use e_client_config::language::Language;
+use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
 
 #[derive(Clone)]
@@ -36,9 +37,7 @@ impl Default for AppState {
             key_value: Arc::new(RwLock::new(None)),
             command_input: Arc::new(RwLock::new(String::new())),
             command_output: Arc::new(RwLock::new(String::new())),
-            key_filter: Arc::new(RwLock::new(
-                DEFAULT_KEY_FILTER.to_string(),
-            )),
+            key_filter: Arc::new(RwLock::new(DEFAULT_KEY_FILTER.to_string())),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
         }
@@ -68,7 +67,8 @@ impl AppState {
                     state.spawn_load_keys();
                 }
                 Err(e) => {
-                    *state.command_output.write().await = tr_fmt("connection_failed", lang, &[&e.to_string()]);
+                    *state.command_output.write().await =
+                        tr_fmt(keys::CONNECTION_FAILED, lang, &[&e.to_string()]);
                     *state.connected.write().await = false;
                 }
             }
@@ -137,7 +137,7 @@ impl AppState {
                 }
                 Err(e) => {
                     *state.command_output.write().await =
-                        tr_fmt("get_value_failed", lang, &[&e.to_string()]);
+                        tr_fmt(keys::GET_VALUE_FAILED, lang, &[&e.to_string()]);
                 }
             }
 
@@ -152,7 +152,7 @@ impl AppState {
             let lang = *state.language.read().await;
 
             if cmd.trim().is_empty() {
-                *state.command_output.write().await = tr("empty_command", lang).to_string();
+                *state.command_output.write().await = tr(keys::EMPTY_COMMAND, lang).to_string();
                 *state.loading.write().await = false;
                 return;
             }
@@ -163,7 +163,7 @@ impl AppState {
                 }
                 Err(e) => {
                     *state.command_output.write().await =
-                        tr_fmt("generic_error", lang, &[&e.to_string()]);
+                        tr_fmt(keys::GENERIC_ERROR, lang, &[&e.to_string()]);
                 }
             }
 
@@ -178,8 +178,7 @@ impl AppState {
                 Ok(items) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::List {
-                        items: existing,
-                        ..
+                        items: existing, ..
                     }) = value.as_mut()
                     {
                         *existing = items;
@@ -197,8 +196,7 @@ impl AppState {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Hash {
-                        fields: existing,
-                        ..
+                        fields: existing, ..
                     }) = value.as_mut()
                     {
                         *existing = fields;

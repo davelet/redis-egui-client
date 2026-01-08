@@ -1,16 +1,16 @@
-use e_client_config::config::Config;
-use e_client_config::constants::APP_NAME;
 use crate::ui::icon::load_icon;
 use crate::ui::window::RedisApp;
+use e_client_config::config::Config;
+use e_client_config::constants::APP_NAME;
 
-pub mod window;
 pub mod font;
 pub mod icon;
+pub mod window;
 
 pub(crate) fn start_app() -> eframe::Result {
     // Load configuration
     let config = Config::load().unwrap_or_default();
-    let width = config.window.width.max(100.0);  // Minimum width 100
+    let width = config.window.width.max(100.0); // Minimum width 100
     let height = config.window.height.max(100.0); // Minimum height 100
     let mut viewport = egui::ViewportBuilder::default()
         .with_icon(load_icon())
@@ -21,7 +21,7 @@ pub(crate) fn start_app() -> eframe::Result {
         viewport = viewport
             .with_inner_size([width, height])
             .with_position(egui::Pos2::new(
-                config.window.x.max(0.0),  // Ensure position is not negative
+                config.window.x.max(0.0), // Ensure position is not negative
                 config.window.y.max(0.0),
             ));
     } else {
@@ -30,9 +30,9 @@ pub(crate) fn start_app() -> eframe::Result {
 
     let options = eframe::NativeOptions {
         viewport,
-        vsync: true,  // Enable vertical sync
-        multisampling: 0,  // Disable multisampling
-        renderer: eframe::Renderer::Wgpu,  // Explicitly use wgpu renderer
+        vsync: true,                      // Enable vertical sync
+        multisampling: 0,                 // Disable multisampling
+        renderer: eframe::Renderer::Wgpu, // Explicitly use wgpu renderer
         ..Default::default()
     };
 

@@ -1,8 +1,8 @@
+use e_client_bilingual::constants::DEFAULT_REDIS_URL;
+use e_client_bilingual::language::Language;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use e_client_bilingual::constants::DEFAULT_REDIS_URL;
-use e_client_bilingual::language::Language;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedisConnection {
@@ -48,13 +48,41 @@ impl ConfigError {
     pub fn to_message(&self, lang: Language) -> String {
         use e_client_bilingual::translations::{tr, tr_fmt};
         match self {
-            ConfigError::HomeDirMissing => tr("config_home_dir_missing", lang).to_string(),
-            ConfigError::ReadFailed(e) => tr_fmt("config_read_failed", lang, &[e]),
-            ConfigError::ParseFailed(e) => tr_fmt("config_parse_failed", lang, &[e]),
-            ConfigError::CreateDirFailed(e) => tr_fmt("config_create_dir_failed", lang, &[e]),
-            ConfigError::WriteFailed(e) => tr_fmt("config_write_failed", lang, &[e]),
-            ConfigError::ConnectionNameExists => tr("connection_name_exists", lang).to_string(),
-            ConfigError::ConnectionNotFound => tr("connection_not_found", lang).to_string(),
+            ConfigError::HomeDirMissing => tr(
+                e_client_bilingual::translations::keys::CONFIG_HOME_DIR_MISSING,
+                lang,
+            )
+            .to_string(),
+            ConfigError::ReadFailed(e) => tr_fmt(
+                e_client_bilingual::translations::keys::CONFIG_READ_FAILED,
+                lang,
+                &[e],
+            ),
+            ConfigError::ParseFailed(e) => tr_fmt(
+                e_client_bilingual::translations::keys::CONFIG_PARSE_FAILED,
+                lang,
+                &[e],
+            ),
+            ConfigError::CreateDirFailed(e) => tr_fmt(
+                e_client_bilingual::translations::keys::CONFIG_CREATE_DIR_FAILED,
+                lang,
+                &[e],
+            ),
+            ConfigError::WriteFailed(e) => tr_fmt(
+                e_client_bilingual::translations::keys::CONFIG_WRITE_FAILED,
+                lang,
+                &[e],
+            ),
+            ConfigError::ConnectionNameExists => tr(
+                e_client_bilingual::translations::keys::CONNECTION_NAME_EXISTS,
+                lang,
+            )
+            .to_string(),
+            ConfigError::ConnectionNotFound => tr(
+                e_client_bilingual::translations::keys::CONNECTION_NOT_FOUND,
+                lang,
+            )
+            .to_string(),
         }
     }
 }
