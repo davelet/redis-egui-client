@@ -4,7 +4,8 @@
 pub const APP_NAME: &str = "Rudist";
 
 /// Default Redis URL used when no other is specified
-pub const DEFAULT_REDIS_URL: &str = "redis://127.0.0.1:6379";
+pub const DEFAULT_REDIS_URL: &str = "127.0.0.1";
+pub const DEFAULT_REDIS_PORT: &str = "6397";
 
 /// Default key filter pattern
 pub const DEFAULT_KEY_FILTER: &str = "*";

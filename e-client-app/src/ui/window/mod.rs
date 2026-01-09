@@ -1,28 +1,28 @@
 use crate::core::app_state::AppState;
 use crate::core::redis_client::ValueData;
+use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_config::config::Config;
-use e_client_config::constants::{DEFAULT_KEY_FILTER, DEFAULT_REDIS_URL};
+use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, tr_fmt};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+mod new_connection_window;
 mod panels;
 
 pub struct RedisApp {
     state: AppState,
     config: Config,
+    error_message: String,
     selected_connection: Option<usize>,
     command_input_buffer: String,
     key_filter_input: String,
-    show_new_connection_dialog: bool,
-    new_connection_name: String,
-    new_connection_url: String,
-    error_message: String,
+    new_connection: NewConnectionWindowWindow,
 }
 
 impl eframe::App for RedisApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        // ctx.request_repaint();
+        // ctx.request_repaint(); DO NOT repaint
 
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
@@ -85,9 +85,7 @@ impl RedisApp {
             selected_connection: None, // todo - remember the last opened
             command_input_buffer: String::new(),
             key_filter_input: DEFAULT_KEY_FILTER.to_string(),
-            show_new_connection_dialog: false,
-            new_connection_name: String::new(),
-            new_connection_url: DEFAULT_REDIS_URL.to_string(),
+            new_connection: NewConnectionWindowWindow::new(),
             error_message: String::new(),
         }
     }

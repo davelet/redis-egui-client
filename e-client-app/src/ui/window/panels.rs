@@ -1,6 +1,5 @@
 use super::RedisApp;
 use crate::core::redis_client::ValueData;
-use e_client_config::constants::DEFAULT_REDIS_URL;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
@@ -35,10 +34,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
                 .clicked()
             {
-                app.show_new_connection_dialog = true;
-                app.new_connection_name.clear();
-                app.new_connection_url = DEFAULT_REDIS_URL.to_string();
-                app.error_message.clear();
+                app.new_connection.show = true;
             }
             ui.separator();
 
@@ -120,62 +116,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     });
 
     // New connection dialog
-    if app.show_new_connection_dialog {
-        render_new_connection_dialog(app, ctx, current_lang);
+    if app.new_connection.show {
+        app.new_connection
+            .render_new_connection_dialog(&mut app.config, ctx, current_lang);
     }
-}
-
-fn render_new_connection_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
-    egui::Window::new(tr(keys::NEW_CONNECTION_DIALOG, current_lang))
-        .collapsible(false)
-        .resizable(false)
-        .show(ctx, |ui| {
-            ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    ui.label(tr(keys::CONNECTION_NAME, current_lang));
-                    ui.text_edit_singleline(&mut app.new_connection_name);
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label(tr(keys::CONNECTION_ADDRESS, current_lang));
-                    ui.text_edit_singleline(&mut app.new_connection_url);
-                });
-
-                if !app.error_message.is_empty() {
-                    ui.colored_label(egui::Color32::RED, &app.error_message);
-                }
-
-                ui.horizontal(|ui| {
-                    if ui.button(tr(keys::SAVE, current_lang)).clicked() {
-                        if app.new_connection_name.trim().is_empty() {
-                            app.error_message =
-                                tr(keys::PLEASE_ENTER_CONNECTION_NAME, current_lang).to_string();
-                        } else if app.new_connection_url.trim().is_empty() {
-                            app.error_message =
-                                tr(keys::PLEASE_ENTER_CONNECTION_ADDRESS, current_lang).to_string();
-                        } else {
-                            match app.config.add_connection(
-                                app.new_connection_name.clone(),
-                                app.new_connection_url.clone(),
-                            ) {
-                                Ok(_) => {
-                                    app.show_new_connection_dialog = false;
-                                    app.error_message.clear();
-                                }
-                                Err(e) => {
-                                    app.error_message = e.to_message(current_lang);
-                                }
-                            }
-                        }
-                    }
-
-                    if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
-                        app.show_new_connection_dialog = false;
-                        app.error_message.clear();
-                    }
-                });
-            });
-        });
 }
 
 pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {

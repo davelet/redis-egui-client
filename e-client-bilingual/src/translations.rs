@@ -26,6 +26,7 @@ pub mod keys {
     pub const CANCEL: &str = "cancel";
     pub const CONNECTION_NAME: &str = "connection_name";
     pub const CONNECTION_ADDRESS: &str = "connection_address";
+    pub const CONNECTION_PORT: &str = "connection_port";
     pub const PLEASE_ENTER_CONNECTION_NAME: &str = "please_enter_connection_name";
     pub const PLEASE_ENTER_CONNECTION_ADDRESS: &str = "please_enter_connection_address";
     pub const NEW_CONNECTION_DIALOG: &str = "new_connection_dialog";
@@ -201,6 +202,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Connection address:");
             m.insert(Language::Chinese, "连接地址:");
+            m
+        });
+
+        strings.insert(keys::CONNECTION_PORT, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection port:");
+            m.insert(Language::Chinese, "连接端口:");
             m
         });
 
