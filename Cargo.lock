@@ -687,6 +687,7 @@ version = "0.1.0"
 dependencies = [
  "dirs",
  "e-client-bilingual",
+ "redis",
  "serde",
  "toml",
 ]

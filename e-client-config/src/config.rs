@@ -1,28 +1,10 @@
-use e_client_bilingual::constants::DEFAULT_REDIS_URL;
-use e_client_bilingual::language::Language;
+use crate::connection::RedisConnection;
+use crate::error::ConfigError;
+use crate::window::WindowConfig;
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedisConnection {
-    pub name: String,
-    pub url: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct WindowConfig {
-    pub width: f32,
-    pub height: f32,
-    pub x: f32,
-    pub y: f32,
-    #[serde(default = "default_maximized")]
-    pub maximized: bool,
-}
-
-fn default_maximized() -> bool {
-    false
-}
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
@@ -31,60 +13,6 @@ pub struct Config {
     pub window: WindowConfig,
     #[serde(default)]
     pub language: String,
-}
-
-#[derive(Debug)]
-pub enum ConfigError {
-    HomeDirMissing,
-    ReadFailed(String),
-    ParseFailed(String),
-    CreateDirFailed(String),
-    WriteFailed(String),
-    ConnectionNameExists,
-    ConnectionNotFound,
-}
-
-impl ConfigError {
-    pub fn to_message(&self, lang: Language) -> String {
-        use e_client_bilingual::translations::{tr, tr_fmt};
-        match self {
-            ConfigError::HomeDirMissing => tr(
-                e_client_bilingual::translations::keys::CONFIG_HOME_DIR_MISSING,
-                lang,
-            )
-            .to_string(),
-            ConfigError::ReadFailed(e) => tr_fmt(
-                e_client_bilingual::translations::keys::CONFIG_READ_FAILED,
-                lang,
-                &[e],
-            ),
-            ConfigError::ParseFailed(e) => tr_fmt(
-                e_client_bilingual::translations::keys::CONFIG_PARSE_FAILED,
-                lang,
-                &[e],
-            ),
-            ConfigError::CreateDirFailed(e) => tr_fmt(
-                e_client_bilingual::translations::keys::CONFIG_CREATE_DIR_FAILED,
-                lang,
-                &[e],
-            ),
-            ConfigError::WriteFailed(e) => tr_fmt(
-                e_client_bilingual::translations::keys::CONFIG_WRITE_FAILED,
-                lang,
-                &[e],
-            ),
-            ConfigError::ConnectionNameExists => tr(
-                e_client_bilingual::translations::keys::CONNECTION_NAME_EXISTS,
-                lang,
-            )
-            .to_string(),
-            ConfigError::ConnectionNotFound => tr(
-                e_client_bilingual::translations::keys::CONNECTION_NOT_FOUND,
-                lang,
-            )
-            .to_string(),
-        }
-    }
 }
 
 impl Config {
@@ -103,10 +31,7 @@ impl Config {
         if !path.exists() {
             // If the config file doesn't exist, create a default configuration
             let default_config = Config {
-                connections: vec![RedisConnection {
-                    name: "本地 Redis".to_string(),
-                    url: DEFAULT_REDIS_URL.to_string(),
-                }],
+                connections: vec![RedisConnection::default()],
                 window: WindowConfig {
                     width: 1024.0,
                     height: 768.0,
@@ -133,19 +58,19 @@ impl Config {
 
         let toml =
             toml::to_string_pretty(self).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        std::fs::write(Self::config_file_path()?, toml)
+        fs::write(Self::config_file_path()?, toml)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
 
         Ok(())
     }
 
-    pub fn add_connection(&mut self, name: String, url: String) -> Result<(), ConfigError> {
+    pub fn add_connection(&mut self, conn: RedisConnection) -> Result<(), ConfigError> {
         // Check if a connection with the same name already exists
-        if self.connections.iter().any(|c| c.name == name) {
+        if self.connections.iter().any(|c| c.name == conn.name) {
             return Err(ConfigError::ConnectionNameExists);
         }
 
-        self.connections.push(RedisConnection { name, url });
+        self.connections.push(conn);
         self.save()?;
         Ok(())
     }

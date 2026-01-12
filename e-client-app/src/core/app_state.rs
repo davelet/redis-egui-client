@@ -162,13 +162,17 @@ impl AppState {
                     *state.command_output.write().await = result;
                 }
                 Err(e) => {
-                    *state.command_output.write().await =
-                        tr_fmt(keys::GENERIC_ERROR, lang, &[&e.to_string()]);
+                    state.show_err(tr_fmt(keys::GENERIC_ERROR, lang, &[&e.to_string()]));
                 }
             }
 
             *state.loading.write().await = false;
         });
+    }
+
+    pub(crate) fn show_err(&self, err: String) {
+        let state = self.clone();
+        *state.command_output.blocking_write() = err;
     }
 
     pub fn spawn_load_list_range(&self, key: String, start: isize, stop: isize) {

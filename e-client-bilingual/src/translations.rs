@@ -17,8 +17,6 @@ pub mod keys {
     pub const EXECUTE: &str = "execute";
     pub const VALUE: &str = "value";
     pub const LANGUAGE: &str = "language";
-    pub const ENGLISH: &str = "english";
-    pub const CHINESE: &str = "chinese";
     pub const CONNECTION_FAILED: &str = "connection_failed";
     pub const SELECT_CONNECTION: &str = "select_connection";
     pub const PLEASE_SELECT_CONNECTION: &str = "please_select_connection";
@@ -137,20 +135,6 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Language");
             m.insert(Language::Chinese, "语言");
-            m
-        });
-
-        strings.insert(keys::ENGLISH, {
-            let mut m = HashMap::new();
-            m.insert(Language::English, "English");
-            m.insert(Language::Chinese, "English");
-            m
-        });
-
-        strings.insert(keys::CHINESE, {
-            let mut m = HashMap::new();
-            m.insert(Language::English, "中文");
-            m.insert(Language::Chinese, "中文");
             m
         });
 

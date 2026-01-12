@@ -1,5 +1,6 @@
 use super::RedisApp;
 use crate::core::redis_client::ValueData;
+use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
@@ -28,15 +29,6 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     }
                 });
-
-            // Add new connection button
-            if ui
-                .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
-                .clicked()
-            {
-                app.new_connection.show = true;
-            }
-            ui.separator();
 
             let connected = app.poll_bool(app.state.connected.clone());
 
@@ -71,8 +63,8 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             app.state.spawn_connect();
                         }
                     } else {
-                        app.error_message =
-                            tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string();
+                        app.state
+                            .show_err(tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string());
                     }
                 }
             }
@@ -81,37 +73,38 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             if loading {
                 ui.spinner();
             }
-        });
-
-        // Right side - Language selector
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            let lang = app.poll_language(app.state.language.clone());
-            egui::ComboBox::from_id_salt("lang_select")
-                .selected_text(match lang {
-                    Language::English => tr(keys::ENGLISH, lang),
-                    Language::Chinese => tr(keys::CHINESE, lang),
-                })
-                .show_ui(ui, |ui| {
-                    if ui
-                        .selectable_label(
-                            matches!(lang, Language::English),
-                            tr(keys::ENGLISH, lang),
-                        )
-                        .clicked()
-                    {
-                        app.update_language(Language::English);
-                    }
-                    if ui
-                        .selectable_label(
-                            matches!(lang, Language::Chinese),
-                            tr(keys::CHINESE, lang),
-                        )
-                        .clicked()
-                    {
-                        app.update_language(Language::Chinese);
-                    }
-                });
-            ui.label(tr(keys::LANGUAGE, lang));
+            ui.separator();
+            // Add new connection button
+            if ui
+                .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
+                .clicked()
+            {
+                app.new_connection.show = true;
+            }
+            // Right side - Language selector
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let lang = app.poll_language(app.state.language.clone());
+                egui::ComboBox::from_id_salt("lang_select")
+                    .selected_text(match lang {
+                        Language::English => ENGLISH,
+                        Language::Chinese => CHINESE,
+                    })
+                    .show_ui(ui, |ui| {
+                        if ui
+                            .selectable_label(matches!(lang, Language::English), ENGLISH)
+                            .clicked()
+                        {
+                            app.update_language(Language::English);
+                        }
+                        if ui
+                            .selectable_label(matches!(lang, Language::Chinese), CHINESE)
+                            .clicked()
+                        {
+                            app.update_language(Language::Chinese);
+                        }
+                    });
+                ui.label(tr(keys::LANGUAGE, lang));
+            });
         });
     });
 

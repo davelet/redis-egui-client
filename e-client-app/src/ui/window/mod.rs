@@ -13,7 +13,7 @@ mod panels;
 pub struct RedisApp {
     state: AppState,
     config: Config,
-    error_message: String,
+    // error_message: String,
     selected_connection: Option<usize>,
     command_input_buffer: String,
     key_filter_input: String,
@@ -86,7 +86,7 @@ impl RedisApp {
             command_input_buffer: String::new(),
             key_filter_input: DEFAULT_KEY_FILTER.to_string(),
             new_connection: NewConnectionWindowWindow::new(),
-            error_message: String::new(),
+            // error_message: String::new(),
         }
     }
     // render_* methods moved to panels.rs

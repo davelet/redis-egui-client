@@ -4,6 +4,7 @@
 pub const APP_NAME: &str = "Rudist";
 
 /// Default Redis URL used when no other is specified
+pub const DEFAULT_REDIS_NAME: &str = "Localhost";
 pub const DEFAULT_REDIS_URL: &str = "127.0.0.1";
 pub const DEFAULT_REDIS_PORT: &str = "6397";
 
@@ -13,3 +14,6 @@ pub const DEFAULT_KEY_FILTER: &str = "*";
 /// Default main window size
 pub const WINDOW_WIDTH: f32 = 1200.0;
 pub const WINDOW_HEIGHT: f32 = 800.0;
+
+pub const ENGLISH: &str = "English";
+pub const CHINESE: &str = "中文";

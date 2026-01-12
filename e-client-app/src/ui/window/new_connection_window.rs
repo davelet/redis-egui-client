@@ -3,6 +3,7 @@ use e_client_config::config::Config;
 use e_client_config::constants::{DEFAULT_REDIS_PORT, DEFAULT_REDIS_URL};
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
+use e_client_config::RedisConnection;
 use egui::Context;
 
 pub(crate) struct NewConnectionWindowWindow {
@@ -71,10 +72,21 @@ impl NewConnectionWindowWindow {
                                     tr(keys::PLEASE_ENTER_CONNECTION_ADDRESS, current_lang)
                                         .to_string();
                             } else {
-                                match app.add_connection(
+                                match app.add_connection(RedisConnection::new(
                                     self.new_connection_name.clone(),
                                     self.new_connection_url.clone(),
-                                ) {
+                                    self.new_connection_port.clone(),
+                                    if self.new_connection_username.is_empty() {
+                                        None
+                                    } else {
+                                        Some(self.new_connection_username.clone())
+                                    },
+                                    if self.new_connection_password.is_empty() {
+                                        None
+                                    } else {
+                                        Some(self.new_connection_password.clone())
+                                    },
+                                )) {
                                     Ok(_) => {
                                         self.clear_err();
                                     }
