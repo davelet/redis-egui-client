@@ -1,4 +1,3 @@
-use crate::constants::{DEFAULT_REDIS_NAME, DEFAULT_REDIS_PORT, DEFAULT_REDIS_URL};
 use redis::{ConnectionInfo, IntoConnectionInfo, RedisResult};
 use serde::{Deserialize, Serialize};
 
@@ -14,18 +13,6 @@ pub struct RedisConnection {
 impl IntoConnectionInfo for RedisConnection {
     fn into_connection_info(self) -> RedisResult<ConnectionInfo> {
         todo!()
-    }
-}
-
-impl Default for RedisConnection {
-    fn default() -> Self {
-        Self {
-            name: DEFAULT_REDIS_NAME.to_string(),
-            url: DEFAULT_REDIS_URL.to_string(),
-            port: DEFAULT_REDIS_PORT.to_string(),
-            username: None,
-            password: None,
-        }
     }
 }
 

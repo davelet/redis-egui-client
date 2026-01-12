@@ -2,6 +2,7 @@ use crate::connection::RedisConnection;
 use crate::error::ConfigError;
 use crate::window::WindowConfig;
 
+use crate::constants::ZH_IN_FILE;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -31,7 +32,7 @@ impl Config {
         if !path.exists() {
             // If the config file doesn't exist, create a default configuration
             let default_config = Config {
-                connections: vec![RedisConnection::default()],
+                connections: vec![],
                 window: WindowConfig {
                     width: 1024.0,
                     height: 768.0,
@@ -39,7 +40,7 @@ impl Config {
                     y: 100.0,
                     maximized: false,
                 },
-                language: "zh".to_string(),
+                language: ZH_IN_FILE.to_string(),
             };
             default_config.save()?;
             return Ok(default_config);
@@ -53,7 +54,7 @@ impl Config {
 
     pub fn save(&self) -> Result<(), ConfigError> {
         let config_path = Self::config_path()?;
-        std::fs::create_dir_all(&config_path)
+        fs::create_dir_all(&config_path)
             .map_err(|e| ConfigError::CreateDirFailed(e.to_string()))?;
 
         let toml =

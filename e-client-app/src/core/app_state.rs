@@ -2,7 +2,7 @@ use crate::core::redis_client::{RedisClient, ValueData};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use e_client_config::constants::{DEFAULT_KEY_FILTER, DEFAULT_REDIS_URL};
+use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
@@ -28,7 +28,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             redis_client: RedisClient::new(),
-            connection_url: Arc::new(RwLock::new(DEFAULT_REDIS_URL.to_string())),
+            connection_url: Arc::new(RwLock::new("".to_string())),
             connected: Arc::new(RwLock::new(false)),
             current_db: Arc::new(RwLock::new(0)),
             databases: Arc::new(RwLock::new(vec![])),

@@ -2,7 +2,7 @@ use crate::core::app_state::AppState;
 use crate::core::redis_client::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_config::config::Config;
-use e_client_config::constants::DEFAULT_KEY_FILTER;
+use e_client_config::constants::{DEFAULT_KEY_FILTER, ZH_IN_FILE};
 use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -13,7 +13,6 @@ mod panels;
 pub struct RedisApp {
     state: AppState,
     config: Config,
-    // error_message: String,
     selected_connection: Option<usize>,
     command_input_buffer: String,
     key_filter_input: String,
@@ -47,7 +46,7 @@ impl eframe::App for RedisApp {
         // Handle language updates
         {
             let current_lang = self.state.language.blocking_read();
-            let current_lang_str = current_lang.to_string();
+            let current_lang_str = current_lang.to_file_string();
             if self.config.language != current_lang_str {
                 if let Err(e) = self.config.update_language(&current_lang_str) {
                     eprintln!(
@@ -71,7 +70,7 @@ impl RedisApp {
 
         // Initialize language from config
         if !config.language.is_empty() {
-            let lang = if config.language == "zh" {
+            let lang = if config.language == ZH_IN_FILE {
                 Language::Chinese
             } else {
                 Language::English
@@ -86,7 +85,6 @@ impl RedisApp {
             command_input_buffer: String::new(),
             key_filter_input: DEFAULT_KEY_FILTER.to_string(),
             new_connection: NewConnectionWindowWindow::new(),
-            // error_message: String::new(),
         }
     }
     // render_* methods moved to panels.rs

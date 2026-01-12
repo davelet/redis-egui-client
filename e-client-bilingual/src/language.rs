@@ -1,5 +1,5 @@
+use e_client_basics::constants::{EN_IN_FILE, ZH_IN_FILE};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Language {
@@ -7,17 +7,18 @@ pub enum Language {
     English,
 }
 
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Language::Chinese => write!(f, "zh"),
-            Language::English => write!(f, "en"),
-        }
-    }
-}
-
 impl Default for Language {
     fn default() -> Self {
         Language::English
+    }
+}
+
+impl Language {
+    pub fn to_file_string(&self) -> String {
+        if let Language::English = self {
+            EN_IN_FILE.to_string()
+        } else {
+            ZH_IN_FILE.to_string()
+        }
     }
 }

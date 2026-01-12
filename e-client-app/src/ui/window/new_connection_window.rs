@@ -1,6 +1,5 @@
-use crate::ui::window::RedisApp;
 use e_client_config::config::Config;
-use e_client_config::constants::{DEFAULT_REDIS_PORT, DEFAULT_REDIS_URL};
+use e_client_config::constants::DEFAULT_REDIS_PORT;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 use e_client_config::RedisConnection;
@@ -13,8 +12,9 @@ pub(crate) struct NewConnectionWindowWindow {
     pub new_connection_port: String,
     pub new_connection_username: String,
     pub new_connection_password: String,
-    pub new_connection_color: String,
-    pub error_message: String,
+    new_connection_color: [f32; 3],
+    pub new_connection_color_hex: Option<String>,
+    pub error_message: Option<String>,
 }
 
 impl NewConnectionWindowWindow {
@@ -22,12 +22,13 @@ impl NewConnectionWindowWindow {
         NewConnectionWindowWindow {
             show: false,
             new_connection_name: "".to_string(),
-            new_connection_url: DEFAULT_REDIS_URL.to_string(),
+            new_connection_url: "".to_string(),
             new_connection_port: DEFAULT_REDIS_PORT.to_string(),
             new_connection_username: "".to_string(),
             new_connection_password: "".to_string(),
-            new_connection_color: "".to_string(),
-            error_message: "".to_string(),
+            new_connection_color: [0f32, 0f32, 0f32],
+            new_connection_color_hex: None,
+            error_message: None,
         }
     }
 
@@ -49,28 +50,63 @@ impl NewConnectionWindowWindow {
 
                     ui.horizontal(|ui| {
                         ui.label(tr(keys::CONNECTION_ADDRESS, current_lang));
-                        ui.text_edit_singleline(&mut self.new_connection_url);
+                        let url_id = ui.make_persistent_id("new_connection_url");
+                        let res = ui.add(
+                            egui::TextEdit::singleline(&mut self.new_connection_url).id(url_id),
+                        );
+                        let had_focus = ctx.memory(|m| m.has_focus(url_id));
+                        let has_focus_now = res.has_focus();
+
+                        if (!had_focus || !has_focus_now)
+                            && self.new_connection_name.trim().is_empty()
+                            && !self.new_connection_url.trim().is_empty()
+                        {
+                            self.new_connection_name = self.new_connection_url.clone();
+                        }
                     });
                     ui.horizontal(|ui| {
                         ui.label(tr(keys::CONNECTION_PORT, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_port);
                     });
+                    ui.horizontal(|ui| {
+                        ui.label(tr(keys::CONNECTION_USERNAME, current_lang));
+                        ui.text_edit_singleline(&mut self.new_connection_username);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label(tr(keys::CONNECTION_PASSWORD, current_lang));
+                        ui.text_edit_singleline(&mut self.new_connection_password);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label(tr(keys::CONNECTION_COLOR, current_lang));
+                        if ui
+                            .color_edit_button_rgb(&mut self.new_connection_color)
+                            .changed()
+                        {
+                            let c = self.new_connection_color;
+                            self.new_connection_color_hex = Some(format!(
+                                "#{:02X}{:02X}{:02X}",
+                                c[0] as u8, c[1] as u8, c[2] as u8
+                            ));
+                        };
+                    });
 
-                    if !self.error_message.is_empty() {
-                        ui.colored_label(egui::Color32::RED, &self.error_message);
+                    if let Some(err) = &self.error_message {
+                        ui.colored_label(egui::Color32::RED, err);
                     }
 
                     ui.horizontal(|ui| {
                         let save_btn = tr(keys::SAVE, current_lang);
                         if ui.button(save_btn).clicked() {
                             if self.new_connection_name.trim().is_empty() {
-                                self.error_message =
+                                self.error_message = Some(
                                     tr(keys::PLEASE_ENTER_CONNECTION_NAME, current_lang)
-                                        .to_string();
+                                        .to_string(),
+                                );
                             } else if self.new_connection_url.trim().is_empty() {
-                                self.error_message =
+                                self.error_message = Some(
                                     tr(keys::PLEASE_ENTER_CONNECTION_ADDRESS, current_lang)
-                                        .to_string();
+                                        .to_string(),
+                                );
                             } else {
                                 match app.add_connection(RedisConnection::new(
                                     self.new_connection_name.clone(),
@@ -91,14 +127,14 @@ impl NewConnectionWindowWindow {
                                         self.clear_err();
                                     }
                                     Err(e) => {
-                                        self.error_message = e.to_message(current_lang);
+                                        self.error_message = Some(e.to_message(current_lang));
                                     }
                                 }
                             }
                         }
 
                         if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
-                            self.clear_err();
+                            self.clear();
                         }
                     });
                 });
@@ -107,6 +143,17 @@ impl NewConnectionWindowWindow {
 
     fn clear_err(&mut self) {
         self.show = false;
-        self.error_message.clear();
+        self.error_message = None;
+    }
+
+    fn clear(&mut self) {
+        self.new_connection_name = "".to_string();
+        self.new_connection_url = "".to_string();
+        self.new_connection_port = DEFAULT_REDIS_PORT.to_string();
+        self.new_connection_username = "".to_string();
+        self.new_connection_password = "".to_string();
+        self.new_connection_color = [0f32, 0f32, 0f32];
+        self.new_connection_color_hex = None;
+        self.clear_err();
     }
 }

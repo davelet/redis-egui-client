@@ -25,6 +25,9 @@ pub mod keys {
     pub const CONNECTION_NAME: &str = "connection_name";
     pub const CONNECTION_ADDRESS: &str = "connection_address";
     pub const CONNECTION_PORT: &str = "connection_port";
+    pub const CONNECTION_USERNAME: &str = "connection_username";
+    pub const CONNECTION_PASSWORD: &str = "connection_password";
+    pub const CONNECTION_COLOR: &str = "connection_color";
     pub const PLEASE_ENTER_CONNECTION_NAME: &str = "please_enter_connection_name";
     pub const PLEASE_ENTER_CONNECTION_ADDRESS: &str = "please_enter_connection_address";
     pub const NEW_CONNECTION_DIALOG: &str = "new_connection_dialog";
@@ -193,6 +196,27 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Connection port:");
             m.insert(Language::Chinese, "连接端口:");
+            m
+        });
+
+        strings.insert(keys::CONNECTION_USERNAME, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection username:");
+            m.insert(Language::Chinese, "连接用户名:");
+            m
+        });
+
+        strings.insert(keys::CONNECTION_PASSWORD, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection password:");
+            m.insert(Language::Chinese, "连接密码:");
+            m
+        });
+
+        strings.insert(keys::CONNECTION_COLOR, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connection color:");
+            m.insert(Language::Chinese, "连接颜色:");
             m
         });
 
