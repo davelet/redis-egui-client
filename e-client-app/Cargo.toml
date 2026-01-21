@@ -20,7 +20,6 @@ wgpu = { version = "27", features = ["metal", "dx12"]}
 name = "Rudist"
 identifier = "com.sheldon.client.rudist"
 icon = ["assets/icon.icns"]
-resources = ["config.toml.example"]
 category = "public.app-category.developer-tools"
 short_description = "A small Redis GUI client built with egui/eframe"
 

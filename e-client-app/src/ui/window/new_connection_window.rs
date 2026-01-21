@@ -1,12 +1,14 @@
 use e_client_config::config::Config;
+use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_REDIS_PORT;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
-use e_client_config::RedisConnection;
 use egui::Context;
 
 pub(crate) struct NewConnectionWindowWindow {
     pub show: bool,
+    pub edit_mode: bool,
+    pub editing_connection_name: Option<String>,
     pub new_connection_name: String,
     pub new_connection_url: String,
     pub new_connection_port: String,
@@ -21,6 +23,8 @@ impl NewConnectionWindowWindow {
     pub(crate) fn new() -> NewConnectionWindowWindow {
         NewConnectionWindowWindow {
             show: false,
+            edit_mode: false,
+            editing_connection_name: None,
             new_connection_name: "".to_string(),
             new_connection_url: "".to_string(),
             new_connection_port: DEFAULT_REDIS_PORT.to_string(),
@@ -32,13 +36,53 @@ impl NewConnectionWindowWindow {
         }
     }
 
+    pub(crate) fn open_for_edit(&mut self, conn: &RedisConnectionConfig) {
+        self.show = true;
+        self.edit_mode = true;
+        self.editing_connection_name = Some(conn.name.clone());
+        self.new_connection_name = conn.name.clone();
+        self.new_connection_url = conn.url.clone();
+        self.new_connection_port = conn.port.clone();
+        self.new_connection_username = conn.username.clone().unwrap_or_default();
+        self.new_connection_password = conn.password.clone().unwrap_or_default();
+
+        // Parse color hex to RGB
+        if let Some(hex) = &conn.color {
+            if let Some(color) = Self::hex_to_rgb(hex) {
+                self.new_connection_color = color;
+                self.new_connection_color_hex = Some(hex.clone());
+            }
+        }
+
+        self.error_message = None;
+    }
+
+    fn hex_to_rgb(hex: &str) -> Option<[f32; 3]> {
+        let hex = hex.trim_start_matches('#');
+        if hex.len() != 6 {
+            return None;
+        }
+
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()? as f32;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()? as f32;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()? as f32;
+
+        Some([r, g, b])
+    }
+
     pub(crate) fn render_new_connection_dialog(
         &mut self,
         app: &mut Config,
         ctx: &Context,
         current_lang: Language,
     ) {
-        egui::Window::new(tr(keys::NEW_CONNECTION_DIALOG, current_lang))
+        let title = if self.edit_mode {
+            tr(keys::EDIT_CONNECTION_DIALOG, current_lang)
+        } else {
+            tr(keys::NEW_CONNECTION_DIALOG, current_lang)
+        };
+
+        egui::Window::new(title)
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
@@ -108,23 +152,24 @@ impl NewConnectionWindowWindow {
                                         .to_string(),
                                 );
                             } else {
-                                match app.add_connection(RedisConnection::new(
-                                    self.new_connection_name.clone(),
-                                    self.new_connection_url.clone(),
-                                    self.new_connection_port.clone(),
-                                    if self.new_connection_username.is_empty() {
-                                        None
+                                let result = if self.edit_mode {
+                                    // Edit existing connection
+                                    if let Some(old_name) = &self.editing_connection_name {
+                                        app.update_single_connection(
+                                            old_name,
+                                            self.build_connection(),
+                                        )
                                     } else {
-                                        Some(self.new_connection_username.clone())
-                                    },
-                                    if self.new_connection_password.is_empty() {
-                                        None
-                                    } else {
-                                        Some(self.new_connection_password.clone())
-                                    },
-                                )) {
+                                        Err(e_client_config::error::ConfigError::ConnectionNotFound)
+                                    }
+                                } else {
+                                    // Add new connection
+                                    app.add_connection(self.build_connection())
+                                };
+
+                                match result {
                                     Ok(_) => {
-                                        self.clear_err();
+                                        self.clear();
                                     }
                                     Err(e) => {
                                         self.error_message = Some(e.to_message(current_lang));
@@ -141,6 +186,25 @@ impl NewConnectionWindowWindow {
             });
     }
 
+    fn build_connection(&self) -> RedisConnectionConfig {
+        RedisConnectionConfig::new(
+            self.new_connection_name.clone(),
+            self.new_connection_url.clone(),
+            self.new_connection_port.clone(),
+            if self.new_connection_username.is_empty() {
+                None
+            } else {
+                Some(self.new_connection_username.clone())
+            },
+            if self.new_connection_password.is_empty() {
+                None
+            } else {
+                Some(self.new_connection_password.clone())
+            },
+            self.new_connection_color_hex.clone(),
+        )
+    }
+
     fn clear_err(&mut self) {
         self.show = false;
         self.error_message = None;
@@ -154,6 +218,8 @@ impl NewConnectionWindowWindow {
         self.new_connection_password = "".to_string();
         self.new_connection_color = [0f32, 0f32, 0f32];
         self.new_connection_color_hex = None;
+        self.edit_mode = false;
+        self.editing_connection_name = None;
         self.clear_err();
     }
 }

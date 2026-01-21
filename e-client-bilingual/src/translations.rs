@@ -8,6 +8,7 @@ pub struct Translator {
 pub mod keys {
     pub const CONNECT: &str = "connect";
     pub const NEW_CONNECTION: &str = "new_connection";
+    pub const EDIT_CONNECTION: &str = "edit_connection";
     pub const DISCONNECT: &str = "disconnect";
     pub const CONNECTION_URL: &str = "connection_url";
     pub const DATABASE: &str = "database";
@@ -31,6 +32,7 @@ pub mod keys {
     pub const PLEASE_ENTER_CONNECTION_NAME: &str = "please_enter_connection_name";
     pub const PLEASE_ENTER_CONNECTION_ADDRESS: &str = "please_enter_connection_address";
     pub const NEW_CONNECTION_DIALOG: &str = "new_connection_dialog";
+    pub const EDIT_CONNECTION_DIALOG: &str = "edit_connection_dialog";
     pub const COMMAND_LABEL: &str = "command_label";
     pub const OUTPUT: &str = "output";
     pub const SELECT_KEY_PROMPT: &str = "select_key_prompt";
@@ -43,6 +45,7 @@ pub mod keys {
     pub const TYPE_ZSET: &str = "type_zset";
     pub const LOAD_FIRST_100: &str = "load_first_100";
     pub const LOAD_FIELDS: &str = "load_fields";
+    pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
     pub const CONFIG_PARSE_FAILED: &str = "config_parse_failed";
@@ -71,6 +74,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::Chinese, "新建连接");
             m.insert(Language::English, "New Connection");
+            m
+        });
+
+        strings.insert(keys::EDIT_CONNECTION, {
+            let mut m = HashMap::new();
+            m.insert(Language::Chinese, "编辑连接");
+            m.insert(Language::English, "Edit Connection");
             m
         });
 
@@ -240,6 +250,12 @@ impl Default for Translator {
             m.insert(Language::Chinese, "新建 Redis 连接");
             m
         });
+        strings.insert(keys::EDIT_CONNECTION_DIALOG, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Modifying Redis Connection");
+            m.insert(Language::Chinese, "修改 Redis 连接");
+            m
+        });
 
         strings.insert(keys::COMMAND_LABEL, {
             let mut m = HashMap::new();
@@ -322,6 +338,16 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Load fields");
             m.insert(Language::Chinese, "加载字段");
+            m
+        });
+
+        strings.insert(keys::CONFIG_PARAM_TOO_BIG, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "Config param is too long: {}, the length of '{}' must be less than {}",
+            );
+            m.insert(Language::Chinese, "参数超长：{} “{}” 长度不能超过{}");
             m
         });
 

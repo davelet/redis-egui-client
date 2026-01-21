@@ -1,7 +1,6 @@
-use e_client_config::RedisConnection;
 use redis::{
-    AsyncCommands, Client, ConnectionInfo, IntoConnectionInfo, RedisError, RedisResult,
-    aio::ConnectionManager,
+    aio::ConnectionManager, AsyncCommands, Client,
+    RedisError,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;

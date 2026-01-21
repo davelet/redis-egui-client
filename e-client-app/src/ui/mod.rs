@@ -1,4 +1,5 @@
 use crate::ui::icon::load_icon;
+use crate::ui::window::panels::render_error_panel;
 use crate::ui::window::RedisApp;
 use e_client_config::config::Config;
 use e_client_config::constants::APP_NAME;
@@ -9,7 +10,13 @@ pub mod window;
 
 pub(crate) fn start_app() -> eframe::Result {
     // Load configuration
-    let config = Config::load().unwrap_or_default();
+    let config = Config::load();
+    if config.is_err() {
+        let err = config.err().unwrap();
+        return render_error_panel(err);
+    }
+
+    let config = config.unwrap();
     let width = config.window.width.max(100.0); // Minimum width 100
     let height = config.window.height.max(100.0); // Minimum height 100
     let mut viewport = egui::ViewportBuilder::default()
@@ -43,7 +50,7 @@ pub(crate) fn start_app() -> eframe::Result {
             // set chinese font todo - support more chinese fonts
             font::configure_fonts(&cc.egui_ctx);
             // Set language
-            if !config.language.is_empty() {
+            if !config.settings.language.is_empty() {
                 let mut style = (*cc.egui_ctx.style()).clone();
                 style.visuals = egui::style::Visuals::light(); // todo - support dark style
                 cc.egui_ctx.set_style(style);

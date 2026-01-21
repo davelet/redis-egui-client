@@ -1,6 +1,8 @@
 use super::RedisApp;
 use crate::core::redis_client::ValueData;
-use e_client_config::constants::{CHINESE, ENGLISH};
+use e_client_config::config::Config;
+use e_client_config::constants::{APP_NAME, CHINESE, ENGLISH, LOAD_ERROR_TITLE};
+use e_client_config::error::ConfigError;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
@@ -22,7 +24,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             egui::ComboBox::from_id_salt("connection_select")
                 .selected_text(selected_name)
                 .show_ui(ui, |ui| {
-                    for (idx, conn) in app.config.connections.iter().enumerate() {
+                    for (idx, conn) in app.config.connections.connections.iter().enumerate() {
                         let is_selected = app.selected_connection == Some(idx);
                         if ui.selectable_label(is_selected, &conn.name).clicked() {
                             app.selected_connection = Some(idx);
@@ -74,6 +76,17 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 ui.spinner();
             }
             ui.separator();
+            // Add edit connection button
+            if let Some(selected_idx) = app.selected_connection {
+                if ui
+                    .button(format!("✏ {}", tr(keys::EDIT_CONNECTION, current_lang)))
+                    .clicked()
+                {
+                    if let Some(conn) = app.config.connections.get(selected_idx) {
+                        app.new_connection.open_for_edit(conn);
+                    }
+                }
+            }
             // Add new connection button
             if ui
                 .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
@@ -81,6 +94,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             {
                 app.new_connection.show = true;
             }
+
             // Right side - Language selector
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let lang = app.poll_language(app.state.language.clone());
@@ -247,5 +261,32 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
         } else {
             ui.label(tr(keys::SELECT_KEY_PROMPT, current_lang));
         }
+    });
+}
+
+pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
+    let err = err.to_message(Language::default());
+    let options = eframe::NativeOptions::default();
+    return eframe::run_simple_native(APP_NAME, options, move |ctx, _frame| {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading(egui::RichText::new(LOAD_ERROR_TITLE).color(egui::Color32::RED));
+            ui.horizontal(|ui| {
+                ui.label(err.clone());
+            });
+            ui.separator();
+
+            if ui.button("click to reset problematic file").clicked() {
+                if let Err(_) = Config::load_user_settings() {
+                    let _ = Config::reset_user_settings();
+                }
+                if let Err(_) = Config::load_window_params() {
+                    let _ = Config::reset_window_params();
+                }
+                if let Err(_) = Config::load_connections() {
+                    let _ = Config::clear_connections();
+                }
+                std::process::exit(0);
+            }
+        });
     });
 }

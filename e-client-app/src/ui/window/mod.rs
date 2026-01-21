@@ -2,13 +2,13 @@ use crate::core::app_state::AppState;
 use crate::core::redis_client::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_config::config::Config;
-use e_client_config::constants::{DEFAULT_KEY_FILTER, ZH_IN_FILE};
+use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 mod new_connection_window;
-mod panels;
+pub mod panels;
 
 pub struct RedisApp {
     state: AppState,
@@ -20,7 +20,7 @@ pub struct RedisApp {
 }
 
 impl eframe::App for RedisApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // ctx.request_repaint(); DO NOT repaint
 
         // Get the viewport information before the async block
@@ -47,7 +47,7 @@ impl eframe::App for RedisApp {
         {
             let current_lang = self.state.language.blocking_read();
             let current_lang_str = current_lang.to_file_string();
-            if self.config.language != current_lang_str {
+            if self.config.settings.language != current_lang_str {
                 if let Err(e) = self.config.update_language(&current_lang_str) {
                     eprintln!(
                         "Failed to update language: {}",
@@ -69,12 +69,8 @@ impl RedisApp {
         let mut state = AppState::new();
 
         // Initialize language from config
-        if !config.language.is_empty() {
-            let lang = if config.language == ZH_IN_FILE {
-                Language::Chinese
-            } else {
-                Language::English
-            };
+        if !config.settings.language.is_empty() {
+            let lang = Language::file_name_to_lang(&config.settings.language);
             state.language = Arc::new(RwLock::new(lang));
         }
 
