@@ -5,7 +5,11 @@ use e_client_bilingual::translations::keys::{
     CONNECTION_NAME, CONNECTION_PASSWORD, CONNECTION_PORT, CONNECTION_URL, CONNECTION_USERNAME,
 };
 use e_client_bilingual::translations::tr;
-use redis::{ConnectionInfo, IntoConnectionInfo, RedisResult};
+use redis::io::tcp::TcpSettings;
+use redis::{
+    ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo, RedisError,
+    RedisResult,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -20,7 +24,23 @@ pub struct RedisConnectionConfig {
 
 impl IntoConnectionInfo for RedisConnectionConfig {
     fn into_connection_info(self) -> RedisResult<ConnectionInfo> {
-        todo!()
+        let port: u16 = self.port.parse().map_err(|e| {
+            RedisError::from((
+                redis::ErrorKind::InvalidClientConfig,
+                "invalid redis port",
+                format!("{e}"),
+            ))
+        })?;
+        let addr = ConnectionAddr::Tcp(self.url, port);
+        let info = addr.into_connection_info()?;
+        let mut rds = RedisConnectionInfo::default();
+        if let Some(u) = self.username {
+            rds = rds.set_username(u);
+        }
+        if let Some(p) = self.password {
+            rds = rds.set_password(p);
+        }
+        Ok(info.set_redis_settings(rds))
     }
 }
 

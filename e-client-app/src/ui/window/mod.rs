@@ -2,6 +2,7 @@ use crate::core::app_state::AppState;
 use crate::core::redis_client::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_config::config::Config;
+use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use std::sync::Arc;
@@ -117,6 +118,17 @@ impl RedisApp {
         if let Ok(mut v) = lock.try_write() {
             *v = value;
         }
+    }
+
+    fn poll_connection(
+        &self,
+        lock: Arc<RwLock<Option<RedisConnectionConfig>>>,
+    ) -> Option<RedisConnectionConfig> {
+        (*lock.blocking_read()).clone()
+    }
+
+    fn push_connection(&self, lang: RedisConnectionConfig) {
+        *self.state.connection_param.blocking_write() = Some(lang);
     }
 
     fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {

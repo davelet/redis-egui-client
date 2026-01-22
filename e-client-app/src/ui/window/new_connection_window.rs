@@ -127,9 +127,14 @@ impl NewConnectionWindowWindow {
                             .changed()
                         {
                             let c = self.new_connection_color;
+                            let rgb_values = [
+                                (c[0].max(0.0).min(1.0) * 255.0) as u8,
+                                (c[1].max(0.0).min(1.0) * 255.0) as u8,
+                                (c[2].max(0.0).min(1.0) * 255.0) as u8,
+                            ];
                             self.new_connection_color_hex = Some(format!(
                                 "#{:02X}{:02X}{:02X}",
-                                c[0] as u8, c[1] as u8, c[2] as u8
+                                rgb_values[0], rgb_values[1], rgb_values[2]
                             ));
                         };
                     });

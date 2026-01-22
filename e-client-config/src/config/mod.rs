@@ -91,15 +91,6 @@ impl Config {
 
         for connection in &self.connections {
             connection.check_param(&self.settings.language)?;
-            println!(
-                "Saving {} - {}",
-                connection.name,
-                if connection.color.is_some() {
-                    connection.color.as_ref().unwrap()
-                } else {
-                    "--"
-                }
-            );
         }
 
         let toml = toml::to_string_pretty(&self.connections)
@@ -122,8 +113,7 @@ impl Config {
         }
 
         self.connections.push(conn);
-        self.save_connections()?;
-        Ok(())
+        self.save_connections()
     }
 
     pub fn clear_connections() -> Result<(), ConfigError> {
@@ -133,8 +123,7 @@ impl Config {
 
     pub fn remove_connection(&mut self, name: &str) -> Result<(), ConfigError> {
         self.connections.retain(|c| c.name != name);
-        self.save_connections()?;
-        Ok(())
+        self.save_connections()
     }
 
     pub fn update_single_connection(

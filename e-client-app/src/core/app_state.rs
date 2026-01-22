@@ -1,7 +1,7 @@
 use crate::core::redis_client::{RedisClient, ValueData};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
+use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
@@ -10,7 +10,7 @@ use e_client_config::translations::{tr, tr_fmt};
 #[derive(Clone)]
 pub struct AppState {
     pub redis_client: RedisClient,
-    pub connection_url: Arc<RwLock<String>>,
+    pub connection_param: Arc<RwLock<Option<RedisConnectionConfig>>>,
     pub connected: Arc<RwLock<bool>>,
     pub current_db: Arc<RwLock<u32>>,
     pub databases: Arc<RwLock<Vec<u32>>>,
@@ -28,7 +28,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             redis_client: RedisClient::new(),
-            connection_url: Arc::new(RwLock::new("".to_string())),
+            connection_param: Arc::new(RwLock::new(None)),
             connected: Arc::new(RwLock::new(false)),
             current_db: Arc::new(RwLock::new(0)),
             databases: Arc::new(RwLock::new(vec![])),
@@ -53,10 +53,10 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
-            let url = state.connection_url.read().await.clone();
+            let param = state.connection_param.read().await.clone().unwrap();
             let lang = *state.language.read().await;
 
-            match state.redis_client.connect(&url).await {
+            match state.redis_client.connect(param).await {
                 Ok(_) => {
                     *state.connected.write().await = true;
 

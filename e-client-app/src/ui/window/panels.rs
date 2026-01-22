@@ -61,7 +61,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
                     if let Some(idx) = app.selected_connection {
                         if let Some(conn) = app.config.connections.get(idx) {
-                            app.update_string(app.state.connection_url.clone(), conn.url.clone());
+                            app.push_connection(conn.clone());
                             app.state.spawn_connect();
                         }
                     } else {
@@ -267,7 +267,11 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
     let err = err.to_message(Language::default());
     let options = eframe::NativeOptions::default();
-    return eframe::run_simple_native(APP_NAME, options, move |ctx, _frame| {
+    eframe::run_simple_native(APP_NAME, options, move |ctx, _frame| {
+        use std::cell::Cell;
+        thread_local! {
+            static SHOW_POPUP: Cell<bool> = Cell::new(false);
+        }
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading(egui::RichText::new(LOAD_ERROR_TITLE).color(egui::Color32::RED));
             ui.horizontal(|ui| {
@@ -285,8 +289,22 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
                 if let Err(_) = Config::load_connections() {
                     let _ = Config::clear_connections();
                 }
-                std::process::exit(0);
+                SHOW_POPUP.set(true);
             }
         });
-    });
+        SHOW_POPUP.with(|popup| {
+            if popup.get() {
+                egui::Window::new("Well Done!")
+                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                    .collapsible(false)
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        ui.label("Now restart your app.");
+                        if ui.button("OK").clicked() {
+                            std::process::exit(0);
+                        }
+                    });
+            }
+        });
+    })
 }

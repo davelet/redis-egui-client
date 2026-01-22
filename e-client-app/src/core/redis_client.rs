@@ -4,6 +4,7 @@ use redis::{
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use e_client_config::connection::RedisConnectionConfig;
 
 #[derive(Clone)]
 pub struct RedisClient {
@@ -17,8 +18,8 @@ impl RedisClient {
         }
     }
 
-    pub async fn connect(&self, url: &str) -> Result<(), RedisError> {
-        let client = Client::open(url)?;
+    pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
+        let client = Client::open(redis)?;
         let manager = ConnectionManager::new(client).await?;
         *self.manager.write().await = Some(manager);
         Ok(())
