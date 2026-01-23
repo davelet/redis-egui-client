@@ -5,7 +5,7 @@ use e_client_bilingual::translations::keys::{
     CONNECTION_NAME, CONNECTION_PASSWORD, CONNECTION_PORT, CONNECTION_URL, CONNECTION_USERNAME,
 };
 use e_client_bilingual::translations::tr;
-use redis::io::tcp::TcpSettings;
+
 use redis::{
     ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo, RedisError,
     RedisResult,
@@ -27,7 +27,7 @@ impl IntoConnectionInfo for RedisConnectionConfig {
         let port: u16 = self.port.parse().map_err(|e| {
             RedisError::from((
                 redis::ErrorKind::InvalidClientConfig,
-                "invalid redis port",
+                "Invalid redis port",
                 format!("{e}"),
             ))
         })?;

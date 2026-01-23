@@ -1,12 +1,11 @@
-use redis::{
-    aio::ConnectionManager, AsyncCommands, Client,
-    RedisError,
-};
+use e_client_config::connection::RedisConnectionConfig;
+use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use e_client_config::connection::RedisConnectionConfig;
+use tracing::instrument;
 
 #[derive(Clone)]
+#[derive(Debug)] // with instrument
 pub struct RedisClient {
     manager: Arc<RwLock<Option<ConnectionManager>>>,
 }
@@ -18,6 +17,7 @@ impl RedisClient {
         }
     }
 
+    #[instrument]
     pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
         let client = Client::open(redis)?;
         let manager = ConnectionManager::new(client).await?;
@@ -55,20 +55,23 @@ impl RedisClient {
     pub async fn get_databases(&self) -> Result<Vec<u32>, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let config: String = redis::cmd("CONFIG")
+            match redis::cmd("CONFIG")
                 .arg("GET")
                 .arg("databases")
-                .query_async(conn)
+                .query_async::<String>(conn)
                 .await
-                .unwrap_or_else(|_| "16".to_string());
-
-            let db_count: u32 = config
-                .split_whitespace()
-                .last()
-                .unwrap_or("16")
-                .parse()
-                .unwrap_or(16);
-            Ok((0..db_count).collect())
+            {
+                Ok(config) => {
+                    let db_count: u32 = config
+                        .split_whitespace()
+                        .last()
+                        .unwrap_or("16")
+                        .parse()
+                        .unwrap_or(16);
+                    Ok((0..db_count).collect())
+                }
+                Err(_) => Ok((0..16).collect()), // Default to 16 databases if CONFIG fails
+            }
         } else {
             Ok(vec![])
         }

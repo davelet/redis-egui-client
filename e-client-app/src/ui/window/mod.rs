@@ -127,8 +127,8 @@ impl RedisApp {
         (*lock.blocking_read()).clone()
     }
 
-    fn push_connection(&self, lang: RedisConnectionConfig) {
-        *self.state.connection_param.blocking_write() = Some(lang);
+    fn push_connection(&self, conn: RedisConnectionConfig) {
+        *self.state.connection_param.blocking_write() = Some(conn);
     }
 
     fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {

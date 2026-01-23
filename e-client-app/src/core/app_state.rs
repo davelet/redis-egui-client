@@ -1,11 +1,11 @@
 use crate::core::redis_client::{RedisClient, ValueData};
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -53,24 +53,30 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
-            let param = state.connection_param.read().await.clone().unwrap();
+            let param = state.connection_param.read().await.clone();
             let lang = *state.language.read().await;
 
-            match state.redis_client.connect(param).await {
-                Ok(_) => {
-                    *state.connected.write().await = true;
+            if let Some(connection_config) = param {
+                match state.redis_client.connect(connection_config).await {
+                    Ok(_) => {
+                        *state.connected.write().await = true;
 
-                    if let Ok(dbs) = state.redis_client.get_databases().await {
-                        *state.databases.write().await = dbs;
+                        if let Ok(dbs) = state.redis_client.get_databases().await {
+                            *state.databases.write().await = dbs;
+                        }
+
+                        state.spawn_load_keys();
                     }
-
-                    state.spawn_load_keys();
+                    Err(e) => {
+                        *state.command_output.write().await =
+                            tr_fmt(keys::CONNECTION_FAILED, lang, &[&e.to_string()]);
+                        *state.connected.write().await = false;
+                    }
                 }
-                Err(e) => {
-                    *state.command_output.write().await =
-                        tr_fmt(keys::CONNECTION_FAILED, lang, &[&e.to_string()]);
-                    *state.connected.write().await = false;
-                }
+            } else {
+                *state.command_output.write().await =
+                    "No connection configuration found".to_string();
+                *state.connected.write().await = false;
             }
             *state.loading.write().await = false;
         });

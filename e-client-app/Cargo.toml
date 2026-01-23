@@ -15,6 +15,8 @@ tokio = { version = "1.0", features = ["full"] }
 redis = { version = "1.0.2", features = ["tokio-native-tls-comp", "connection-manager"] }
 image = "0.25.9"
 wgpu = { version = "27", features = ["metal", "dx12"]}
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
 
 [package.metadata.bundle]
 name = "Rudist"

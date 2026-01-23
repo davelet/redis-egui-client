@@ -5,7 +5,7 @@ pub const APP_NAME: &str = "Rudist";
 pub const LOAD_ERROR_TITLE: &str = "Load Error:";
 
 /// Default Redis URL used when no other is specified
-pub const DEFAULT_REDIS_PORT: &str = "6397";
+pub const DEFAULT_REDIS_PORT: &str = "6379";
 
 /// Default key filter pattern
 pub const DEFAULT_KEY_FILTER: &str = "*";
