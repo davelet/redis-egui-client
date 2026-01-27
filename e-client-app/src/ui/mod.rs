@@ -47,8 +47,8 @@ pub(crate) fn start_app() -> eframe::Result {
         APP_NAME,
         options,
         Box::new(|cc| {
-            // set chinese font todo - support more chinese fonts
-            font::configure_fonts(&cc.egui_ctx);
+            // Configure fonts for better Chinese and English display
+            font::setup_chinese_fonts(&cc.egui_ctx)?;
             // Set language
             if !config.settings.language.is_empty() {
                 let mut style = (*cc.egui_ctx.style()).clone();
