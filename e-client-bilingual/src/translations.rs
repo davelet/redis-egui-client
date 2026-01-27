@@ -9,6 +9,7 @@ pub mod keys {
     pub const CONNECT: &str = "connect";
     pub const NEW_CONNECTION: &str = "new_connection";
     pub const EDIT_CONNECTION: &str = "edit_connection";
+    pub const OPEN_IN_NEW_TAB: &str = "open_in_new_tab";
     pub const DISCONNECT: &str = "disconnect";
     pub const CONNECTION_URL: &str = "connection_url";
     pub const DATABASE: &str = "database";
@@ -81,6 +82,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::Chinese, "编辑连接");
             m.insert(Language::English, "Edit Connection");
+            m
+        });
+
+        strings.insert(keys::OPEN_IN_NEW_TAB, {
+            let mut m = HashMap::new();
+            m.insert(Language::Chinese, "在新标签页打开");
+            m.insert(Language::English, "Open in New Tab");
             m
         });
 

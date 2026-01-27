@@ -17,6 +17,7 @@ pub struct RedisTab {
     pub name: String,
     pub state: AppState,
     pub selected_connection: Option<usize>,
+    pub connected_color: Option<String>, // Connection color (hex) after successful connection
     pub command_input_buffer: String,
     pub key_filter_input: String,
 }
@@ -31,6 +32,7 @@ impl RedisTab {
             name: format!("Tab {}", id),
             state,
             selected_connection: None,
+            connected_color: None,
             command_input_buffer: String::new(),
             key_filter_input: DEFAULT_KEY_FILTER.to_string(),
         }
@@ -45,6 +47,7 @@ impl RedisTab {
         let mut tab = Self::new(id, language);
         tab.selected_connection = Some(conn_idx);
         tab.name = conn.name.clone();
+        tab.connected_color = conn.color.clone();
         *tab.state.connection_param.blocking_write() = Some(conn);
         tab
     }

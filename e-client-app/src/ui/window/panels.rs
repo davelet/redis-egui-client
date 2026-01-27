@@ -23,30 +23,26 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 .enumerate()
                 .map(|(idx, tab)| {
                     let is_active = idx == app.active_tab;
-                    let connected = app.poll_bool(tab.state.connected.clone());
 
-                    // Get connection color if available
-                    let mut color_indicator = String::new();
-                    if let Some(conn_idx) = tab.selected_connection {
-                        if let Some(conn) = app.config.connections.get(conn_idx) {
-                            if let Some(color_hex) = &conn.color {
-                                if parse_color_hex(color_hex).is_some() {
-                                    color_indicator = "● ".to_string();
-                                }
-                            }
-                        }
-                    }
+                    // Get connection color from tab (only set after successful connection)
+                    let color = tab
+                        .connected_color
+                        .as_ref()
+                        .and_then(|hex| parse_color_hex(hex));
 
-                    let status_icon = if connected { "🟢 " } else { "" };
-                    let tab_text = format!("{}{}{}", color_indicator, status_icon, tab.name);
-                    (idx, is_active, tab_text)
+                    (idx, is_active, tab.name.clone(), color)
                 })
                 .collect();
 
             // Render tabs
-            for (idx, is_active, tab_text) in tab_infos {
+            for (idx, is_active, tab_text, color) in tab_infos {
                 ui.group(|ui| {
                     ui.horizontal(|ui| {
+                        // Show color indicator before the button
+                        if let Some(color) = color {
+                            ui.colored_label(color, "●");
+                        }
+
                         let button = if is_active {
                             egui::Button::new(&tab_text)
                                 .fill(egui::Color32::from_rgb(200, 220, 240))
@@ -60,7 +56,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
 
                         // Close button
                         if app.tabs.len() > 1 {
-                            if ui.small_button("✕").clicked() {
+                            if ui.small_button("×").clicked() {
                                 tab_to_close = Some(idx);
                             }
                         }
@@ -69,7 +65,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
             }
 
             // New tab button
-            if ui.button("+ Tab").clicked() {
+            if ui.button("+").clicked() {
                 new_tab_requested = true;
             }
         });
@@ -179,6 +175,9 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     if let Some(idx) = tab.selected_connection {
                         if let Some(conn) = app.config.connections.get(idx) {
                             *tab.state.connection_param.blocking_write() = Some(conn.clone());
+                            // Update tab name and color to connection name and color
+                            tab.name = conn.name.clone();
+                            tab.connected_color = conn.color.clone();
                             tab.state.spawn_connect();
                         }
                     } else {
@@ -191,7 +190,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 // "Open in New Tab" button
                 if let Some(idx) = selected_connection {
                     if ui
-                        .button(format!("📑 {}", tr(keys::NEW_CONNECTION, current_lang)))
+                        .button(format!("📑 {}", tr(keys::OPEN_IN_NEW_TAB, current_lang)))
                         .clicked()
                     {
                         if let Some(conn) = app.config.connections.get(idx) {
