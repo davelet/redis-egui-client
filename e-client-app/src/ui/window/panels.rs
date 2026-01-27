@@ -7,43 +7,159 @@ use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
 
+pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
+    let mut tab_to_close: Option<usize> = None;
+    let mut new_tab_requested = false;
+    let mut switch_to_tab: Option<usize> = None;
+
+    egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 2.0;
+
+            // Collect tab info first to avoid borrow issues
+            let tab_infos: Vec<_> = app
+                .tabs
+                .iter()
+                .enumerate()
+                .map(|(idx, tab)| {
+                    let is_active = idx == app.active_tab;
+                    let connected = app.poll_bool(tab.state.connected.clone());
+
+                    // Get connection color if available
+                    let mut color_indicator = String::new();
+                    if let Some(conn_idx) = tab.selected_connection {
+                        if let Some(conn) = app.config.connections.get(conn_idx) {
+                            if let Some(color_hex) = &conn.color {
+                                if parse_color_hex(color_hex).is_some() {
+                                    color_indicator = "● ".to_string();
+                                }
+                            }
+                        }
+                    }
+
+                    let status_icon = if connected { "🟢 " } else { "" };
+                    let tab_text = format!("{}{}{}", color_indicator, status_icon, tab.name);
+                    (idx, is_active, tab_text)
+                })
+                .collect();
+
+            // Render tabs
+            for (idx, is_active, tab_text) in tab_infos {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        let button = if is_active {
+                            egui::Button::new(&tab_text)
+                                .fill(egui::Color32::from_rgb(200, 220, 240))
+                        } else {
+                            egui::Button::new(&tab_text)
+                        };
+
+                        if ui.add(button).clicked() {
+                            switch_to_tab = Some(idx);
+                        }
+
+                        // Close button
+                        if app.tabs.len() > 1 {
+                            if ui.small_button("✕").clicked() {
+                                tab_to_close = Some(idx);
+                            }
+                        }
+                    });
+                });
+            }
+
+            // New tab button
+            if ui.button("+ Tab").clicked() {
+                new_tab_requested = true;
+            }
+        });
+    });
+
+    // Handle tab operations after the UI
+    if let Some(idx) = switch_to_tab {
+        app.switch_to_tab(idx);
+    }
+    if let Some(idx) = tab_to_close {
+        app.close_tab(idx);
+    }
+    if new_tab_requested {
+        app.create_new_tab();
+    }
+}
+
 pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
-    let current_lang = app.poll_language(app.state.language.clone());
+    // Early return if no active tab
+    if app.get_active_tab().is_none() {
+        return;
+    }
+
+    // Get all needed data before entering the UI closure
+    let active_tab_idx = app.active_tab;
+    let tab = &app.tabs[active_tab_idx];
+    let current_lang = app.poll_language(tab.state.language.clone());
+    let selected_connection = tab.selected_connection;
+    let connected = app.poll_bool(tab.state.connected.clone());
+    let loading = app.poll_bool(tab.state.loading.clone());
+    let current_db = app.poll_u32(tab.state.current_db.clone());
+    let databases = app.poll_vec_u32(tab.state.databases.clone());
+
+    let mut create_new_tab_with: Option<(
+        usize,
+        e_client_config::connection::RedisConnectionConfig,
+    )> = None;
 
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         ui.horizontal(|ui| {
+            // Show connection color indicator for current connection
+            if let Some(idx) = selected_connection {
+                if let Some(conn) = app.config.connections.get(idx) {
+                    if let Some(color_hex) = &conn.color {
+                        if let Some(color) = parse_color_hex(color_hex) {
+                            ui.colored_label(color, "●");
+                        }
+                    }
+                }
+            }
+
             ui.label(tr(keys::CONNECTION_URL, current_lang));
 
-            // Connection dropdown
-            let selected_name = app
-                .selected_connection
+            // Connection dropdown - disabled when connected
+            let selected_name = selected_connection
                 .and_then(|idx| app.config.connections.get(idx))
                 .map(|c| c.name.clone())
                 .unwrap_or_else(|| tr(keys::SELECT_CONNECTION, current_lang).to_string());
 
-            egui::ComboBox::from_id_salt("connection_select")
-                .selected_text(selected_name)
-                .show_ui(ui, |ui| {
-                    for (idx, conn) in app.config.connections.connections.iter().enumerate() {
-                        let is_selected = app.selected_connection == Some(idx);
-                        if ui.selectable_label(is_selected, &conn.name).clicked() {
-                            app.selected_connection = Some(idx);
+            ui.add_enabled_ui(!connected, |ui| {
+                egui::ComboBox::from_id_salt("connection_select")
+                    .selected_text(selected_name)
+                    .show_ui(ui, |ui| {
+                        for (idx, conn) in app.config.connections.connections.iter().enumerate() {
+                            let tab = &mut app.tabs[active_tab_idx];
+                            let is_selected = tab.selected_connection == Some(idx);
+                            ui.horizontal(|ui| {
+                                // Show color indicator for each connection in dropdown
+                                if let Some(color_hex) = &conn.color {
+                                    if let Some(color) = parse_color_hex(color_hex) {
+                                        ui.colored_label(color, "●");
+                                    }
+                                } else {
+                                    ui.label("  "); // Placeholder for alignment
+                                }
+                                if ui.selectable_label(is_selected, &conn.name).clicked() {
+                                    tab.selected_connection = Some(idx);
+                                }
+                            });
                         }
-                    }
-                });
-
-            let connected = app.poll_bool(app.state.connected.clone());
+                    });
+            });
 
             if connected {
                 if ui.button(tr(keys::DISCONNECT, current_lang)).clicked() {
-                    app.state.spawn_disconnect();
+                    app.tabs[active_tab_idx].state.spawn_disconnect();
                 }
 
                 ui.separator();
                 ui.label(tr(keys::DATABASE, current_lang));
-
-                let current_db = app.poll_u32(app.state.current_db.clone());
-                let databases = app.poll_vec_u32(app.state.databases.clone());
 
                 egui::ComboBox::from_id_salt("db_select")
                     .selected_text(format!("DB {}", current_db))
@@ -53,51 +169,68 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 .selectable_label(current_db == db, format!("DB {}", db))
                                 .clicked()
                             {
-                                app.state.spawn_select_db(db);
+                                app.tabs[active_tab_idx].state.spawn_select_db(db);
                             }
                         }
                     });
             } else {
                 if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
-                    if let Some(idx) = app.selected_connection {
+                    let tab = &mut app.tabs[active_tab_idx];
+                    if let Some(idx) = tab.selected_connection {
                         if let Some(conn) = app.config.connections.get(idx) {
-                            app.push_connection(conn.clone());
-                            app.state.spawn_connect();
+                            *tab.state.connection_param.blocking_write() = Some(conn.clone());
+                            tab.state.spawn_connect();
                         }
                     } else {
-                        app.state
+                        app.tabs[active_tab_idx]
+                            .state
                             .show_err(tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string());
+                    }
+                }
+
+                // "Open in New Tab" button
+                if let Some(idx) = selected_connection {
+                    if ui
+                        .button(format!("📑 {}", tr(keys::NEW_CONNECTION, current_lang)))
+                        .clicked()
+                    {
+                        if let Some(conn) = app.config.connections.get(idx) {
+                            create_new_tab_with = Some((idx, conn.clone()));
+                        }
                     }
                 }
             }
 
-            let loading = app.poll_bool(app.state.loading.clone());
             if loading {
                 ui.spinner();
             }
             ui.separator();
-            // Add edit connection button
-            if let Some(selected_idx) = app.selected_connection {
-                if ui
-                    .button(format!("✏ {}", tr(keys::EDIT_CONNECTION, current_lang)))
-                    .clicked()
-                {
-                    if let Some(conn) = app.config.connections.get(selected_idx) {
-                        app.new_connection.open_for_edit(conn);
+
+            // Connection management buttons - disabled when connected
+            ui.add_enabled_ui(!connected, |ui| {
+                // Add edit connection button
+                if let Some(selected_idx) = selected_connection {
+                    if ui
+                        .button(format!("✏ {}", tr(keys::EDIT_CONNECTION, current_lang)))
+                        .clicked()
+                    {
+                        if let Some(conn) = app.config.connections.get(selected_idx) {
+                            app.new_connection.open_for_edit(conn);
+                        }
                     }
                 }
-            }
-            // Add new connection button
-            if ui
-                .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
-                .clicked()
-            {
-                app.new_connection.show = true;
-            }
+                // Add new connection button
+                if ui
+                    .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
+                    .clicked()
+                {
+                    app.new_connection.show = true;
+                }
+            });
 
             // Right side - Language selector
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let lang = app.poll_language(app.state.language.clone());
+                let lang = current_lang;
                 egui::ComboBox::from_id_salt("lang_select")
                     .selected_text(match lang {
                         Language::English => ENGLISH,
@@ -122,6 +255,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
         });
     });
 
+    // Handle deferred operations
+    if let Some((idx, conn)) = create_new_tab_with {
+        app.create_tab_with_connection(idx, conn);
+    }
+
     // New connection dialog
     if app.new_connection.show {
         app.new_connection
@@ -130,34 +268,42 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 }
 
 pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
+    if app.get_active_tab().is_none() {
+        return;
+    }
+
+    let active_tab_idx = app.active_tab;
+    let tab = &app.tabs[active_tab_idx];
+    let current_lang = app.poll_language(tab.state.language.clone());
+    let keys = app.poll_vec_string(tab.state.keys.clone());
+    let selected_key = app.poll_option_string(tab.state.selected_key.clone());
+
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
         .show(ctx, |ui| {
-            let current_lang = app.poll_language(app.state.language.clone());
-
             ui.vertical(|ui| {
                 ui.heading(tr(keys::KEYS, current_lang));
 
                 ui.horizontal(|ui| {
                     ui.label(tr(keys::FILTER, current_lang));
-                    if ui.text_edit_singleline(&mut app.key_filter_input).changed() {
-                        app.update_string(
-                            app.state.key_filter.clone(),
-                            app.key_filter_input.clone(),
-                        );
-                        app.state.spawn_load_keys();
+                    let tab = &mut app.tabs[active_tab_idx];
+                    let changed = ui.text_edit_singleline(&mut tab.key_filter_input).changed();
+                    if changed {
+                        let key_filter = tab.state.key_filter.clone();
+                        let key_filter_input = tab.key_filter_input.clone();
+                        // Release mutable borrow
+                        app.update_string(key_filter, key_filter_input);
+                        app.tabs[active_tab_idx].state.spawn_load_keys();
                     }
                 });
-
-                let keys = app.poll_vec_string(app.state.keys.clone());
-                let selected_key = app.poll_option_string(app.state.selected_key.clone());
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for key in keys {
                         let is_selected = selected_key.as_ref() == Some(&key);
                         if ui.selectable_label(is_selected, &key).clicked() {
-                            *app.state.selected_key.blocking_write() = Some(key.clone());
-                            app.state.spawn_load_value(key);
+                            let tab = &mut app.tabs[active_tab_idx];
+                            *tab.state.selected_key.blocking_write() = Some(key.clone());
+                            tab.state.spawn_load_value(key);
                         }
                     }
                 });
@@ -166,29 +312,38 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 }
 
 pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
-    let current_lang = app.poll_language(app.state.language.clone());
+    if app.get_active_tab().is_none() {
+        return;
+    }
+
+    let active_tab_idx = app.active_tab;
+    let tab = &app.tabs[active_tab_idx];
+    let current_lang = app.poll_language(tab.state.language.clone());
+    let command_output = app.poll_string(tab.state.command_output.clone());
+    let selected_key = app.poll_option_string(tab.state.selected_key.clone());
+    let value = app.poll_option_value(tab.state.key_value.clone());
 
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.label(tr(keys::COMMAND_LABEL, current_lang));
-            let response = ui.text_edit_singleline(&mut app.command_input_buffer);
+            let tab = &mut app.tabs[active_tab_idx];
+            let response = ui.text_edit_singleline(&mut tab.command_input_buffer);
 
             if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                let cmd = app.command_input_buffer.clone();
-                app.state.spawn_execute_command(cmd);
-                app.command_input_buffer.clear();
+                let cmd = tab.command_input_buffer.clone();
+                tab.state.spawn_execute_command(cmd);
+                tab.command_input_buffer.clear();
             }
 
             if ui.button(tr(keys::EXECUTE, current_lang)).clicked() {
-                let cmd = app.command_input_buffer.clone();
-                app.state.spawn_execute_command(cmd);
-                app.command_input_buffer.clear();
+                let cmd = tab.command_input_buffer.clone();
+                tab.state.spawn_execute_command(cmd);
+                tab.command_input_buffer.clear();
             }
         });
 
         ui.separator();
 
-        let command_output = app.poll_string(app.state.command_output.clone());
         if !command_output.is_empty() {
             ui.group(|ui| {
                 ui.label(tr(keys::OUTPUT, current_lang));
@@ -201,11 +356,8 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
             ui.separator();
         }
 
-        let selected_key = app.poll_option_string(app.state.selected_key.clone());
         if let Some(key) = selected_key {
             ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&key]));
-
-            let value = app.poll_option_value(app.state.key_value.clone());
 
             if let Some(val) = value {
                 match val {
@@ -220,7 +372,11 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                         if items.is_empty() && len > 0 {
                             if ui.button(tr(keys::LOAD_FIRST_100, current_lang)).clicked() {
-                                app.state.spawn_load_list_range(key.clone(), 0, 99);
+                                app.tabs[active_tab_idx].state.spawn_load_list_range(
+                                    key.clone(),
+                                    0,
+                                    99,
+                                );
                             }
                         } else {
                             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -235,7 +391,9 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                         if fields.is_empty() && len > 0 {
                             if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
-                                app.state.spawn_load_hash_fields(key.clone());
+                                app.tabs[active_tab_idx]
+                                    .state
+                                    .spawn_load_hash_fields(key.clone());
                             }
                         } else {
                             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -307,4 +465,18 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
             }
         });
     })
+}
+
+/// Parse hex color string (#RRGGBB) to egui Color32
+fn parse_color_hex(hex: &str) -> Option<egui::Color32> {
+    let hex = hex.trim_start_matches('#');
+    if hex.len() != 6 {
+        return None;
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+
+    Some(egui::Color32::from_rgb(r, g, b))
 }
