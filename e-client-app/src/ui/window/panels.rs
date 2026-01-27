@@ -9,8 +9,9 @@ use e_client_config::translations::{tr, tr_fmt};
 
 pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
     let mut tab_to_close: Option<usize> = None;
-    let mut new_tab_requested = false;
+    let mut close_other_tabs: Option<usize> = None;
     let mut switch_to_tab: Option<usize> = None;
+    let mut duplicate_tab: Option<usize> = None;
 
     egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
         ui.horizontal(|ui| {
@@ -30,44 +31,81 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                         .as_ref()
                         .and_then(|hex| parse_color_hex(hex));
 
-                    (idx, is_active, tab.name.clone(), color)
+                    // Check if tab has a connection
+                    let has_connection = tab.selected_connection.is_some();
+
+                    (idx, is_active, tab.name.clone(), color, has_connection)
                 })
                 .collect();
 
-            // Render tabs
-            for (idx, is_active, tab_text, color) in tab_infos {
-                ui.group(|ui| {
+            // Scrollable area for tabs
+            egui::ScrollArea::horizontal()
+                .id_salt("tab_scroll_area")
+                .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        // Show color indicator before the button
-                        if let Some(color) = color {
-                            ui.colored_label(color, "●");
+                        // Render tabs
+                        for (idx, is_active, tab_text, color, has_connection) in tab_infos {
+                            ui.group(|ui| {
+                                ui.horizontal(|ui| {
+                                    // Show color indicator before the button
+                                    if let Some(color) = color {
+                                        ui.colored_label(color, "●");
+                                    }
+
+                                    let button = if is_active {
+                                        egui::Button::new(&tab_text)
+                                            .fill(egui::Color32::from_rgb(200, 220, 240))
+                                    } else {
+                                        egui::Button::new(&tab_text)
+                                    };
+
+                                    if ui.add(button).clicked() {
+                                        switch_to_tab = Some(idx);
+                                    }
+
+                                    // Close button - only show if has connection or not the last tab
+                                    if has_connection || app.tabs.len() > 1 {
+                                        if ui.small_button("×").clicked() {
+                                            tab_to_close = Some(idx);
+                                        }
+                                    }
+
+                                    // Menu button (three dots) - show if has connection OR more than 2 tabs
+                                    if has_connection || app.tabs.len() > 2 {
+                                        ui.menu_button("⋮", |ui| {
+                                            let current_lang = app
+                                                .tabs
+                                                .get(app.active_tab)
+                                                .map(|tab| *tab.state.language.blocking_read());
+                                            let lang = current_lang.unwrap_or(Language::English);
+
+                                            // Copy button - show if has connection
+                                            if has_connection {
+                                                if ui.button(tr(keys::COPY, lang)).clicked() {
+                                                    duplicate_tab = Some(idx);
+                                                }
+                                            }
+
+                                            // Close others button - show if more than 2 tabs
+                                            if app.tabs.len() > 2 {
+                                                ui.separator();
+                                                if ui.button(tr(keys::CLOSE_OTHERS, lang)).clicked()
+                                                {
+                                                    close_other_tabs = Some(idx);
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            });
                         }
 
-                        let button = if is_active {
-                            egui::Button::new(&tab_text)
-                                .fill(egui::Color32::from_rgb(200, 220, 240))
-                        } else {
-                            egui::Button::new(&tab_text)
-                        };
-
-                        if ui.add(button).clicked() {
-                            switch_to_tab = Some(idx);
-                        }
-
-                        // Close button
-                        if app.tabs.len() > 1 {
-                            if ui.small_button("×").clicked() {
-                                tab_to_close = Some(idx);
-                            }
+                        // New tab button
+                        if ui.button("+").clicked() {
+                            app.create_new_tab();
                         }
                     });
                 });
-            }
-
-            // New tab button
-            if ui.button("+").clicked() {
-                new_tab_requested = true;
-            }
         });
     });
 
@@ -78,8 +116,16 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
     if let Some(idx) = tab_to_close {
         app.close_tab(idx);
     }
-    if new_tab_requested {
-        app.create_new_tab();
+    if let Some(idx) = close_other_tabs {
+        app.close_other_tabs(idx);
+    }
+    if let Some(idx) = duplicate_tab {
+        // Duplicate the tab by creating a new tab with the same connection
+        if let Some(conn_idx) = app.tabs.get(idx).and_then(|t| t.selected_connection) {
+            if let Some(conn) = app.config.connections.get(conn_idx) {
+                app.create_tab_with_connection(conn_idx, conn.clone());
+            }
+        }
     }
 }
 
@@ -152,6 +198,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             if connected {
                 if ui.button(tr(keys::DISCONNECT, current_lang)).clicked() {
                     app.tabs[active_tab_idx].state.spawn_disconnect();
+                    // Clear tab name and color on disconnect
+                    let tab = &mut app.tabs[active_tab_idx];
+                    tab.name = format!("{} {}", tr(keys::TAB, current_lang), tab.id);
+                    tab.connected_color = None;
+                    tab.selected_connection = None;
                 }
 
                 ui.separator();

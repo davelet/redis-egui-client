@@ -5,6 +5,7 @@ use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
+use e_client_config::translations::{keys, tr};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -29,7 +30,7 @@ impl RedisTab {
 
         Self {
             id,
-            name: format!("Tab {}", id),
+            name: format!("{}{}", tr(keys::TAB, language), id),
             state,
             selected_connection: None,
             connected_color: None,
@@ -178,6 +179,16 @@ impl RedisApp {
             } else if self.active_tab > index {
                 self.active_tab -= 1;
             }
+        } else {
+            // Disconnect from the active tab if no tab is being closed
+            if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+                let lang = *tab.state.language.blocking_read();
+                tab.state.spawn_disconnect();
+                // Clear tab name and color on disconnect
+                tab.name = format!("{} {}", tr(keys::TAB, lang), tab.id);
+                tab.connected_color = None;
+                tab.selected_connection = None;
+            }
         }
     }
 
@@ -185,6 +196,32 @@ impl RedisApp {
         if index < self.tabs.len() {
             self.active_tab = index;
         }
+    }
+
+    pub fn close_other_tabs(&mut self, keep_index: usize) {
+        if self.tabs.len() <= 1 {
+            return;
+        }
+
+        // Disconnect and remove all tabs except the one to keep
+        let mut indices_to_remove: Vec<usize> = Vec::new();
+        for idx in 0..self.tabs.len() {
+            if idx != keep_index {
+                indices_to_remove.push(idx);
+            }
+        }
+
+        // Remove in reverse order to avoid index shifting
+        for idx in indices_to_remove.into_iter().rev() {
+            if idx < self.tabs.len() {
+                let tab = &self.tabs[idx];
+                tab.state.spawn_disconnect();
+                self.tabs.remove(idx);
+            }
+        }
+
+        // Adjust active tab index
+        self.active_tab = 0;
     }
 
     // Helper methods for compatibility with panels
@@ -228,8 +265,23 @@ impl RedisApp {
 
     fn update_language(&mut self, lang: Language) {
         self.global_language = lang;
-        if let Some(tab) = self.get_active_tab() {
+        // Update all tabs' language and names
+        for tab in self.tabs.iter_mut() {
             *tab.state.language.blocking_write() = lang;
+            // Update tab name if it's the default name (has connection name format)
+            // Only update default tab names, not connection names
+            if tab.name.starts_with("Tab ") || tab.name.starts_with("标签页") {
+                tab.name = format!("{}{}", tr(keys::TAB, lang), tab.id);
+            }
+        }
+    }
+}
+
+impl Drop for RedisApp {
+    fn drop(&mut self) {
+        // Disconnect all tabs when app is closed (immediate, no async wait)
+        for tab in &self.tabs {
+            tab.state.redis_client.disconnect_sync();
         }
     }
 }

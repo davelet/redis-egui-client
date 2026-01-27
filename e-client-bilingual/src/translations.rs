@@ -13,12 +13,16 @@ pub mod keys {
     pub const DISCONNECT: &str = "disconnect";
     pub const CONNECTION_URL: &str = "connection_url";
     pub const DATABASE: &str = "database";
+    pub const TAB: &str = "tab";
     pub const KEYS: &str = "keys";
     pub const FILTER: &str = "filter";
     pub const COMMAND: &str = "command";
     pub const EXECUTE: &str = "execute";
     pub const VALUE: &str = "value";
     pub const LANGUAGE: &str = "language";
+    pub const CLOSE: &str = "close";
+    pub const CLOSE_OTHERS: &str = "close_others";
+    pub const COPY: &str = "copy";
     pub const CONNECTION_FAILED: &str = "connection_failed";
     pub const SELECT_CONNECTION: &str = "select_connection";
     pub const PLEASE_SELECT_CONNECTION: &str = "please_select_connection";
@@ -111,6 +115,34 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Database:");
             m.insert(Language::Chinese, "数据库:");
+            m
+        });
+
+        strings.insert(keys::TAB, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab ");
+            m.insert(Language::Chinese, "标签页");
+            m
+        });
+
+        strings.insert(keys::CLOSE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Close");
+            m.insert(Language::Chinese, "关闭");
+            m
+        });
+
+        strings.insert(keys::CLOSE_OTHERS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Close Others");
+            m.insert(Language::Chinese, "关闭其他");
+            m
+        });
+
+        strings.insert(keys::COPY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Copy");
+            m.insert(Language::Chinese, "复制");
             m
         });
 

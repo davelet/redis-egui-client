@@ -33,6 +33,12 @@ impl RedisClient {
         *self.manager.write().await = None;
     }
 
+    pub fn disconnect_sync(&self) {
+        if let Ok(mut manager) = self.manager.try_write() {
+            *manager = None;
+        }
+    }
+
     pub async fn execute_command(&self, cmd: &str) -> Result<String, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
