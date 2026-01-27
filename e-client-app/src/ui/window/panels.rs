@@ -280,23 +280,27 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
         .show(ctx, |ui| {
-            ui.vertical(|ui| {
-                ui.heading(tr(keys::KEYS, current_lang));
+            ui.heading(tr(keys::KEYS, current_lang));
 
-                ui.horizontal(|ui| {
-                    ui.label(tr(keys::FILTER, current_lang));
-                    let tab = &mut app.tabs[active_tab_idx];
-                    let changed = ui.text_edit_singleline(&mut tab.key_filter_input).changed();
-                    if changed {
-                        let key_filter = tab.state.key_filter.clone();
-                        let key_filter_input = tab.key_filter_input.clone();
-                        // Release mutable borrow
-                        app.update_string(key_filter, key_filter_input);
-                        app.tabs[active_tab_idx].state.spawn_load_keys();
-                    }
-                });
+            ui.horizontal(|ui| {
+                ui.label(tr(keys::FILTER, current_lang));
+                let tab = &mut app.tabs[active_tab_idx];
+                let changed = ui.text_edit_singleline(&mut tab.key_filter_input).changed();
+                if changed {
+                    let key_filter = tab.state.key_filter.clone();
+                    let key_filter_input = tab.key_filter_input.clone();
+                    // Release mutable borrow
+                    app.update_string(key_filter, key_filter_input);
+                    app.tabs[active_tab_idx].state.spawn_load_keys();
+                }
+            });
 
-                egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.separator();
+
+            // Fill remaining space with scroll area
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
                     for key in keys {
                         let is_selected = selected_key.as_ref() == Some(&key);
                         if ui.selectable_label(is_selected, &key).clicked() {
@@ -306,7 +310,6 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     }
                 });
-            });
         });
 }
 
@@ -362,9 +365,16 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 match val {
                     ValueData::String(s) => {
                         ui.label(tr(keys::TYPE_STRING, current_lang));
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            ui.text_edit_multiline(&mut s.as_str());
-                        });
+                        egui::ScrollArea::vertical()
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                let available = ui.available_size();
+                                let desired_height = available.y.max(300.0).min(600.0);
+                                ui.add_sized(
+                                    [available.x, desired_height],
+                                    egui::TextEdit::multiline(&mut s.as_str()),
+                                );
+                            });
                     }
                     ValueData::List { len, items } => {
                         ui.label(tr_fmt(keys::TYPE_LIST, current_lang, &[&len.to_string()]));
@@ -395,20 +405,69 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                     .spawn_load_hash_fields(key.clone());
                             }
                         } else {
-                            egui::ScrollArea::vertical().show(ui, |ui| {
-                                for (field, value) in fields.iter() {
-                                    ui.horizontal(|ui| {
-                                        ui.label(format!("{}: {}", field, value));
-                                    });
-                                }
-                            });
+                            egui::ScrollArea::both()
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    for (field, value) in fields.iter() {
+                                        ui.horizontal_wrapped(|ui| {
+                                            ui.label(
+                                                egui::RichText::new(format!("{}: ", field))
+                                                    .strong(),
+                                            );
+                                            ui.label(value);
+                                        });
+                                        ui.separator();
+                                    }
+                                });
                         }
                     }
-                    ValueData::Set { len, .. } => {
+                    ValueData::Set { len, items } => {
                         ui.label(tr_fmt(keys::TYPE_SET, current_lang, &[&len.to_string()]));
+
+                        if items.is_empty() && len > 0 {
+                            if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+                                app.tabs[active_tab_idx]
+                                    .state
+                                    .spawn_load_set_members(key.clone());
+                            }
+                        } else {
+                            egui::ScrollArea::vertical()
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    for item in items.iter() {
+                                        ui.label(item);
+                                        ui.separator();
+                                    }
+                                });
+                        }
                     }
-                    ValueData::ZSet { len, .. } => {
+                    ValueData::ZSet { len, items } => {
                         ui.label(tr_fmt(keys::TYPE_ZSET, current_lang, &[&len.to_string()]));
+
+                        if items.is_empty() && len > 0 {
+                            if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+                                app.tabs[active_tab_idx].state.spawn_load_zset_range(
+                                    key.clone(),
+                                    0,
+                                    99,
+                                );
+                            }
+                        } else {
+                            egui::ScrollArea::vertical()
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    for (member, score) in items.iter() {
+                                        ui.horizontal(|ui| {
+                                            ui.label(
+                                                egui::RichText::new(format!("{}: ", score))
+                                                    .strong(),
+                                            );
+                                            ui.label(member);
+                                        });
+                                        ui.separator();
+                                    }
+                                });
+                        }
                     }
                     ValueData::None => {
                         ui.label(tr(keys::KEY_NOT_EXIST, current_lang));

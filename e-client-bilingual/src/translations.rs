@@ -46,6 +46,7 @@ pub mod keys {
     pub const TYPE_ZSET: &str = "type_zset";
     pub const LOAD_FIRST_100: &str = "load_first_100";
     pub const LOAD_FIELDS: &str = "load_fields";
+    pub const LOAD_MEMBERS: &str = "load_members";
     pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
@@ -346,6 +347,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Load fields");
             m.insert(Language::Chinese, "加载字段");
+            m
+        });
+
+        strings.insert(keys::LOAD_MEMBERS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Load members");
+            m.insert(Language::Chinese, "加载成员");
             m
         });
 

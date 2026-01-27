@@ -216,4 +216,40 @@ impl AppState {
             }
         });
     }
+
+    pub fn spawn_load_set_members(&self, key: String) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            match state.redis_client.get_set_members(&key, 0, 100).await {
+                Ok((_, members)) => {
+                    let mut value = state.key_value.write().await;
+                    if let Some(ValueData::Set {
+                        items: existing, ..
+                    }) = value.as_mut()
+                    {
+                        *existing = members;
+                    }
+                }
+                Err(_) => {}
+            }
+        });
+    }
+
+    pub fn spawn_load_zset_range(&self, key: String, start: isize, stop: isize) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            match state.redis_client.get_zset_range(&key, start, stop).await {
+                Ok(items) => {
+                    let mut value = state.key_value.write().await;
+                    if let Some(ValueData::ZSet {
+                        items: existing, ..
+                    }) = value.as_mut()
+                    {
+                        *existing = items;
+                    }
+                }
+                Err(_) => {}
+            }
+        });
+    }
 }

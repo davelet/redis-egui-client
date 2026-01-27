@@ -194,6 +194,48 @@ impl RedisClient {
             Ok((0, vec![]))
         }
     }
+
+    pub async fn get_set_members(
+        &self,
+        key: &str,
+        cursor: u64,
+        count: usize,
+    ) -> Result<(u64, Vec<String>), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let (new_cursor, items): (u64, Vec<String>) = redis::cmd("SSCAN")
+                .arg(key)
+                .arg(cursor)
+                .arg("COUNT")
+                .arg(count)
+                .query_async(conn)
+                .await?;
+            Ok((new_cursor, items))
+        } else {
+            Ok((0, vec![]))
+        }
+    }
+
+    pub async fn get_zset_range(
+        &self,
+        key: &str,
+        start: isize,
+        stop: isize,
+    ) -> Result<Vec<(String, f64)>, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let items: Vec<(String, f64)> = redis::cmd("ZRANGE")
+                .arg(key)
+                .arg(start)
+                .arg(stop)
+                .arg("WITHSCORES")
+                .query_async(conn)
+                .await?;
+            Ok(items)
+        } else {
+            Ok(vec![])
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
