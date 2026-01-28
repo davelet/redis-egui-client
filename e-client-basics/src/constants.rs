@@ -8,7 +8,7 @@ pub const LOAD_ERROR_TITLE: &str = "Load Error:";
 pub const DEFAULT_REDIS_PORT: &str = "6379";
 
 /// Default key filter pattern
-pub const DEFAULT_KEY_FILTER: &str = "*";
+pub const WILD_KEY_FILTER: char = '*';
 
 /// Default main window size
 pub const WINDOW_WIDTH: f32 = 1200.0;

@@ -3,7 +3,6 @@ use crate::core::redis_client::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
-use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 use std::sync::Arc;
@@ -35,7 +34,7 @@ impl RedisTab {
             selected_connection: None,
             connected_color: None,
             command_input_buffer: String::new(),
-            key_filter_input: DEFAULT_KEY_FILTER.to_string(),
+            key_filter_input: String::new(),
         }
     }
 

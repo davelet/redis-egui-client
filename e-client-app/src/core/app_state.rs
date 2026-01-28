@@ -1,6 +1,5 @@
 use crate::core::redis_client::{RedisClient, ValueData};
 use e_client_config::connection::RedisConnectionConfig;
-use e_client_config::constants::DEFAULT_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
@@ -37,7 +36,7 @@ impl Default for AppState {
             key_value: Arc::new(RwLock::new(None)),
             command_input: Arc::new(RwLock::new(String::new())),
             command_output: Arc::new(RwLock::new(String::new())),
-            key_filter: Arc::new(RwLock::new(DEFAULT_KEY_FILTER.to_string())),
+            key_filter: Arc::new(RwLock::new("".to_string())),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
         }

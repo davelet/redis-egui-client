@@ -22,7 +22,7 @@ pub mod keys {
     pub const LANGUAGE: &str = "language";
     pub const CLOSE: &str = "close";
     pub const CLOSE_OTHERS: &str = "close_others";
-    pub const COPY: &str = "copy";
+    pub const DUPLICATE: &str = "duplicate";
     pub const CONNECTION_FAILED: &str = "connection_failed";
     pub const SELECT_CONNECTION: &str = "select_connection";
     pub const PLEASE_SELECT_CONNECTION: &str = "please_select_connection";
@@ -139,9 +139,9 @@ impl Default for Translator {
             m
         });
 
-        strings.insert(keys::COPY, {
+        strings.insert(keys::DUPLICATE, {
             let mut m = HashMap::new();
-            m.insert(Language::English, "Copy");
+            m.insert(Language::English, "Duplicate");
             m.insert(Language::Chinese, "复制");
             m
         });

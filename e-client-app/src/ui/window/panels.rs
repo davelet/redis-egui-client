@@ -1,7 +1,7 @@
 use super::RedisApp;
 use crate::core::redis_client::ValueData;
 use e_client_config::config::Config;
-use e_client_config::constants::{APP_NAME, CHINESE, ENGLISH, LOAD_ERROR_TITLE};
+use e_client_config::constants::{APP_NAME, CHINESE, ENGLISH, LOAD_ERROR_TITLE, WILD_KEY_FILTER};
 use e_client_config::error::ConfigError;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
@@ -81,7 +81,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
 
                                             // Copy button - show if has connection
                                             if has_connection {
-                                                if ui.button(tr(keys::COPY, lang)).clicked() {
+                                                if ui.button(tr(keys::DUPLICATE, lang)).clicked() {
                                                     duplicate_tab = Some(idx);
                                                 }
                                             }
@@ -198,11 +198,14 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             if connected {
                 if ui.button(tr(keys::DISCONNECT, current_lang)).clicked() {
                     app.tabs[active_tab_idx].state.spawn_disconnect();
-                    // Clear tab name and color on disconnect
+                    // Clear tab name, color, and filter on disconnect
                     let tab = &mut app.tabs[active_tab_idx];
                     tab.name = format!("{} {}", tr(keys::TAB, current_lang), tab.id);
                     tab.connected_color = None;
                     tab.selected_connection = None;
+                    tab.key_filter_input.clear();
+                    let key_filter = tab.state.key_filter.clone();
+                    app.update_string(key_filter, "*".to_string());
                 }
 
                 ui.separator();
@@ -331,7 +334,9 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
         .show(ctx, |ui| {
-            ui.heading(tr(keys::KEYS, current_lang));
+            // Heading with key count
+            let heading_text = format!("{} ({})", tr(keys::KEYS, current_lang), keys.len());
+            ui.heading(heading_text);
 
             ui.horizontal(|ui| {
                 ui.label(tr(keys::FILTER, current_lang));
@@ -339,9 +344,18 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 let changed = ui.text_edit_singleline(&mut tab.key_filter_input).changed();
                 if changed {
                     let key_filter = tab.state.key_filter.clone();
-                    let key_filter_input = tab.key_filter_input.clone();
+                    let input = tab.key_filter_input.clone();
+
+                    // Process the filter: if empty, use "*", otherwise add * on both sides
+                    let processed_filter = if input.trim().is_empty() {
+                        WILD_KEY_FILTER.to_string()
+                    } else {
+                        let trimmed = input.trim_matches(WILD_KEY_FILTER);
+                        format!("{}{}{}", WILD_KEY_FILTER, trimmed, WILD_KEY_FILTER)
+                    };
+
                     // Release mutable borrow
-                    app.update_string(key_filter, key_filter_input);
+                    app.update_string(key_filter, processed_filter);
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
             });
