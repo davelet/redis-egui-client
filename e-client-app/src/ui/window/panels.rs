@@ -330,12 +330,21 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let current_lang = app.poll_language(tab.state.language.clone());
     let keys = app.poll_vec_string(tab.state.keys.clone());
     let selected_key = app.poll_option_string(tab.state.selected_key.clone());
+    let loading = app.poll_bool(tab.state.loading.clone());
+    let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
+    let total_keys = app.poll_usize(tab.state.total_keys.clone());
+    let connected = app.poll_bool(tab.state.connected.clone());
 
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
         .show(ctx, |ui| {
-            // Heading with key count
-            let heading_text = format!("{} ({})", tr(keys::KEYS, current_lang), keys.len());
+            // Heading with loaded/total key count
+            let heading_text = format!(
+                "{} ({}/{})",
+                tr(keys::KEYS, current_lang),
+                keys.len(),
+                total_keys
+            );
             ui.heading(heading_text);
 
             ui.horizontal(|ui| {
@@ -345,9 +354,10 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 if changed {
                     let key_filter = tab.state.key_filter.clone();
                     let input = tab.key_filter_input.clone();
+                    let input = input.trim();
 
                     // Process the filter: if empty, use "*", otherwise add * on both sides
-                    let processed_filter = if input.trim().is_empty() {
+                    let processed_filter = if input.is_empty() {
                         WILD_KEY_FILTER.to_string()
                     } else {
                         let trimmed = input.trim_matches(WILD_KEY_FILTER);
@@ -359,6 +369,24 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
             });
+
+            // Show "load more" button below filter (only if connected)
+            if connected && scan_has_more && !loading {
+                ui.horizontal(|ui| {
+                    if ui.button(tr(keys::LOAD_MORE_KEYS, current_lang)).clicked() {
+                        app.tabs[active_tab_idx].state.spawn_load_more_keys(false);
+                    }
+                    if ui.button(tr(keys::LOAD_ALL_KEYS, current_lang)).clicked() {
+                        app.tabs[active_tab_idx].state.spawn_load_more_keys(true);
+                    }
+                });
+            }
+
+            if loading {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                });
+            }
 
             ui.separator();
 

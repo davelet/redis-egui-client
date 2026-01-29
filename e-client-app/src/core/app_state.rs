@@ -1,4 +1,5 @@
 use crate::core::redis_client::{RedisClient, ValueData};
+use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
@@ -21,6 +22,9 @@ pub struct AppState {
     pub key_filter: Arc<RwLock<String>>,
     pub loading: Arc<RwLock<bool>>,
     pub language: Arc<RwLock<Language>>,
+    pub scan_cursor: Arc<RwLock<u64>>,
+    pub scan_has_more: Arc<RwLock<bool>>,
+    pub total_keys: Arc<RwLock<usize>>,
 }
 
 impl Default for AppState {
@@ -39,6 +43,9 @@ impl Default for AppState {
             key_filter: Arc::new(RwLock::new("".to_string())),
             loading: Arc::new(RwLock::new(false)),
             language: Arc::new(RwLock::new(Language::English)),
+            scan_cursor: Arc::new(RwLock::new(0)),
+            scan_has_more: Arc::new(RwLock::new(true)),
+            total_keys: Arc::new(RwLock::new(0)),
         }
     }
 }
@@ -59,6 +66,19 @@ impl AppState {
                 match state.redis_client.connect(connection_config).await {
                     Ok(_) => {
                         *state.connected.write().await = true;
+                        *state.scan_cursor.write().await = 0;
+                        *state.scan_has_more.write().await = true;
+
+                        // Get total key count in the database
+                        if let Ok(total) = state.redis_client.get_db_size().await {
+                            *state.total_keys.write().await = total;
+                        }
+
+                        // Set initial key filter to "*"
+                        let current_filter = state.key_filter.read().await.clone();
+                        if current_filter.is_empty() {
+                            *state.key_filter.write().await = "*".to_string();
+                        }
 
                         if let Ok(dbs) = state.redis_client.get_databases().await {
                             *state.databases.write().await = dbs;
@@ -89,6 +109,8 @@ impl AppState {
             *state.keys.write().await = vec![];
             *state.selected_key.write().await = None;
             *state.key_value.write().await = None;
+            *state.scan_cursor.write().await = 0;
+            *state.scan_has_more.write().await = true;
         });
     }
 
@@ -97,6 +119,14 @@ impl AppState {
         tokio::spawn(async move {
             if state.redis_client.select_db(db).await.is_ok() {
                 *state.current_db.write().await = db;
+                *state.scan_cursor.write().await = 0;
+                *state.scan_has_more.write().await = true;
+                
+                // Get total key count in the new database
+                if let Ok(total) = state.redis_client.get_db_size().await {
+                    *state.total_keys.write().await = total;
+                }
+                
                 state.spawn_load_keys();
             }
         });
@@ -107,15 +137,103 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
             let pattern = state.key_filter.read().await.clone();
-            let mut all_keys = vec![];
-            let mut cursor = 0;
+
+            // Get total key count with current pattern
+            if pattern == "*" {
+                if let Ok(total) = state.redis_client.get_db_size().await {
+                    *state.total_keys.write().await = total;
+                }
+            }
+
+            // Reset scan state
+            *state.scan_cursor.write().await = 0;
+            *state.scan_has_more.write().await = true;
+
+            // Use HashSet for deduplication
+            let mut all_keys_set = std::collections::HashSet::new();
+            let cursor = *state.scan_cursor.read().await;
+            let mut current_count = 0;
+            let mut current_cursor = cursor;
 
             loop {
-                match state.redis_client.scan_keys(cursor, &pattern, 100).await {
+                match state.redis_client.scan_keys(current_cursor, &pattern, SCAN_COUNT).await {
                     Ok((new_cursor, keys)) => {
-                        all_keys.extend(keys);
-                        cursor = new_cursor;
-                        if cursor == 0 {
+                        // Deduplicate keys
+                        for key in keys {
+                            if all_keys_set.insert(key) {
+                                current_count += 1;
+                            }
+                        }
+
+                        current_cursor = new_cursor;
+
+                        // Stop if we reached max initial keys
+                        if current_count >= MAX_INITIAL_KEYS {
+                            *state.scan_cursor.write().await = current_cursor;
+                            *state.scan_has_more.write().await = current_cursor != 0;
+                            break;
+                        }
+
+                        // Stop if scan is complete
+                        if current_cursor == 0 {
+                            *state.scan_cursor.write().await = current_cursor;
+                            *state.scan_has_more.write().await = false;
+                            break;
+                        }
+                    }
+                    Err(_) => {
+                        *state.scan_cursor.write().await = 0;
+                        *state.scan_has_more.write().await = false;
+                        break;
+                    }
+                }
+            }
+
+            // Convert to sorted vector
+            let mut all_keys: Vec<String> = all_keys_set.into_iter().collect();
+            all_keys.sort();
+            *state.keys.write().await = all_keys;
+            *state.loading.write().await = false;
+        });
+    }
+
+    pub fn spawn_load_more_keys(&self, load_all: bool) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            *state.loading.write().await = true;
+
+            // Get existing keys to avoid duplicates
+            let mut existing_keys: std::collections::HashSet<String> =
+                state.keys.read().await.iter().cloned().collect();
+
+            let cursor = *state.scan_cursor.read().await;
+            if cursor == 0 {
+                *state.loading.write().await = false;
+                return;
+            }
+
+            let pattern = state.key_filter.read().await.clone();
+            let mut current_cursor = cursor;
+            let mut loaded_count = 0;
+
+            loop {
+                match state.redis_client.scan_keys(current_cursor, &pattern, SCAN_COUNT).await {
+                    Ok((new_cursor, keys)) => {
+                        for key in keys {
+                            if existing_keys.insert(key) {
+                                loaded_count += 1;
+                            }
+                        }
+
+                        current_cursor = new_cursor;
+
+                        // Stop if we loaded the batch size requested or scan is complete
+                        if !load_all && (current_cursor == 0 || loaded_count >= LOAD_MORE_BATCH_SIZE) {
+                            break;
+                        }
+
+                        // Stop if scan is complete when loading all
+                        if load_all && current_cursor == 0 {
                             break;
                         }
                     }
@@ -123,7 +241,18 @@ impl AppState {
                 }
             }
 
+            *state.scan_cursor.write().await = current_cursor;
+            *state.scan_has_more.write().await = current_cursor != 0;
+
+            // Convert to sorted vector
+            let mut all_keys: Vec<String> = existing_keys.into_iter().collect();
             all_keys.sort();
+            
+            // Update total_keys to match actual loaded keys when scan is complete
+            if current_cursor == 0 {
+                *state.total_keys.write().await = all_keys.len();
+            }
+            
             *state.keys.write().await = all_keys;
             *state.loading.write().await = false;
         });

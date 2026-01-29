@@ -114,6 +114,18 @@ impl RedisClient {
         }
     }
 
+    pub async fn get_db_size(&self) -> Result<usize, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let size: usize = redis::cmd("DBSIZE")
+                .query_async(conn)
+                .await?;
+            Ok(size)
+        } else {
+            Ok(0)
+        }
+    }
+
     pub async fn get_key_type(&self, key: &str) -> Result<String, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {

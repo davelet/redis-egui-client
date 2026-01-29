@@ -51,6 +51,8 @@ pub mod keys {
     pub const LOAD_FIRST_100: &str = "load_first_100";
     pub const LOAD_FIELDS: &str = "load_fields";
     pub const LOAD_MEMBERS: &str = "load_members";
+    pub const LOAD_MORE_KEYS: &str = "load_more_keys";
+    pub const LOAD_ALL_KEYS: &str = "load_all_keys";
     pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
@@ -386,6 +388,20 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Load members");
             m.insert(Language::Chinese, "加载成员");
+            m
+        });
+
+        strings.insert(keys::LOAD_MORE_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Load 5000 more keys");
+            m.insert(Language::Chinese, "再加载5000个");
+            m
+        });
+
+        strings.insert(keys::LOAD_ALL_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Load all remaining keys");
+            m.insert(Language::Chinese, "加载所有剩余key");
             m
         });
 

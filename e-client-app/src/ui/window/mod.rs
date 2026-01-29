@@ -232,6 +232,10 @@ impl RedisApp {
         lock.try_read().map(|v| *v).unwrap_or(0)
     }
 
+    fn poll_usize(&self, lock: Arc<RwLock<usize>>) -> usize {
+        lock.try_read().map(|v| *v).unwrap_or(0)
+    }
+
     fn poll_string(&self, lock: Arc<RwLock<String>>) -> String {
         lock.try_read().map(|v| v.clone()).unwrap_or_default()
     }

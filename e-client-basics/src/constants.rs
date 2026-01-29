@@ -20,3 +20,8 @@ pub const CHINESE: &str = "中文";
 pub const CONNECTION_NAME_LIMIT: usize = 100;
 pub const CONNECTION_URL_LIMIT: usize = 1000;
 pub const CONNECTION_AUTH_LIMIT: usize = 1024;
+
+/// Key scan configuration
+pub const SCAN_COUNT: usize = 500;
+pub const MAX_INITIAL_KEYS: usize = 5000;
+pub const LOAD_MORE_BATCH_SIZE: usize = 5000;
