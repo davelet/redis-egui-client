@@ -22,6 +22,6 @@ pub const CONNECTION_URL_LIMIT: usize = 1000;
 pub const CONNECTION_AUTH_LIMIT: usize = 1024;
 
 /// Key scan configuration
-pub const SCAN_COUNT: usize = 100;
-pub const MAX_INITIAL_KEYS: usize = 3000;
+pub const SCAN_COUNT: usize = 200;
+pub const MAX_INITIAL_KEYS: usize = 2000;
 pub const LOAD_MORE_BATCH_SIZE: usize = 2000;

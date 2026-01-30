@@ -266,41 +266,23 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
 
-            println!("spawn_load_more_keys: START load_all={}", load_all);
-
             // Get existing keys to avoid duplicates
             let mut existing_keys: std::collections::HashSet<String> =
                 state.keys.read().await.iter().cloned().collect();
             let keys_at_start = existing_keys.len();
 
             let cursor = *state.scan_cursor.read().await;
-            println!(
-                "spawn_load_more_keys: initial cursor={}, existing_keys={}",
-                cursor, keys_at_start
-            );
             if cursor == 0 {
-                println!("spawn_load_more_keys: cursor is 0, returning early");
                 *state.loading.write().await = false;
                 return;
             }
 
-            println!("spawn_load_more_keys: About to get pattern");
             let pattern = state.key_filter.read().await.clone();
-            println!("spawn_load_more_keys: Got pattern={}", pattern);
             let mut current_cursor = cursor;
             let mut batch_count = 0;
             let mut last_update_batch = 0;
 
-            println!(
-                "spawn_load_more_keys: Entering SCAN loop with pattern={}",
-                pattern
-            );
-
             loop {
-                println!(
-                    "spawn_load_more_keys: About to call scan_keys with cursor={}",
-                    current_cursor
-                );
                 match state
                     .redis_client
                     .scan_keys(current_cursor, &pattern, SCAN_COUNT)
@@ -309,10 +291,6 @@ impl AppState {
                     Ok((new_cursor, keys)) => {
                         batch_count += 1;
                         let new_keys_count = keys.len();
-                        println!(
-                            "spawn_load_more_keys SCAN: batch={}, cursor={}→{}, keys_returned={}",
-                            batch_count, current_cursor, new_cursor, new_keys_count
-                        );
 
                         for key in keys {
                             existing_keys.insert(key);
@@ -347,29 +325,18 @@ impl AppState {
 
                         // Check if we should stop loading more
                         let total_new_keys = existing_keys.len() - keys_at_start;
-                        println!(
-                            "spawn_load_more_keys: load_all={}, current_cursor={}, total_new_keys={}, LOAD_MORE_BATCH_SIZE={}",
-                            load_all, current_cursor, total_new_keys, LOAD_MORE_BATCH_SIZE
-                        );
                         if !load_all
                             && (current_cursor == 0 || total_new_keys >= LOAD_MORE_BATCH_SIZE)
                         {
-                            println!(
-                                "spawn_load_more_keys: Breaking because !load_all && (cursor==0 || enough keys)"
-                            );
                             break;
                         }
 
                         // Stop if scan is complete when loading all
                         if load_all && current_cursor == 0 {
-                            println!(
-                                "spawn_load_more_keys: Breaking because load_all && cursor==0"
-                            );
                             break;
                         }
                     }
-                    Err(e) => {
-                        println!("spawn_load_more_keys: SCAN error: {:?}", e);
+                    Err(_e) => {
                         break;
                     }
                 }
@@ -378,19 +345,22 @@ impl AppState {
             *state.scan_cursor.write().await = current_cursor;
             *state.scan_has_more.write().await = current_cursor != 0;
 
-            println!(
-                "spawn_load_more_keys complete: current_cursor={}, total_keys={}",
-                current_cursor,
-                existing_keys.len()
-            );
-
             // Final sort and update
             let mut all_keys: Vec<String> = existing_keys.into_iter().collect();
             all_keys.sort();
 
-            // Always update total_keys to match actual loaded keys
-            // This is important because keys can expire during scanning
-            *state.total_keys.write().await = all_keys.len();
+            // Update total_keys based on scan completion status
+            if current_cursor == 0 {
+                // Scan is complete - use the loaded count as it's the accurate total
+                // (keys may have expired during scanning)
+                *state.total_keys.write().await = all_keys.len();
+            } else {
+                // Scan is not complete - use dbsize to show real-time total
+                // This gives user context of how many keys are still in database
+                if let Ok(total) = state.redis_client.get_db_size().await {
+                    *state.total_keys.write().await = total;
+                }
+            }
 
             // Update progress text based on scan state
             if current_cursor == 0 {
