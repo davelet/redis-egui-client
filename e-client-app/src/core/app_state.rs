@@ -25,6 +25,8 @@ pub struct AppState {
     pub scan_cursor: Arc<RwLock<u64>>,
     pub scan_has_more: Arc<RwLock<bool>>,
     pub total_keys: Arc<RwLock<usize>>,
+    pub loaded_keys_count: Arc<RwLock<usize>>,
+    pub loading_progress_text: Arc<RwLock<String>>,
 }
 
 impl Default for AppState {
@@ -46,6 +48,8 @@ impl Default for AppState {
             scan_cursor: Arc::new(RwLock::new(0)),
             scan_has_more: Arc::new(RwLock::new(true)),
             total_keys: Arc::new(RwLock::new(0)),
+            loaded_keys_count: Arc::new(RwLock::new(0)),
+            loading_progress_text: Arc::new(RwLock::new(String::new())),
         }
     }
 }
@@ -68,6 +72,8 @@ impl AppState {
                         *state.connected.write().await = true;
                         *state.scan_cursor.write().await = 0;
                         *state.scan_has_more.write().await = true;
+                        *state.loaded_keys_count.write().await = 0;
+                        *state.loading_progress_text.write().await = String::new();
 
                         // Get total key count in the database
                         if let Ok(total) = state.redis_client.get_db_size().await {
@@ -111,6 +117,8 @@ impl AppState {
             *state.key_value.write().await = None;
             *state.scan_cursor.write().await = 0;
             *state.scan_has_more.write().await = true;
+            *state.loaded_keys_count.write().await = 0;
+            *state.loading_progress_text.write().await = String::new();
         });
     }
 
@@ -121,12 +129,14 @@ impl AppState {
                 *state.current_db.write().await = db;
                 *state.scan_cursor.write().await = 0;
                 *state.scan_has_more.write().await = true;
-                
+                *state.loaded_keys_count.write().await = 0;
+                *state.loading_progress_text.write().await = String::new();
+
                 // Get total key count in the new database
                 if let Ok(total) = state.redis_client.get_db_size().await {
                     *state.total_keys.write().await = total;
                 }
-                
+
                 state.spawn_load_keys();
             }
         });
@@ -138,7 +148,8 @@ impl AppState {
             *state.loading.write().await = true;
             let pattern = state.key_filter.read().await.clone();
 
-            // Get total key count with current pattern
+            // Get total key count with current pattern (this is just initial estimate)
+            // It may change if keys expire during scanning
             if pattern == "*" {
                 if let Ok(total) = state.redis_client.get_db_size().await {
                     *state.total_keys.write().await = total;
@@ -148,36 +159,63 @@ impl AppState {
             // Reset scan state
             *state.scan_cursor.write().await = 0;
             *state.scan_has_more.write().await = true;
+            *state.loaded_keys_count.write().await = 0;
+            *state.keys.write().await = vec![];
 
             // Use HashSet for deduplication
             let mut all_keys_set = std::collections::HashSet::new();
-            let cursor = *state.scan_cursor.read().await;
-            let mut current_count = 0;
-            let mut current_cursor = cursor;
+            let mut current_cursor = 0;
+            let mut loaded_count = 0;
+            let mut last_sort_count = 0;
 
             loop {
-                match state.redis_client.scan_keys(current_cursor, &pattern, SCAN_COUNT).await {
+                match state
+                    .redis_client
+                    .scan_keys(current_cursor, &pattern, SCAN_COUNT)
+                    .await
+                {
                     Ok((new_cursor, keys)) => {
                         // Deduplicate keys
                         for key in keys {
                             if all_keys_set.insert(key) {
-                                current_count += 1;
+                                loaded_count += 1;
                             }
                         }
 
                         current_cursor = new_cursor;
 
+                        // Update UI every SCAN batch with periodic sorting for display
+                        // Sort and display every 200 keys (roughly 2 SCAN batches at SCAN_COUNT=100)
+                        if loaded_count - last_sort_count >= 200 || current_cursor == 0 {
+                            let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
+                            all_keys.sort();
+                            *state.keys.write().await = all_keys;
+                            last_sort_count = loaded_count;
+                        }
+
+                        *state.loaded_keys_count.write().await = loaded_count;
+                        *state.scan_cursor.write().await = current_cursor;
+                        *state.scan_has_more.write().await = current_cursor != 0;
+
+                        // Update progress text
+                        let total = *state.total_keys.read().await;
+                        let progress_text = if current_cursor != 0 {
+                            format!("Loading keys... {}/{}", loaded_count, total)
+                        } else {
+                            format!("Loaded {} keys", loaded_count)
+                        };
+                        *state.loading_progress_text.write().await = progress_text;
+
+                        // Small delay to allow UI to refresh and prevent tight loop
+                        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+
                         // Stop if we reached max initial keys
-                        if current_count >= MAX_INITIAL_KEYS {
-                            *state.scan_cursor.write().await = current_cursor;
-                            *state.scan_has_more.write().await = current_cursor != 0;
+                        if loaded_count >= MAX_INITIAL_KEYS {
                             break;
                         }
 
                         // Stop if scan is complete
                         if current_cursor == 0 {
-                            *state.scan_cursor.write().await = current_cursor;
-                            *state.scan_has_more.write().await = false;
                             break;
                         }
                     }
@@ -189,10 +227,36 @@ impl AppState {
                 }
             }
 
-            // Convert to sorted vector
+            // Final sort at the end to ensure everything is sorted
             let mut all_keys: Vec<String> = all_keys_set.into_iter().collect();
             all_keys.sort();
-            *state.keys.write().await = all_keys;
+            *state.keys.write().await = all_keys.clone();
+
+            // Update final state - ensure scan_has_more and loading are set correctly
+            // If we exited due to MAX_INITIAL_KEYS, current_cursor should still be valid
+            *state.scan_has_more.write().await = current_cursor != 0;
+            *state.scan_cursor.write().await = current_cursor;
+            *state.loaded_keys_count.write().await = all_keys.len();
+
+            // When scan is complete (current_cursor == 0), update total_keys to actual count
+            // This handles the case where keys expired during scanning
+            if current_cursor == 0 {
+                *state.total_keys.write().await = all_keys.len();
+            }
+
+            // Update final progress text
+            if current_cursor != 0 {
+                let total = *state.total_keys.read().await;
+                *state.loading_progress_text.write().await = format!(
+                    "Loaded {} of ~{} keys. Click 'Load More' to load additional keys",
+                    all_keys.len(),
+                    total
+                );
+            } else {
+                *state.loading_progress_text.write().await =
+                    format!("All {} keys loaded", all_keys.len());
+            }
+
             *state.loading.write().await = false;
         });
     }
@@ -202,58 +266,149 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
 
+            println!("spawn_load_more_keys: START load_all={}", load_all);
+
             // Get existing keys to avoid duplicates
             let mut existing_keys: std::collections::HashSet<String> =
                 state.keys.read().await.iter().cloned().collect();
+            let keys_at_start = existing_keys.len();
 
             let cursor = *state.scan_cursor.read().await;
+            println!(
+                "spawn_load_more_keys: initial cursor={}, existing_keys={}",
+                cursor, keys_at_start
+            );
             if cursor == 0 {
+                println!("spawn_load_more_keys: cursor is 0, returning early");
                 *state.loading.write().await = false;
                 return;
             }
 
+            println!("spawn_load_more_keys: About to get pattern");
             let pattern = state.key_filter.read().await.clone();
+            println!("spawn_load_more_keys: Got pattern={}", pattern);
             let mut current_cursor = cursor;
-            let mut loaded_count = 0;
+            let mut batch_count = 0;
+            let mut last_update_batch = 0;
+
+            println!(
+                "spawn_load_more_keys: Entering SCAN loop with pattern={}",
+                pattern
+            );
 
             loop {
-                match state.redis_client.scan_keys(current_cursor, &pattern, SCAN_COUNT).await {
+                println!(
+                    "spawn_load_more_keys: About to call scan_keys with cursor={}",
+                    current_cursor
+                );
+                match state
+                    .redis_client
+                    .scan_keys(current_cursor, &pattern, SCAN_COUNT)
+                    .await
+                {
                     Ok((new_cursor, keys)) => {
+                        batch_count += 1;
+                        let new_keys_count = keys.len();
+                        println!(
+                            "spawn_load_more_keys SCAN: batch={}, cursor={}→{}, keys_returned={}",
+                            batch_count, current_cursor, new_cursor, new_keys_count
+                        );
+
                         for key in keys {
-                            if existing_keys.insert(key) {
-                                loaded_count += 1;
-                            }
+                            existing_keys.insert(key);
                         }
 
                         current_cursor = new_cursor;
 
-                        // Stop if we loaded the batch size requested or scan is complete
-                        if !load_all && (current_cursor == 0 || loaded_count >= LOAD_MORE_BATCH_SIZE) {
+                        // Update UI every 2 SCAN batches for display
+                        if batch_count - last_update_batch >= 2 || current_cursor == 0 {
+                            let mut all_keys: Vec<String> = existing_keys.iter().cloned().collect();
+                            all_keys.sort();
+                            *state.keys.write().await = all_keys;
+                            last_update_batch = batch_count;
+                        }
+
+                        // Update progress text
+                        let total = existing_keys.len();
+                        let progress_text = if current_cursor != 0 {
+                            format!(
+                                "Loading keys... {}/{}",
+                                total,
+                                *state.total_keys.read().await
+                            )
+                        } else {
+                            format!("Loaded {} keys", total)
+                        };
+                        *state.loading_progress_text.write().await = progress_text;
+                        *state.loaded_keys_count.write().await = total;
+
+                        // Small delay to allow UI to refresh and prevent tight loop
+                        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+
+                        // Check if we should stop loading more
+                        let total_new_keys = existing_keys.len() - keys_at_start;
+                        println!(
+                            "spawn_load_more_keys: load_all={}, current_cursor={}, total_new_keys={}, LOAD_MORE_BATCH_SIZE={}",
+                            load_all, current_cursor, total_new_keys, LOAD_MORE_BATCH_SIZE
+                        );
+                        if !load_all
+                            && (current_cursor == 0 || total_new_keys >= LOAD_MORE_BATCH_SIZE)
+                        {
+                            println!(
+                                "spawn_load_more_keys: Breaking because !load_all && (cursor==0 || enough keys)"
+                            );
                             break;
                         }
 
                         // Stop if scan is complete when loading all
                         if load_all && current_cursor == 0 {
+                            println!(
+                                "spawn_load_more_keys: Breaking because load_all && cursor==0"
+                            );
                             break;
                         }
                     }
-                    Err(_) => break,
+                    Err(e) => {
+                        println!("spawn_load_more_keys: SCAN error: {:?}", e);
+                        break;
+                    }
                 }
             }
 
             *state.scan_cursor.write().await = current_cursor;
             *state.scan_has_more.write().await = current_cursor != 0;
 
-            // Convert to sorted vector
+            println!(
+                "spawn_load_more_keys complete: current_cursor={}, total_keys={}",
+                current_cursor,
+                existing_keys.len()
+            );
+
+            // Final sort and update
             let mut all_keys: Vec<String> = existing_keys.into_iter().collect();
             all_keys.sort();
-            
-            // Update total_keys to match actual loaded keys when scan is complete
+
+            // Always update total_keys to match actual loaded keys
+            // This is important because keys can expire during scanning
+            *state.total_keys.write().await = all_keys.len();
+
+            // Update progress text based on scan state
             if current_cursor == 0 {
-                *state.total_keys.write().await = all_keys.len();
+                *state.loading_progress_text.write().await =
+                    format!("All {} keys loaded", all_keys.len());
             }
-            
-            *state.keys.write().await = all_keys;
+
+            *state.keys.write().await = all_keys.clone();
+            *state.loaded_keys_count.write().await = all_keys.len();
+
+            // Update progress text if still loading more
+            if current_cursor != 0 && state.loading_progress_text.read().await.is_empty() {
+                *state.loading_progress_text.write().await = format!(
+                    "Loaded {} keys. Click 'Load More' to continue",
+                    all_keys.len()
+                );
+            }
+
             *state.loading.write().await = false;
         });
     }

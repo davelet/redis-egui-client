@@ -103,10 +103,28 @@ impl eframe::App for RedisApp {
         // Render tab bar
         panels::render_tab_bar(self, ctx);
 
+        // Render status bar first to ensure it's on top
+        panels::render_status_bar(self, ctx);
+
         // Update UI (delegated to panels module)
         panels::render_top_panel(self, ctx);
         panels::render_side_panel(self, ctx);
         panels::render_central_panel(self, ctx);
+
+        // Force continuous repaint while loading to ensure smooth UI updates
+        // This solves the issue where async updates might not trigger repaints consistently
+        let mut any_loading = false;
+        for tab in &self.tabs {
+            if tab.state.loading.try_read().map(|v| *v).unwrap_or(false) {
+                any_loading = true;
+                break;
+            }
+        }
+        if any_loading {
+            // Request repaint immediately and schedule the next one within a few milliseconds
+            ctx.request_repaint();
+            ctx.request_repaint_after(std::time::Duration::from_millis(10));
+        }
     }
 }
 

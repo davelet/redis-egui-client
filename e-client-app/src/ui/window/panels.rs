@@ -63,8 +63,8 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                         switch_to_tab = Some(idx);
                                     }
 
-                                    // Close button - only show if has connection or not the last tab
-                                    if has_connection || app.tabs.len() > 1 {
+                                    // Close button - only show if more than one tab
+                                    if app.tabs.len() > 1 {
                                         if ui.small_button("×").clicked() {
                                             tab_to_close = Some(idx);
                                         }
@@ -141,7 +141,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let current_lang = app.poll_language(tab.state.language.clone());
     let selected_connection = tab.selected_connection;
     let connected = app.poll_bool(tab.state.connected.clone());
-    let loading = app.poll_bool(tab.state.loading.clone());
+    let _loading = app.poll_bool(tab.state.loading.clone());
     let current_db = app.poll_u32(tab.state.current_db.clone());
     let databases = app.poll_vec_u32(tab.state.databases.clone());
 
@@ -254,9 +254,6 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             }
 
-            if loading {
-                ui.spinner();
-            }
             ui.separator();
 
             // Connection management buttons - disabled when connected
@@ -334,9 +331,11 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
     let total_keys = app.poll_usize(tab.state.total_keys.clone());
     let connected = app.poll_bool(tab.state.connected.clone());
+    let loading_progress_text = app.poll_string(tab.state.loading_progress_text.clone());
 
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
+        .exact_width(300.0)
         .show(ctx, |ui| {
             // Heading with loaded/total key count
             let heading_text = format!(
@@ -370,6 +369,11 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             });
 
+            // Show loading progress
+            if loading && !loading_progress_text.is_empty() {
+                ui.label(egui::RichText::new(&loading_progress_text).weak());
+            }
+
             // Show "load more" button below filter (only if connected)
             if connected && scan_has_more && !loading {
                 ui.horizontal(|ui| {
@@ -382,25 +386,40 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 });
             }
 
-            if loading {
-                ui.horizontal(|ui| {
-                    ui.spinner();
-                });
-            }
-
             ui.separator();
 
-            // Fill remaining space with scroll area
+            // Fill remaining space with scroll area - optimized with limit for large key lists
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
+                .id_salt("keys_scroll")
                 .show(ui, |ui| {
-                    for key in keys {
-                        let is_selected = selected_key.as_ref() == Some(&key);
-                        if ui.selectable_label(is_selected, &key).clicked() {
+                    // Limit rendering to improve performance with large datasets
+                    // Only show first 5000 keys or all keys if less than that
+                    let keys_to_show = if keys.len() > 5000 {
+                        &keys[0..5000]
+                    } else {
+                        &keys[..]
+                    };
+
+                    for key in keys_to_show {
+                        let is_selected = selected_key.as_ref() == Some(key);
+                        if ui.selectable_label(is_selected, key).clicked() {
                             let tab = &mut app.tabs[active_tab_idx];
                             *tab.state.selected_key.blocking_write() = Some(key.clone());
-                            tab.state.spawn_load_value(key);
+                            tab.state.spawn_load_value(key.clone());
                         }
+                    }
+
+                    // Show message if there are more keys
+                    if keys.len() > 5000 {
+                        ui.separator();
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "Showing 5000 of {} keys (use filter to narrow down)",
+                                keys.len()
+                            ))
+                            .weak(),
+                        );
                     }
                 });
         });
@@ -630,4 +649,65 @@ fn parse_color_hex(hex: &str) -> Option<egui::Color32> {
     let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
 
     Some(egui::Color32::from_rgb(r, g, b))
+}
+
+pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
+    // Early return if no active tab
+    if app.get_active_tab().is_none() {
+        return;
+    }
+
+    let active_tab_idx = app.active_tab;
+    let tab = &app.tabs[active_tab_idx];
+    let current_lang = app.poll_language(tab.state.language.clone());
+    let connected = app.poll_bool(tab.state.connected.clone());
+    let loading = app.poll_bool(tab.state.loading.clone());
+    let total_keys = app.poll_usize(tab.state.total_keys.clone());
+    let loaded_keys = app.poll_vec_string(tab.state.keys.clone()).len();
+    let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
+    let error_message = app.poll_string(tab.state.command_output.clone());
+
+    egui::TopBottomPanel::bottom("status_bar")
+        .exact_height(24.0)
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 8.0;
+
+                // Connection status
+                ui.label(tr(keys::STATUS_BAR, current_lang));
+                ui.separator();
+
+                if !connected {
+                    ui.label(tr(keys::DISCONNECTED, current_lang));
+                } else if loading {
+                    ui.label(tr(keys::LOADING, current_lang));
+                    ui.spinner();
+                } else {
+                    ui.label(tr(keys::READY, current_lang));
+                }
+
+                ui.separator();
+
+                if connected {
+                    // Total keys
+                    ui.label(tr(keys::TOTAL_KEYS, current_lang));
+                    ui.label(format!("{}", total_keys));
+                    ui.separator();
+
+                    // Loaded keys
+                    ui.label(tr(keys::LOADED_KEYS, current_lang));
+                    if scan_has_more {
+                        ui.label(format!("{} (more available)", loaded_keys));
+                    } else {
+                        ui.label(format!("{}", loaded_keys));
+                    }
+                }
+
+                // Error message
+                if !error_message.is_empty() && error_message.lines().count() <= 2 {
+                    ui.separator();
+                    ui.label(error_message);
+                }
+            });
+        });
 }

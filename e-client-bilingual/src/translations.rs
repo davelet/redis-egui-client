@@ -64,6 +64,12 @@ pub mod keys {
     pub const EMPTY_COMMAND: &str = "empty_command";
     pub const GENERIC_ERROR: &str = "generic_error";
     pub const GET_VALUE_FAILED: &str = "get_value_failed";
+    pub const STATUS_BAR: &str = "status_bar";
+    pub const TOTAL_KEYS: &str = "total_keys";
+    pub const LOADED_KEYS: &str = "loaded_keys";
+    pub const LOADING: &str = "loading";
+    pub const READY: &str = "ready";
+    pub const DISCONNECTED: &str = "disconnected";
 }
 
 impl Default for Translator {
@@ -484,6 +490,48 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Failed to get value: {}");
             m.insert(Language::Chinese, "获取值失败: {}");
+            m
+        });
+
+        strings.insert(keys::STATUS_BAR, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Status");
+            m.insert(Language::Chinese, "状态");
+            m
+        });
+
+        strings.insert(keys::TOTAL_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Total:");
+            m.insert(Language::Chinese, "总数:");
+            m
+        });
+
+        strings.insert(keys::LOADED_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Loaded:");
+            m.insert(Language::Chinese, "已加载:");
+            m
+        });
+
+        strings.insert(keys::LOADING, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Loading...");
+            m.insert(Language::Chinese, "加载中...");
+            m
+        });
+
+        strings.insert(keys::READY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Ready");
+            m.insert(Language::Chinese, "就绪");
+            m
+        });
+
+        strings.insert(keys::DISCONNECTED, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Disconnected");
+            m.insert(Language::Chinese, "未连接");
             m
         });
 

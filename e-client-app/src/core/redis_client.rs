@@ -4,8 +4,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
-#[derive(Clone)]
-#[derive(Debug)] // with instrument
+#[derive(Clone, Debug)] // with instrument
 pub struct RedisClient {
     manager: Arc<RwLock<Option<ConnectionManager>>>,
 }
@@ -100,7 +99,8 @@ impl RedisClient {
     ) -> Result<(u64, Vec<String>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let (new_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            // Use Vec<Vec<u8>> to handle both UTF-8 and binary keys
+            let (new_cursor, keys_bytes): (u64, Vec<Vec<u8>>) = redis::cmd("SCAN")
                 .arg(cursor)
                 .arg("MATCH")
                 .arg(pattern)
@@ -108,7 +108,17 @@ impl RedisClient {
                 .arg(count)
                 .query_async(conn)
                 .await?;
-            Ok((new_cursor, keys))
+
+            // Convert bytes to strings, skipping any that can't be converted to UTF-8
+            let mut string_keys = Vec::new();
+            for key_bytes in keys_bytes {
+                if let Ok(key_str) = String::from_utf8(key_bytes) {
+                    string_keys.push(key_str);
+                }
+                // Skip keys that can't be converted to UTF-8
+            }
+
+            Ok((new_cursor, string_keys))
         } else {
             Ok((0, vec![]))
         }
@@ -117,9 +127,7 @@ impl RedisClient {
     pub async fn get_db_size(&self) -> Result<usize, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let size: usize = redis::cmd("DBSIZE")
-                .query_async(conn)
-                .await?;
+            let size: usize = redis::cmd("DBSIZE").query_async(conn).await?;
             Ok(size)
         } else {
             Ok(0)
