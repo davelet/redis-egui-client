@@ -8,6 +8,11 @@ use e_client_config::translations::{keys, tr};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+// Re-export panel functions for convenient access
+pub use panels::{
+    render_central_panel, render_side_panel, render_status_bar, render_tab_bar, render_top_panel,
+};
+
 mod new_connection_window;
 pub mod panels;
 
@@ -101,15 +106,15 @@ impl eframe::App for RedisApp {
         }
 
         // Render tab bar
-        panels::render_tab_bar(self, ctx);
+        render_tab_bar(self, ctx);
 
         // Render status bar first to ensure it's on top
-        panels::render_status_bar(self, ctx);
+        render_status_bar(self, ctx);
 
         // Update UI (delegated to panels module)
-        panels::render_top_panel(self, ctx);
-        panels::render_side_panel(self, ctx);
-        panels::render_central_panel(self, ctx);
+        render_top_panel(self, ctx);
+        render_side_panel(self, ctx);
+        render_central_panel(self, ctx);
 
         // Force continuous repaint while loading to ensure smooth UI updates
         // This solves the issue where async updates might not trigger repaints consistently
