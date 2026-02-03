@@ -65,6 +65,7 @@ pub mod keys {
     pub const GENERIC_ERROR: &str = "generic_error";
     pub const GET_VALUE_FAILED: &str = "get_value_failed";
     pub const STATUS_BAR: &str = "status_bar";
+    pub const UNKNOWN: &str = "unknown";
     pub const TOTAL_KEYS: &str = "total_keys";
     pub const LOADED_KEYS: &str = "loaded_keys";
     pub const LOADING: &str = "loading";
@@ -532,6 +533,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Disconnected");
             m.insert(Language::Chinese, "未连接");
+            m
+        });
+
+        strings.insert(keys::UNKNOWN, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Unknown");
+            m.insert(Language::Chinese, "未知");
             m
         });
 

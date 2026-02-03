@@ -18,17 +18,24 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let total_keys = app.poll_usize(tab.state.total_keys.clone());
     let connected = app.poll_bool(tab.state.connected.clone());
     let loading_progress_text = app.poll_string(tab.state.loading_progress_text.clone());
+    let key_filter = app.poll_string(tab.state.key_filter.clone());
 
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
         .exact_width(300.0)
         .show(ctx, |ui| {
             // Heading with loaded/total key count
+            let is_full_scan = key_filter == "*" || key_filter == WILD_KEY_FILTER.to_string();
+            let total_display = if is_full_scan || !scan_has_more {
+                total_keys.to_string()
+            } else {
+                tr(keys::UNKNOWN, current_lang).to_string()
+            };
             let heading_text = format!(
                 "{} ({}/{})",
                 tr(keys::KEYS, current_lang),
                 keys.len(),
-                total_keys
+                total_display
             );
             ui.heading(heading_text);
 
@@ -41,12 +48,13 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     let input = tab.key_filter_input.clone();
                     let input = input.trim();
 
-                    // Process filter: if empty, use "*", otherwise add * on both sides
+                    // Process filter: if empty, use "*"; if contains *, use as-is; otherwise add * on both sides
                     let processed_filter = if input.is_empty() {
                         WILD_KEY_FILTER.to_string()
+                    } else if input.contains('*') {
+                        input.to_string()
                     } else {
-                        let trimmed = input.trim_matches(WILD_KEY_FILTER);
-                        format!("{}{}{}", WILD_KEY_FILTER, trimmed, WILD_KEY_FILTER)
+                        format!("{}{}{}", WILD_KEY_FILTER, input, WILD_KEY_FILTER)
                     };
 
                     // Release mutable borrow

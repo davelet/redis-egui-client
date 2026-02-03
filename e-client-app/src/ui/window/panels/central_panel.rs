@@ -17,43 +17,10 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let active_tab_idx = app.active_tab;
     let tab = &app.tabs[active_tab_idx];
     let current_lang = app.poll_language(tab.state.language.clone());
-    let command_output = app.poll_string(tab.state.command_output.clone());
     let selected_key = app.poll_option_string(tab.state.selected_key.clone());
     let value = app.poll_option_value(tab.state.key_value.clone());
 
     egui::CentralPanel::default().show(ctx, |ui| {
-        ui.horizontal(|ui| {
-            ui.label(tr(keys::COMMAND_LABEL, current_lang));
-            let tab = &mut app.tabs[active_tab_idx];
-            let response = ui.text_edit_singleline(&mut tab.command_input_buffer);
-
-            if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                let cmd = tab.command_input_buffer.clone();
-                tab.state.spawn_execute_command(cmd);
-                tab.command_input_buffer.clear();
-            }
-
-            if ui.button(tr(keys::EXECUTE, current_lang)).clicked() {
-                let cmd = tab.command_input_buffer.clone();
-                tab.state.spawn_execute_command(cmd);
-                tab.command_input_buffer.clear();
-            }
-        });
-
-        ui.separator();
-
-        if !command_output.is_empty() {
-            ui.group(|ui| {
-                ui.label(tr(keys::OUTPUT, current_lang));
-                egui::ScrollArea::vertical()
-                    .max_height(150.0)
-                    .show(ui, |ui| {
-                        ui.label(&command_output);
-                    });
-            });
-            ui.separator();
-        }
-
         if let Some(key) = selected_key {
             ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&key]));
 

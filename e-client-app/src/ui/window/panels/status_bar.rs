@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
 
@@ -16,7 +17,7 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
     let total_keys = app.poll_usize(tab.state.total_keys.clone());
     let loaded_keys = app.poll_vec_string(tab.state.keys.clone()).len();
     let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
-    let error_message = app.poll_string(tab.state.command_output.clone());
+    let error_message = app.poll_string(tab.state.error_message.clone());
 
     egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
         ui.horizontal(|ui| {
@@ -38,9 +39,15 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
             ui.separator();
 
             if connected {
-                // Total keys
+                // Total keys - only show exact count if it's a full scan OR scan is complete
                 ui.label(tr(keys::TOTAL_KEYS, current_lang));
-                ui.label(format!("{}", total_keys));
+                let key_filter = app.poll_string(tab.state.key_filter.clone());
+                let is_full_scan = key_filter == "*" || key_filter == WILD_KEY_FILTER.to_string();
+                if is_full_scan || !scan_has_more {
+                    ui.label(format!("{}", total_keys));
+                } else {
+                    ui.label(tr(keys::UNKNOWN, current_lang));
+                }
                 ui.separator();
 
                 // Loaded keys
@@ -59,7 +66,7 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
             // Error message
             if !error_message.is_empty() && error_message.lines().count() <= 2 {
                 ui.separator();
-                ui.label(error_message);
+                ui.label(egui::RichText::new(&error_message).color(egui::Color32::RED));
             }
         });
     });

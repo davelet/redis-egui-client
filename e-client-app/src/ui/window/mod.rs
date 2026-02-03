@@ -23,7 +23,6 @@ pub struct RedisTab {
     pub state: AppState,
     pub selected_connection: Option<usize>,
     pub connected_color: Option<String>, // Connection color (hex) after successful connection
-    pub command_input_buffer: String,
     pub key_filter_input: String,
 }
 
@@ -38,7 +37,6 @@ impl RedisTab {
             state,
             selected_connection: None,
             connected_color: None,
-            command_input_buffer: String::new(),
             key_filter_input: String::new(),
         }
     }

@@ -19,6 +19,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let _loading = app.poll_bool(tab.state.loading.clone());
     let current_db = app.poll_u32(tab.state.current_db.clone());
     let databases = app.poll_vec_u32(tab.state.databases.clone());
+    let error_message = app.poll_string(tab.state.error_message.clone());
 
     let mut create_new_tab_with: Option<(
         usize,
@@ -110,9 +111,9 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             tab.state.spawn_connect();
                         }
                     } else {
-                        app.tabs[active_tab_idx]
-                            .state
-                            .show_err(tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string());
+                        // No connection selected - show error
+                        *tab.state.error_message.blocking_write() =
+                            tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string();
                     }
                 }
 

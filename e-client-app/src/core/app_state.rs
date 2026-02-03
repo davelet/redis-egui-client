@@ -2,8 +2,6 @@ use crate::core::redis_client::{RedisClient, ValueData};
 use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
-use e_client_config::translations::keys;
-use e_client_config::translations::{tr, tr_fmt};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -17,10 +15,9 @@ pub struct AppState {
     pub keys: Arc<RwLock<Vec<String>>>,
     pub selected_key: Arc<RwLock<Option<String>>>,
     pub key_value: Arc<RwLock<Option<ValueData>>>,
-    pub command_input: Arc<RwLock<String>>,
-    pub command_output: Arc<RwLock<String>>,
     pub key_filter: Arc<RwLock<String>>,
     pub loading: Arc<RwLock<bool>>,
+    pub error_message: Arc<RwLock<String>>,
     pub language: Arc<RwLock<Language>>,
     pub scan_cursor: Arc<RwLock<u64>>,
     pub scan_has_more: Arc<RwLock<bool>>,
@@ -40,10 +37,9 @@ impl Default for AppState {
             keys: Arc::new(RwLock::new(vec![])),
             selected_key: Arc::new(RwLock::new(None)),
             key_value: Arc::new(RwLock::new(None)),
-            command_input: Arc::new(RwLock::new(String::new())),
-            command_output: Arc::new(RwLock::new(String::new())),
             key_filter: Arc::new(RwLock::new("".to_string())),
             loading: Arc::new(RwLock::new(false)),
+            error_message: Arc::new(RwLock::new(String::new())),
             language: Arc::new(RwLock::new(Language::English)),
             scan_cursor: Arc::new(RwLock::new(0)),
             scan_has_more: Arc::new(RwLock::new(true)),
@@ -64,12 +60,13 @@ impl AppState {
         tokio::spawn(async move {
             *state.loading.write().await = true;
             let param = state.connection_param.read().await.clone();
-            let lang = *state.language.read().await;
 
             if let Some(connection_config) = param {
                 match state.redis_client.connect(connection_config).await {
                     Ok(_) => {
                         *state.connected.write().await = true;
+                        *state.loading.write().await = false; // Clear loading after connection succeeds
+                        *state.error_message.write().await = String::new();
                         *state.scan_cursor.write().await = 0;
                         *state.scan_has_more.write().await = true;
                         *state.loaded_keys_count.write().await = 0;
@@ -93,17 +90,15 @@ impl AppState {
                         state.spawn_load_keys();
                     }
                     Err(e) => {
-                        *state.command_output.write().await =
-                            tr_fmt(keys::CONNECTION_FAILED, lang, &[&e.to_string()]);
                         *state.connected.write().await = false;
+                        *state.loading.write().await = false;
+                        *state.error_message.write().await = format!("Connection failed: {}", e);
                     }
                 }
             } else {
-                *state.command_output.write().await =
-                    "No connection configuration found".to_string();
                 *state.connected.write().await = false;
+                *state.loading.write().await = false;
             }
-            *state.loading.write().await = false;
         });
     }
 
@@ -115,6 +110,7 @@ impl AppState {
             *state.keys.write().await = vec![];
             *state.selected_key.write().await = None;
             *state.key_value.write().await = None;
+            *state.error_message.write().await = String::new();
             *state.scan_cursor.write().await = 0;
             *state.scan_has_more.write().await = true;
             *state.loaded_keys_count.write().await = 0;
@@ -290,7 +286,6 @@ impl AppState {
                 {
                     Ok((new_cursor, keys)) => {
                         batch_count += 1;
-                        let new_keys_count = keys.len();
 
                         for key in keys {
                             existing_keys.insert(key);
@@ -387,51 +382,19 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
-            let lang = *state.language.read().await;
 
             match state.redis_client.get_value(&key).await {
                 Ok(value) => {
                     *state.selected_key.write().await = Some(key);
                     *state.key_value.write().await = Some(value);
                 }
-                Err(e) => {
-                    *state.command_output.write().await =
-                        tr_fmt(keys::GET_VALUE_FAILED, lang, &[&e.to_string()]);
+                Err(_) => {
+                    // Ignore error - command_output was removed
                 }
             }
 
             *state.loading.write().await = false;
         });
-    }
-
-    pub fn spawn_execute_command(&self, cmd: String) {
-        let state = self.clone();
-        tokio::spawn(async move {
-            *state.loading.write().await = true;
-            let lang = *state.language.read().await;
-
-            if cmd.trim().is_empty() {
-                *state.command_output.write().await = tr(keys::EMPTY_COMMAND, lang).to_string();
-                *state.loading.write().await = false;
-                return;
-            }
-
-            match state.redis_client.execute_command(&cmd).await {
-                Ok(result) => {
-                    *state.command_output.write().await = result;
-                }
-                Err(e) => {
-                    state.show_err(tr_fmt(keys::GENERIC_ERROR, lang, &[&e.to_string()]));
-                }
-            }
-
-            *state.loading.write().await = false;
-        });
-    }
-
-    pub(crate) fn show_err(&self, err: String) {
-        let state = self.clone();
-        *state.command_output.blocking_write() = err;
     }
 
     pub fn spawn_load_list_range(&self, key: String, start: isize, stop: isize) {
