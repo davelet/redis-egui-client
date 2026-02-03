@@ -1,5 +1,5 @@
 use crate::core::redis_client::{RedisClient, ValueData};
-use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT};
+use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT, WILD_KEY_FILTER};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ impl Default for AppState {
             keys: Arc::new(RwLock::new(vec![])),
             selected_key: Arc::new(RwLock::new(None)),
             key_value: Arc::new(RwLock::new(None)),
-            key_filter: Arc::new(RwLock::new("".to_string())),
+            key_filter: Arc::new(RwLock::new(String::new())),
             loading: Arc::new(RwLock::new(false)),
             error_message: Arc::new(RwLock::new(String::new())),
             language: Arc::new(RwLock::new(Language::English)),
@@ -80,7 +80,7 @@ impl AppState {
                         // Set initial key filter to "*"
                         let current_filter = state.key_filter.read().await.clone();
                         if current_filter.is_empty() {
-                            *state.key_filter.write().await = "*".to_string();
+                            *state.key_filter.write().await = WILD_KEY_FILTER.to_string();
                         }
 
                         if let Ok(dbs) = state.redis_client.get_databases().await {
@@ -146,7 +146,7 @@ impl AppState {
 
             // Get total key count with current pattern (this is just initial estimate)
             // It may change if keys expire during scanning
-            if pattern == "*" {
+            if pattern == WILD_KEY_FILTER.to_string() {
                 if let Ok(total) = state.redis_client.get_db_size().await {
                     *state.total_keys.write().await = total;
                 }

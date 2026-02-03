@@ -25,7 +25,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
         .exact_width(300.0)
         .show(ctx, |ui| {
             // Heading with loaded/total key count
-            let is_full_scan = key_filter == "*" || key_filter == WILD_KEY_FILTER.to_string();
+            let is_full_scan = key_filter == "" || key_filter == WILD_KEY_FILTER.to_string();
             let total_display = if is_full_scan || !scan_has_more {
                 total_keys.to_string()
             } else {

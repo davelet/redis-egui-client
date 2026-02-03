@@ -25,11 +25,11 @@ impl NewConnectionWindowWindow {
             show: false,
             edit_mode: false,
             editing_connection_name: None,
-            new_connection_name: "".to_string(),
-            new_connection_url: "".to_string(),
+            new_connection_name: String::new(),
+            new_connection_url: String::new(),
             new_connection_port: DEFAULT_REDIS_PORT.to_string(),
-            new_connection_username: "".to_string(),
-            new_connection_password: "".to_string(),
+            new_connection_username: String::new(),
+            new_connection_password: String::new(),
             new_connection_color: [0f32, 0f32, 0f32],
             new_connection_color_hex: None,
             error_message: None,
@@ -216,11 +216,11 @@ impl NewConnectionWindowWindow {
     }
 
     fn clear(&mut self) {
-        self.new_connection_name = "".to_string();
-        self.new_connection_url = "".to_string();
+        self.new_connection_name = String::new();
+        self.new_connection_url = String::new();
         self.new_connection_port = DEFAULT_REDIS_PORT.to_string();
-        self.new_connection_username = "".to_string();
-        self.new_connection_password = "".to_string();
+        self.new_connection_username = String::new();
+        self.new_connection_password = String::new();
         self.new_connection_color = [0f32, 0f32, 0f32];
         self.new_connection_color_hex = None;
         self.edit_mode = false;

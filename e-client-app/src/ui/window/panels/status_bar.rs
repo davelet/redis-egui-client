@@ -42,7 +42,9 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 // Total keys - only show exact count if it's a full scan OR scan is complete
                 ui.label(tr(keys::TOTAL_KEYS, current_lang));
                 let key_filter = app.poll_string(tab.state.key_filter.clone());
-                let is_full_scan = key_filter == "*" || key_filter == WILD_KEY_FILTER.to_string();
+                let key_filter = key_filter.trim();
+                let is_full_scan =
+                    key_filter == String::new() || key_filter == WILD_KEY_FILTER.to_string();
                 if is_full_scan || !scan_has_more {
                     ui.label(format!("{}", total_keys));
                 } else {

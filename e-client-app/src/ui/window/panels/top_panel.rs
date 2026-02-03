@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use e_client_basics::constants::WILD_KEY_FILTER;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
@@ -81,7 +82,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     tab.selected_connection = None;
                     tab.key_filter_input.clear();
                     let key_filter = tab.state.key_filter.clone();
-                    app.update_string(key_filter, "*".to_string());
+                    app.update_string(key_filter, WILD_KEY_FILTER.to_string());
                 }
 
                 ui.separator();

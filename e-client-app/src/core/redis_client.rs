@@ -1,4 +1,5 @@
 use e_client_config::connection::RedisConnectionConfig;
+use redis::aio::ConnectionManagerConfig;
 use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -19,7 +20,8 @@ impl RedisClient {
     #[instrument]
     pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
         let client = Client::open(redis)?;
-        let manager = ConnectionManager::new(client).await?;
+        let config = ConnectionManagerConfig::default().set_number_of_retries(1);
+        let manager = ConnectionManager::new_with_config(client, config).await?;
         *self.manager.write().await = Some(manager);
         Ok(())
     }
