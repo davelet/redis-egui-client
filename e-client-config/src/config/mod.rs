@@ -1,7 +1,9 @@
 mod app_window;
+mod connected_preference;
 mod connections;
 mod user_config;
 
+use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
 use crate::connection::RedisConnectionConfig;
 use crate::error::ConfigError;
 
@@ -16,6 +18,7 @@ pub struct Config {
     pub window: ConfigOnWindowFace,
     pub settings: ConfigOfUser,
     pub connections: ConfigOnConnections,
+    pub connected_preferences: ConnectedPreferences,
 }
 
 impl Config {
@@ -36,6 +39,10 @@ impl Config {
         Ok(Self::config_path()?.join("config.toml"))
     }
 
+    pub fn connected_preferences_file_path() -> Result<PathBuf, ConfigError> {
+        Ok(Self::config_path()?.join("connected_preference.toml"))
+    }
+
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_path()?;
         if !path.exists() {
@@ -48,11 +55,13 @@ impl Config {
         let settings = Self::load_user_settings()?;
         let connections = Self::load_connections()?;
         let window = Self::load_window_params()?;
+        let connected_preferences = Self::load_connected_preferences()?;
 
         let config: Config = Config {
             window,
             settings,
             connections,
+            connected_preferences,
         };
         Ok(config)
     }
@@ -65,6 +74,7 @@ impl Config {
         self.save_user_settings()?;
         self.save_connections()?;
         self.save_window_config()?;
+        self.save_connected_preferences()?;
 
         Ok(())
     }
@@ -209,6 +219,65 @@ impl Config {
     pub fn reset_window_params() -> Result<(), ConfigError> {
         let c = Config::default();
         c.save_window_config()
+    }
+}
+
+// fn for connected preferences
+impl Config {
+    pub fn load_connected_preferences() -> Result<ConnectedPreferences, ConfigError> {
+        let path = Self::connected_preferences_file_path()?;
+
+        if !path.exists() {
+            return Ok(ConnectedPreferences::default());
+        }
+
+        let content =
+            fs::read_to_string(&path).map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
+        toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
+    }
+
+    pub fn save_connected_preferences(&self) -> Result<(), ConfigError> {
+        let toml = toml::to_string_pretty(&self.connected_preferences)
+            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        fs::write(Self::connected_preferences_file_path()?, toml)
+            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub fn update_connection_preference(
+        &mut self,
+        connection_name: &str,
+        preference: ConnectionPreference,
+    ) -> Result<(), ConfigError> {
+        self.connected_preferences
+            .set_preference(connection_name.to_string(), preference);
+        self.save_connected_preferences()
+    }
+
+    pub fn update_side_panel_width_for_connection(
+        &mut self,
+        connection_name: &str,
+        width: f32,
+    ) -> Result<(), ConfigError> {
+        self.connected_preferences
+            .update_side_panel_width(connection_name, width);
+        self.save_connected_preferences()
+    }
+
+    pub fn update_db_for_connection(
+        &mut self,
+        connection_name: &str,
+        db: u32,
+    ) -> Result<(), ConfigError> {
+        self.connected_preferences.update_db(connection_name, db);
+        self.save_connected_preferences()
+    }
+
+    pub fn get_connection_preference(&self, connection_name: &str) -> Option<ConnectionPreference> {
+        self.connected_preferences
+            .get_preference(connection_name)
+            .cloned()
     }
 }
 

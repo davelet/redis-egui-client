@@ -24,6 +24,7 @@ pub struct RedisTab {
     pub selected_connection: Option<usize>,
     pub connected_color: Option<String>, // Connection color (hex) after successful connection
     pub key_filter_input: String,
+    pub side_panel_width: f32, // Current side panel width for this tab
 }
 
 impl RedisTab {
@@ -38,6 +39,7 @@ impl RedisTab {
             selected_connection: None,
             connected_color: None,
             key_filter_input: String::new(),
+            side_panel_width: 300.0, // Default width
         }
     }
 
@@ -63,6 +65,8 @@ pub struct RedisApp {
     config: Config,
     new_connection: NewConnectionWindowWindow,
     global_language: Language,
+    // Track previous connection states to detect changes
+    prev_connected_states: Vec<bool>,
 }
 
 impl eframe::App for RedisApp {
@@ -100,6 +104,16 @@ impl eframe::App for RedisApp {
                         e.to_message(Language::English)
                     );
                 }
+            }
+        }
+
+        // Detect connection state changes
+        for (idx, tab) in self.tabs.iter().enumerate() {
+            let current_connected = tab.state.connected.blocking_read().clone();
+            if idx < self.prev_connected_states.len() {
+                self.prev_connected_states[idx] = current_connected;
+            } else {
+                self.prev_connected_states.push(current_connected);
             }
         }
 
@@ -149,6 +163,7 @@ impl RedisApp {
             config,
             new_connection: NewConnectionWindowWindow::new(),
             global_language,
+            prev_connected_states: vec![false],
         }
     }
 
@@ -165,19 +180,25 @@ impl RedisApp {
         self.tabs.push(new_tab);
         self.active_tab = self.tabs.len() - 1;
         self.next_tab_id += 1;
+        self.prev_connected_states.push(false);
     }
 
     pub fn create_tab_with_connection(&mut self, conn_idx: usize, conn: RedisConnectionConfig) {
         let new_tab =
             RedisTab::with_connection(self.next_tab_id, conn_idx, conn, self.global_language);
+        let new_tab_idx = self.tabs.len();
         self.tabs.push(new_tab);
         self.active_tab = self.tabs.len() - 1;
         self.next_tab_id += 1;
 
-        // Auto-connect
-        if let Some(tab) = self.get_active_tab() {
-            tab.state.spawn_connect();
-        }
+        // Load preferences for this connection
+        self.load_connection_preferences(new_tab_idx);
+
+        // Add initial connection state (not connected yet)
+        self.prev_connected_states.push(false);
+
+        // Auto-connect with preferred DB
+        self.spawn_connect_with_initial_db(new_tab_idx);
     }
 
     pub fn close_tab(&mut self, index: usize) {
@@ -192,6 +213,7 @@ impl RedisApp {
             tab.state.spawn_disconnect();
 
             self.tabs.remove(index);
+            self.prev_connected_states.remove(index);
 
             // Adjust active tab index
             if self.active_tab >= self.tabs.len() {
@@ -237,6 +259,7 @@ impl RedisApp {
                 let tab = &self.tabs[idx];
                 tab.state.spawn_disconnect();
                 self.tabs.remove(idx);
+                self.prev_connected_states.remove(idx);
             }
         }
 
@@ -298,6 +321,53 @@ impl RedisApp {
                 tab.name = format!("{}{}", tr(keys::TAB, lang), tab.id);
             }
         }
+    }
+
+    fn update_tab_side_panel_width(&mut self, tab_idx: usize, width: f32) {
+        let conn_name = if let Some(tab) = self.tabs.get(tab_idx) {
+            tab.selected_connection
+                .and_then(|idx| self.config.connections.get(idx).map(|c| c.name.clone()))
+        } else {
+            None
+        };
+
+        if let Some(tab) = self.tabs.get_mut(tab_idx) {
+            let rounded_width = (width.max(250.0).min(800.0)).round();
+            tab.side_panel_width = rounded_width;
+
+            // Save to config if connected
+            if let Some(name) = conn_name {
+                let _ = self
+                    .config
+                    .update_side_panel_width_for_connection(&name, rounded_width);
+            }
+        }
+    }
+
+    fn load_connection_preferences(&mut self, tab_idx: usize) {
+        if let Some(tab) = self.tabs.get_mut(tab_idx) {
+            if let Some(conn_idx) = tab.selected_connection {
+                if let Some(conn) = self.config.connections.get(conn_idx) {
+                    if let Some(pref) = self.config.get_connection_preference(&conn.name) {
+                        tab.side_panel_width = pref.side_panel_width;
+                        // Set preferred DB and spawn connect with it
+                        // This ensures the connection uses the preferred DB from the start
+                        *tab.state.current_db.blocking_write() = pref.db;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn spawn_connect_with_initial_db(&self, tab_idx: usize) {
+        if let Some(tab) = self.tabs.get(tab_idx) {
+            let initial_db = *tab.state.current_db.blocking_read();
+            tab.state.spawn_connect_with_db(Some(initial_db as i64));
+        }
+    }
+
+    fn update_db_for_connection(&mut self, connection_name: &str, db: u32) {
+        let _ = self.config.update_db_for_connection(connection_name, db);
     }
 }
 

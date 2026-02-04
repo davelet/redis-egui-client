@@ -19,6 +19,7 @@ pub struct RedisConnectionConfig {
     pub port: String,
     pub username: Option<String>,
     pub password: Option<String>,
+    pub database: Option<i64>,
     pub color: Option<String>,
 }
 
@@ -34,6 +35,9 @@ impl IntoConnectionInfo for RedisConnectionConfig {
         let addr = ConnectionAddr::Tcp(self.url, port);
         let info = addr.into_connection_info()?;
         let mut rds = RedisConnectionInfo::default();
+        if let Some(db) = self.database {
+            rds = rds.set_db(db);
+        }
         if let Some(u) = self.username {
             rds = rds.set_username(u);
         }
@@ -59,6 +63,7 @@ impl RedisConnectionConfig {
             port,
             username,
             password,
+            database: None,
             color,
         }
     }

@@ -1,5 +1,7 @@
 use crate::core::redis_client::{RedisClient, ValueData};
-use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT, WILD_KEY_FILTER};
+use e_client_basics::constants::{
+    LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT, WILD_KEY_FILTER,
+};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use std::sync::Arc;
@@ -56,12 +58,16 @@ impl AppState {
     }
 
     pub fn spawn_connect(&self) {
+        self.spawn_connect_with_db(None);
+    }
+
+    pub fn spawn_connect_with_db(&self, initial_db: Option<i64>) {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
             let param = state.connection_param.read().await.clone();
-
-            if let Some(connection_config) = param {
+            if let Some(mut connection_config) = param {
+                connection_config.database = initial_db;
                 match state.redis_client.connect(connection_config).await {
                     Ok(_) => {
                         *state.connected.write().await = true;

@@ -19,11 +19,29 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let connected = app.poll_bool(tab.state.connected.clone());
     let loading_progress_text = app.poll_string(tab.state.loading_progress_text.clone());
     let key_filter = app.poll_string(tab.state.key_filter.clone());
+    let side_panel_width = tab.side_panel_width;
 
     egui::SidePanel::left("side_panel")
         .min_width(250.0)
-        .exact_width(300.0)
+        .max_width(800.0)
+        .default_width(side_panel_width)
+        .resizable(true)
         .show(ctx, |ui| {
+            // Save the current width if it changed
+            let current_width = ui.available_width();
+            if (current_width - side_panel_width).abs() > 1.0 {
+                app.update_tab_side_panel_width(active_tab_idx, current_width);
+            }
+
+            if !connected {
+                // Show blank when not connected
+                return;
+            }
+            if !connected {
+                // Show blank when not connected
+                return;
+            }
+
             // Heading with loaded/total key count
             let is_full_scan = key_filter == "" || key_filter == WILD_KEY_FILTER.to_string();
             let total_display = if is_full_scan || !scan_has_more {

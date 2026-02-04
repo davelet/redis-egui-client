@@ -20,7 +20,6 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let _loading = app.poll_bool(tab.state.loading.clone());
     let current_db = app.poll_u32(tab.state.current_db.clone());
     let databases = app.poll_vec_u32(tab.state.databases.clone());
-    let error_message = app.poll_string(tab.state.error_message.clone());
 
     let mut create_new_tab_with: Option<(
         usize,
@@ -75,11 +74,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             if connected {
                 if ui.button(tr(keys::DISCONNECT, current_lang)).clicked() {
                     app.tabs[active_tab_idx].state.spawn_disconnect();
-                    // Clear tab name, color, and filter on disconnect
+                    // Clear tab name, color, and filter on disconnect, but keep selected_connection
                     let tab = &mut app.tabs[active_tab_idx];
                     tab.name = format!("{} {}", tr(keys::TAB, current_lang), tab.id);
                     tab.connected_color = None;
-                    tab.selected_connection = None;
                     tab.key_filter_input.clear();
                     let key_filter = tab.state.key_filter.clone();
                     app.update_string(key_filter, WILD_KEY_FILTER.to_string());
@@ -97,6 +95,15 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 .clicked()
                             {
                                 app.tabs[active_tab_idx].state.spawn_select_db(db);
+                                // Save DB preference
+                                let conn_idx = app.tabs[active_tab_idx].selected_connection;
+                                if let Some(idx) = conn_idx {
+                                    let conn_name =
+                                        app.config.connections.get(idx).map(|c| c.name.clone());
+                                    if let Some(name) = conn_name {
+                                        let _ = app.update_db_for_connection(&name, db);
+                                    }
+                                }
                             }
                         }
                     });
@@ -109,7 +116,12 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             // Update tab name and color to connection name and color
                             tab.name = conn.name.clone();
                             tab.connected_color = conn.color.clone();
-                            tab.state.spawn_connect();
+
+                            // Load preferences for this connection
+                            app.load_connection_preferences(active_tab_idx);
+
+                            // Connect with preferred DB
+                            app.spawn_connect_with_initial_db(active_tab_idx);
                         }
                     } else {
                         // No connection selected - show error

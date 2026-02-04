@@ -17,10 +17,16 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let active_tab_idx = app.active_tab;
     let tab = &app.tabs[active_tab_idx];
     let current_lang = app.poll_language(tab.state.language.clone());
+    let connected = app.poll_bool(tab.state.connected.clone());
     let selected_key = app.poll_option_string(tab.state.selected_key.clone());
     let value = app.poll_option_value(tab.state.key_value.clone());
 
     egui::CentralPanel::default().show(ctx, |ui| {
+        if !connected {
+            // Show blank when not connected
+            return;
+        }
+
         if let Some(key) = selected_key {
             ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&key]));
 
