@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
@@ -87,15 +88,31 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             }
 
             // Show "load more" button below filter (only if connected)
-            if connected && scan_has_more && !loading {
-                ui.horizontal(|ui| {
-                    if ui.button(tr(keys::LOAD_MORE_KEYS, current_lang)).clicked() {
-                        app.tabs[active_tab_idx].state.spawn_load_more_keys(false);
-                    }
-                    if ui.button(tr(keys::LOAD_ALL_KEYS, current_lang)).clicked() {
-                        app.tabs[active_tab_idx].state.spawn_load_more_keys(true);
-                    }
-                });
+            if connected && !loading {
+                let remaining_keys = if is_full_scan {
+                    total_keys.saturating_sub(keys.len())
+                } else {
+                    // Cannot determine remaining keys when using filter
+                    usize::MAX
+                };
+
+                if keys.len() >= MAX_LOADED_KEYS {
+                    ui.label(
+                        egui::RichText::new(tr(keys::TOO_MANY_KEYS, current_lang))
+                            .color(egui::Color32::PURPLE),
+                    );
+                } else if scan_has_more {
+                    ui.horizontal(|ui| {
+                        if remaining_keys > LOAD_MORE_BATCH_SIZE {
+                            if ui.button(tr(keys::LOAD_MORE_KEYS, current_lang)).clicked() {
+                                app.tabs[active_tab_idx].state.spawn_load_more_keys(false);
+                            }
+                        }
+                        if ui.button(tr(keys::LOAD_ALL_KEYS, current_lang)).clicked() {
+                            app.tabs[active_tab_idx].state.spawn_load_more_keys(true);
+                        }
+                    });
+                }
             }
 
             ui.separator();
@@ -106,9 +123,9 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .id_salt("keys_scroll")
                 .show(ui, |ui| {
                     // Limit rendering to improve performance with large datasets
-                    // Only show first 5000 keys or all keys if less than that
-                    let keys_to_show = if keys.len() > 5000 {
-                        &keys[0..5000]
+                    // Only show first MAX_LOADED_KEYS keys or all keys if less than that
+                    let keys_to_show = if keys.len() > MAX_LOADED_KEYS {
+                        &keys[0..MAX_LOADED_KEYS]
                     } else {
                         &keys[..]
                     };
@@ -120,18 +137,6 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             *tab.state.selected_key.blocking_write() = Some(key.clone());
                             tab.state.spawn_load_value(key.clone());
                         }
-                    }
-
-                    // Show message if there are more keys
-                    if keys.len() > 5000 {
-                        ui.separator();
-                        ui.label(
-                            egui::RichText::new(format!(
-                                "Showing 5000 of {} keys (use filter to narrow down)",
-                                keys.len()
-                            ))
-                            .weak(),
-                        );
                     }
                 });
         });

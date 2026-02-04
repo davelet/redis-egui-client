@@ -1,6 +1,9 @@
 use crate::core::app_state::AppState;
 use crate::core::redis_client::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
+use e_client_basics::constants::{
+    DEFAULT_SIDE_PANEL_WIDTH, MAX_SIDE_PANEL_WIDTH, MIN_SIDE_PANEL_WIDTH, UI_REPAINT_INTERVAL_MS,
+};
 use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
@@ -39,7 +42,7 @@ impl RedisTab {
             selected_connection: None,
             connected_color: None,
             key_filter_input: String::new(),
-            side_panel_width: 300.0, // Default width
+            side_panel_width: DEFAULT_SIDE_PANEL_WIDTH,
         }
     }
 
@@ -140,7 +143,7 @@ impl eframe::App for RedisApp {
         if any_loading {
             // Request repaint immediately and schedule the next one within a few milliseconds
             ctx.request_repaint();
-            ctx.request_repaint_after(std::time::Duration::from_millis(10));
+            ctx.request_repaint_after(std::time::Duration::from_millis(UI_REPAINT_INTERVAL_MS));
         }
     }
 }
@@ -332,7 +335,7 @@ impl RedisApp {
         };
 
         if let Some(tab) = self.tabs.get_mut(tab_idx) {
-            let rounded_width = (width.max(250.0).min(800.0)).round();
+            let rounded_width = (width.max(MIN_SIDE_PANEL_WIDTH).min(MAX_SIDE_PANEL_WIDTH)).round();
             tab.side_panel_width = rounded_width;
 
             // Save to config if connected

@@ -53,6 +53,7 @@ pub mod keys {
     pub const LOAD_MEMBERS: &str = "load_members";
     pub const LOAD_MORE_KEYS: &str = "load_more_keys";
     pub const LOAD_ALL_KEYS: &str = "load_all_keys";
+    pub const TOO_MANY_KEYS: &str = "too_many_keys";
     pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
@@ -400,15 +401,25 @@ impl Default for Translator {
 
         strings.insert(keys::LOAD_MORE_KEYS, {
             let mut m = HashMap::new();
-            m.insert(Language::English, "Load 5000 more keys");
-            m.insert(Language::Chinese, "再加载5000个");
+            m.insert(Language::English, "Load more keys");
+            m.insert(Language::Chinese, "再加载一些");
             m
         });
 
         strings.insert(keys::LOAD_ALL_KEYS, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Load all remaining keys");
-            m.insert(Language::Chinese, "加载所有剩余key");
+            m.insert(Language::Chinese, "加载剩余所有");
+            m
+        });
+
+        strings.insert(keys::TOO_MANY_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "Too many keys loaded, please enter proper filter keyword",
+            );
+            m.insert(Language::Chinese, "加载的列表过长，请输入合适关键字过滤");
             m
         });
 

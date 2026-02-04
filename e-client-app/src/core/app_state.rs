@@ -1,6 +1,8 @@
 use crate::core::redis_client::{RedisClient, ValueData};
 use e_client_basics::constants::{
-    LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, SCAN_COUNT, WILD_KEY_FILTER,
+    ITEMS_PER_LOAD, LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS,
+    SCAN_COUNT, SCAN_SLEEP_INTERVAL_MS, SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES,
+    WILD_KEY_FILTER,
 };
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
@@ -187,8 +189,8 @@ impl AppState {
                         current_cursor = new_cursor;
 
                         // Update UI every SCAN batch with periodic sorting for display
-                        // Sort and display every 200 keys (roughly 2 SCAN batches at SCAN_COUNT=100)
-                        if loaded_count - last_sort_count >= 200 || current_cursor == 0 {
+                        // Sort and display every SORT_INTERVAL_KEYS keys
+                        if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS || current_cursor == 0 {
                             let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
                             all_keys.sort();
                             *state.keys.write().await = all_keys;
@@ -209,7 +211,7 @@ impl AppState {
                         *state.loading_progress_text.write().await = progress_text;
 
                         // Small delay to allow UI to refresh and prevent tight loop
-                        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS)).await;
 
                         // Stop if we reached max initial keys
                         if loaded_count >= MAX_INITIAL_KEYS {
@@ -299,8 +301,8 @@ impl AppState {
 
                         current_cursor = new_cursor;
 
-                        // Update UI every 2 SCAN batches for display
-                        if batch_count - last_update_batch >= 2 || current_cursor == 0 {
+                        // Update UI every UI_UPDATE_INTERVAL_BATCHES SCAN batches for display
+                        if batch_count - last_update_batch >= UI_UPDATE_INTERVAL_BATCHES || current_cursor == 0 {
                             let mut all_keys: Vec<String> = existing_keys.iter().cloned().collect();
                             all_keys.sort();
                             *state.keys.write().await = all_keys;
@@ -322,13 +324,18 @@ impl AppState {
                         *state.loaded_keys_count.write().await = total;
 
                         // Small delay to allow UI to refresh and prevent tight loop
-                        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS)).await;
 
                         // Check if we should stop loading more
                         let total_new_keys = existing_keys.len() - keys_at_start;
                         if !load_all
                             && (current_cursor == 0 || total_new_keys >= LOAD_MORE_BATCH_SIZE)
                         {
+                            break;
+                        }
+
+                        // Stop if we reached MAX_LOADED_KEYS
+                        if existing_keys.len() >= MAX_LOADED_KEYS {
                             break;
                         }
 
@@ -424,7 +431,11 @@ impl AppState {
     pub fn spawn_load_hash_fields(&self, key: String) {
         let state = self.clone();
         tokio::spawn(async move {
-            match state.redis_client.get_hash_fields(&key, 0, 100).await {
+            match state
+                .redis_client
+                .get_hash_fields(&key, 0, ITEMS_PER_LOAD)
+                .await
+            {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Hash {
@@ -442,7 +453,11 @@ impl AppState {
     pub fn spawn_load_set_members(&self, key: String) {
         let state = self.clone();
         tokio::spawn(async move {
-            match state.redis_client.get_set_members(&key, 0, 100).await {
+            match state
+                .redis_client
+                .get_set_members(&key, 0, ITEMS_PER_LOAD)
+                .await
+            {
                 Ok((_, members)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Set {

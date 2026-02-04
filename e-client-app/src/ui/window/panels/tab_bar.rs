@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use e_client_basics::constants::ACTIVE_TAB_BACKGROUND_COLOR;
 use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
@@ -49,8 +50,11 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                     }
 
                                     let button = if is_active {
-                                        egui::Button::new(&tab_text)
-                                            .fill(egui::Color32::from_rgb(200, 220, 240))
+                                        egui::Button::new(&tab_text).fill(egui::Color32::from_rgb(
+                                            ACTIVE_TAB_BACKGROUND_COLOR[0],
+                                            ACTIVE_TAB_BACKGROUND_COLOR[1],
+                                            ACTIVE_TAB_BACKGROUND_COLOR[2],
+                                        ))
                                     } else {
                                         egui::Button::new(&tab_text)
                                     };

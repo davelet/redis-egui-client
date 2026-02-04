@@ -25,3 +25,26 @@ pub const CONNECTION_AUTH_LIMIT: usize = 1024;
 pub const SCAN_COUNT: usize = 200;
 pub const MAX_INITIAL_KEYS: usize = 2000;
 pub const LOAD_MORE_BATCH_SIZE: usize = 2000;
+pub const MAX_LOADED_KEYS: usize = 10000;
+pub const CONNECTION_RETRY_COUNT: usize = 1;
+pub const DEFAULT_DATABASE_COUNT: u32 = 16;
+pub const ITEMS_PER_LOAD: usize = 100;
+pub const HASH_FIELD_PAIR_STEP: usize = 2; // Step for iterating hash key-value pairs
+
+/// UI size constants
+pub const DEFAULT_SIDE_PANEL_WIDTH: f32 = 300.0;
+pub const MIN_SIDE_PANEL_WIDTH: f32 = 250.0;
+pub const MAX_SIDE_PANEL_WIDTH: f32 = 800.0;
+pub const MIN_CENTRAL_PANEL_HEIGHT: f32 = 300.0;
+pub const MAX_CENTRAL_PANEL_HEIGHT: f32 = 600.0;
+
+/// Batch processing
+pub const SORT_INTERVAL_KEYS: usize = 200;
+pub const UI_UPDATE_INTERVAL_BATCHES: usize = 2;
+
+/// Time durations (in milliseconds)
+pub const UI_REPAINT_INTERVAL_MS: u64 = 10;
+pub const SCAN_SLEEP_INTERVAL_MS: u64 = 1;
+
+/// UI colors (RGB values)
+pub const ACTIVE_TAB_BACKGROUND_COLOR: [u8; 3] = [200, 220, 240];

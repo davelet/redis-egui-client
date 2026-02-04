@@ -1,3 +1,6 @@
+use e_client_basics::constants::{
+    CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT, HASH_FIELD_PAIR_STEP,
+};
 use e_client_config::connection::RedisConnectionConfig;
 use redis::aio::ConnectionManagerConfig;
 use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
@@ -20,7 +23,8 @@ impl RedisClient {
     #[instrument]
     pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
         let client = Client::open(redis)?;
-        let config = ConnectionManagerConfig::default().set_number_of_retries(1);
+        let config = ConnectionManagerConfig::default()
+            .set_number_of_retries(CONNECTION_RETRY_COUNT);
         let manager = ConnectionManager::new_with_config(client, config).await?;
         *self.manager.write().await = Some(manager);
         Ok(())
@@ -72,12 +76,13 @@ impl RedisClient {
                     let db_count: u32 = config
                         .split_whitespace()
                         .last()
-                        .unwrap_or("16")
+                        .unwrap_or(&DEFAULT_DATABASE_COUNT.to_string())
                         .parse()
-                        .unwrap_or(16);
+                        .unwrap_or(DEFAULT_DATABASE_COUNT);
                     Ok((0..db_count).collect())
                 }
-                Err(_) => Ok((0..16).collect()), // Default to 16 databases if CONFIG fails
+                Err(_) => Ok((0..DEFAULT_DATABASE_COUNT).collect()),
+                // Default to DEFAULT_DATABASE_COUNT databases if CONFIG fails
             }
         } else {
             Ok(vec![])
@@ -212,7 +217,7 @@ impl RedisClient {
                 .await?;
 
             let mut pairs = vec![];
-            for i in (0..items.len()).step_by(2) {
+            for i in (0..items.len()).step_by(HASH_FIELD_PAIR_STEP) {
                 if i + 1 < items.len() {
                     pairs.push((items[i].clone(), items[i + 1].clone()));
                 }
