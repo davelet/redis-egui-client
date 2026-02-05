@@ -61,7 +61,13 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             ui.horizontal(|ui| {
                 ui.label(tr(keys::FILTER, current_lang));
                 let tab = &mut app.tabs[active_tab_idx];
-                let changed = ui.text_edit_singleline(&mut tab.key_filter_input).changed();
+                let available_width = ui.available_width();
+                let changed = ui
+                    .add_sized(
+                        egui::vec2(available_width, 20.0),
+                        egui::TextEdit::singleline(&mut tab.key_filter_input),
+                    )
+                    .changed();
                 if changed {
                     let key_filter = tab.state.key_filter.clone();
                     let input = tab.key_filter_input.clone();
@@ -132,11 +138,47 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                     for key in keys_to_show {
                         let is_selected = selected_key.as_ref() == Some(key);
-                        if ui.selectable_label(is_selected, key).clicked() {
+                        // Use allocate_ui_with_layout to make the entire row clickable
+                        let (rect, response) = ui.allocate_exact_size(
+                            egui::vec2(ui.available_width(), ui.spacing().interact_size.y),
+                            egui::Sense::click(),
+                        );
+
+                        if response.clicked() {
                             let tab = &mut app.tabs[active_tab_idx];
                             *tab.state.selected_key.blocking_write() = Some(key.clone());
                             tab.state.spawn_load_value(key.clone());
                         }
+
+                        // Draw the background for selected item
+                        if is_selected {
+                            ui.painter().rect_filled(
+                                rect,
+                                egui::CornerRadius::same(2),
+                                ui.visuals().selection.bg_fill,
+                            );
+                        } else if response.hovered() {
+                            ui.painter().rect_filled(
+                                rect,
+                                egui::CornerRadius::same(2),
+                                ui.visuals().widgets.hovered.bg_fill,
+                            );
+                        }
+
+                        // Draw the text
+                        let text_color = if is_selected {
+                            ui.visuals().selection.stroke.color
+                        } else {
+                            ui.visuals().text_color()
+                        };
+
+                        ui.painter().text(
+                            rect.left_center() + egui::vec2(ui.spacing().item_spacing.x, 0.0),
+                            egui::Align2::LEFT_CENTER,
+                            key,
+                            egui::FontId::default(),
+                            text_color,
+                        );
                     }
                 });
         });

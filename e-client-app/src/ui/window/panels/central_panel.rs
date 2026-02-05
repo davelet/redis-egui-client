@@ -1,8 +1,6 @@
 use crate::core::redis_client::ValueData;
 use crate::ui::window::RedisApp;
-use e_client_basics::constants::{
-    ITEMS_PER_LOAD, MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT,
-};
+use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::config::Config;
 use e_client_config::constants::APP_NAME;
 use e_client_config::constants::LOAD_ERROR_TITLE;

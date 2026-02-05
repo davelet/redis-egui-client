@@ -25,6 +25,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
         usize,
         e_client_config::connection::RedisConnectionConfig,
     )> = None;
+    let mut auto_connect_idx: Option<usize> = None;
 
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         ui.horizontal(|ui| {
@@ -65,6 +66,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 }
                                 if ui.selectable_label(is_selected, &conn.name).clicked() {
                                     tab.selected_connection = Some(idx);
+
+                                    // Auto connect if enabled
+                                    if app.config.settings.auto_connect {
+                                        auto_connect_idx = Some(idx);
+                                    }
                                 }
                             });
                         }
@@ -167,36 +173,100 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             });
 
-            // Right side - Language selector
+            // Right side - Settings button
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let lang = current_lang;
-                egui::ComboBox::from_id_salt("lang_select")
-                    .selected_text(match lang {
-                        Language::English => ENGLISH,
-                        Language::Chinese => CHINESE,
-                    })
-                    .show_ui(ui, |ui| {
-                        if ui
-                            .selectable_label(matches!(lang, Language::English), ENGLISH)
-                            .clicked()
-                        {
-                            app.update_language(Language::English);
-                        }
-                        if ui
-                            .selectable_label(matches!(lang, Language::Chinese), CHINESE)
-                            .clicked()
-                        {
-                            app.update_language(Language::Chinese);
-                        }
-                    });
-                ui.label(tr(keys::LANGUAGE, lang));
+                if ui.button("⚙").clicked() {
+                    app.show_settings = true;
+                }
             });
         });
     });
 
+    // Settings window
+    if app.show_settings {
+        egui::Window::new(tr(keys::SETTINGS, current_lang))
+            .collapsible(false)
+            .resizable(false)
+            .default_pos(ctx.screen_rect().center())
+            .show(ctx, |ui| {
+                egui::Grid::new("settings_grid")
+                    .num_columns(2)
+                    .spacing([40.0, 8.0])
+                    .min_col_width(100.0)
+                    .show(ui, |ui| {
+                        // Language setting
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(tr(keys::LANGUAGE, current_lang));
+                        });
+                        let lang = current_lang;
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            egui::ComboBox::from_id_salt("settings_lang_select")
+                                .selected_text(match lang {
+                                    Language::English => ENGLISH,
+                                    Language::Chinese => CHINESE,
+                                })
+                                .show_ui(ui, |ui| {
+                                    if ui
+                                        .selectable_label(
+                                            matches!(lang, Language::English),
+                                            ENGLISH,
+                                        )
+                                        .clicked()
+                                    {
+                                        app.update_language(Language::English);
+                                    }
+                                    if ui
+                                        .selectable_label(
+                                            matches!(lang, Language::Chinese),
+                                            CHINESE,
+                                        )
+                                        .clicked()
+                                    {
+                                        app.update_language(Language::Chinese);
+                                    }
+                                });
+                        });
+                        ui.end_row();
+
+                        // Auto connect setting
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(tr(keys::AUTO_CONNECT, current_lang));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let mut auto_connect = app.config.settings.auto_connect;
+                            if ui.checkbox(&mut auto_connect, "").changed() {
+                                app.config.update_auto_connect(auto_connect);
+                            }
+                        });
+                        ui.end_row();
+                    });
+
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    if ui.button(tr(keys::CLOSE, current_lang)).clicked() {
+                        app.show_settings = false;
+                    }
+                });
+            });
+    }
+
     // Handle deferred operations
     if let Some((idx, conn)) = create_new_tab_with {
         app.create_tab_with_connection(idx, conn);
+    }
+
+    // Handle auto connect
+    if let Some(idx) = auto_connect_idx {
+        let active_tab_idx = app.active_tab;
+        if let Some(conn) = app.config.connections.get(idx).cloned() {
+            let tab = &mut app.tabs[active_tab_idx];
+            *tab.state.connection_param.blocking_write() = Some(conn.clone());
+            tab.name = conn.name.clone();
+            tab.connected_color = conn.color.clone();
+            app.load_connection_preferences(active_tab_idx);
+            app.spawn_connect_with_initial_db(active_tab_idx);
+        }
     }
 
     // New connection dialog

@@ -12,13 +12,37 @@ use crate::config::connections::ConfigOnConnections;
 use crate::config::user_config::ConfigOfUser;
 use std::fs;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub window: ConfigOnWindowFace,
     pub settings: ConfigOfUser,
     pub connections: ConfigOnConnections,
     pub connected_preferences: ConnectedPreferences,
+    // Dirty flags for delayed saving
+    dirty_window: bool,
+    dirty_settings: bool,
+    dirty_preferences: bool,
+    // Debouncer for side panel width
+    last_side_panel_update: Option<Instant>,
+    debounce_duration: Duration,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            window: ConfigOnWindowFace::default(),
+            settings: ConfigOfUser::default(),
+            connections: ConfigOnConnections::default(),
+            connected_preferences: ConnectedPreferences::default(),
+            dirty_window: false,
+            dirty_settings: false,
+            dirty_preferences: false,
+            last_side_panel_update: None,
+            debounce_duration: Duration::from_millis(500), // 500ms debounce
+        }
+    }
 }
 
 impl Config {
@@ -62,6 +86,11 @@ impl Config {
             settings,
             connections,
             connected_preferences,
+            dirty_window: false,
+            dirty_settings: false,
+            dirty_preferences: false,
+            last_side_panel_update: None,
+            debounce_duration: Duration::from_millis(500),
         };
         Ok(config)
     }
@@ -199,21 +228,21 @@ impl Config {
 
         Ok(())
     }
-    pub fn update_window_size(&mut self, width: f32, height: f32) -> Result<(), ConfigError> {
+    pub fn update_window_size(&mut self, width: f32, height: f32) {
         self.window.width = width.max(100.0);
         self.window.height = height.max(100.0);
-        self.save_window_config()
+        self.dirty_window = true;
     }
 
-    pub fn update_window_position(&mut self, x: f32, y: f32) -> Result<(), ConfigError> {
+    pub fn update_window_position(&mut self, x: f32, y: f32) {
         self.window.x = x;
         self.window.y = y;
-        self.save_window_config()
+        self.dirty_window = true;
     }
 
-    pub fn update_maximized(&mut self, maximized: bool) -> Result<(), ConfigError> {
+    pub fn update_maximized(&mut self, maximized: bool) {
         self.window.maximized = maximized;
-        self.save_window_config()
+        self.dirty_window = true;
     }
 
     pub fn reset_window_params() -> Result<(), ConfigError> {
@@ -255,14 +284,34 @@ impl Config {
         self.save_connected_preferences()
     }
 
-    pub fn update_side_panel_width_for_connection(
-        &mut self,
-        connection_name: &str,
-        width: f32,
-    ) -> Result<(), ConfigError> {
+    /// Update side panel width for a connection (marks as dirty, doesn't save immediately)
+    pub fn update_side_panel_width_for_connection(&mut self, connection_name: &str, width: f32) {
         self.connected_preferences
             .update_side_panel_width(connection_name, width);
-        self.save_connected_preferences()
+        self.dirty_preferences = true;
+        self.last_side_panel_update = Some(Instant::now());
+    }
+
+    /// Check if debounce time has passed and save if needed
+    /// Returns true if save was performed
+    pub fn check_and_save_side_panel_width(&mut self) -> Result<bool, ConfigError> {
+        if let Some(last_update) = self.last_side_panel_update {
+            if last_update.elapsed() >= self.debounce_duration && self.dirty_preferences {
+                self.save_connected_preferences()?;
+                self.dirty_preferences = false;
+                self.last_side_panel_update = None;
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    /// Get the side panel width for a connection
+    pub fn get_side_panel_width_for_connection(&self, connection_name: &str) -> f32 {
+        self.connected_preferences
+            .get_preference(connection_name)
+            .map(|pref| pref.side_panel_width)
+            .unwrap_or(300.0)
     }
 
     pub fn update_db_for_connection(
@@ -295,9 +344,31 @@ impl Config {
         toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
     }
 
-    pub fn update_language(&mut self, language: &str) -> Result<(), ConfigError> {
+    pub fn update_language(&mut self, language: &str) {
         self.settings.language = language.to_string();
-        self.save_user_settings()
+        self.dirty_settings = true;
+    }
+
+    pub fn update_auto_connect(&mut self, auto_connect: bool) {
+        self.settings.auto_connect = auto_connect;
+        self.dirty_settings = true;
+    }
+
+    /// Save all dirty configurations (call on app exit)
+    pub fn save_all_if_dirty(&mut self) -> Result<(), ConfigError> {
+        if self.dirty_window {
+            self.save_window_config()?;
+            self.dirty_window = false;
+        }
+        if self.dirty_settings {
+            self.save_user_settings()?;
+            self.dirty_settings = false;
+        }
+        if self.dirty_preferences {
+            self.save_connected_preferences()?;
+            self.dirty_preferences = false;
+        }
+        Ok(())
     }
 
     pub fn save_user_settings(&self) -> Result<(), ConfigError> {

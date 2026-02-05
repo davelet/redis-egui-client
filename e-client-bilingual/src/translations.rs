@@ -20,6 +20,8 @@ pub mod keys {
     pub const EXECUTE: &str = "execute";
     pub const VALUE: &str = "value";
     pub const LANGUAGE: &str = "language";
+    pub const SETTINGS: &str = "settings";
+    pub const AUTO_CONNECT: &str = "auto_connect";
     pub const CLOSE: &str = "close";
     pub const CLOSE_OTHERS: &str = "close_others";
     pub const DUPLICATE: &str = "duplicate";
@@ -199,6 +201,20 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Language");
             m.insert(Language::Chinese, "语言");
+            m
+        });
+
+        strings.insert(keys::SETTINGS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Settings");
+            m.insert(Language::Chinese, "设置");
+            m
+        });
+
+        strings.insert(keys::AUTO_CONNECT, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Auto Connect");
+            m.insert(Language::Chinese, "自动连接");
             m
         });
 

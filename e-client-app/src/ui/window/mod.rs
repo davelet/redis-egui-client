@@ -67,46 +67,52 @@ pub struct RedisApp {
     next_tab_id: usize,
     config: Config,
     new_connection: NewConnectionWindowWindow,
+    show_settings: bool,
     global_language: Language,
     // Track previous connection states to detect changes
     prev_connected_states: Vec<bool>,
 }
 
 impl eframe::App for RedisApp {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        // Save all dirty configurations on exit
+        if let Err(e) = self.config.save_all_if_dirty() {
+            eprintln!(
+                "Failed to save configuration on exit: {}",
+                e.to_message(Language::English)
+            );
+        }
+    }
+
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
         let is_maximized = viewport.maximized.unwrap_or(false);
         let rect = viewport.outer_rect;
 
-        // Clone only what we need for the async block
-        let mut config = self.config.clone();
-
-        // Spawn the async task for saving window state
+        // Update window state (marks as dirty, doesn't save immediately)
         if let Some(rect) = rect {
-            if !config.window.maximized {
-                let _ = config.update_window_position(rect.min.x, rect.min.y);
-                let _ = config.update_window_size(rect.width(), rect.height());
+            if !self.config.window.maximized {
+                self.config.update_window_position(rect.min.x, rect.min.y);
+                self.config.update_window_size(rect.width(), rect.height());
             }
 
-            if is_maximized != config.window.maximized {
-                let _ = config.update_maximized(is_maximized);
+            if is_maximized != self.config.window.maximized {
+                self.config.update_maximized(is_maximized);
             }
         }
 
-        // Handle language updates
+        // Check and save side panel width if debounce time has passed
+        let _ = self.config.check_and_save_side_panel_width();
+
+        // Handle language updates (marks as dirty, doesn't save immediately)
         if let Some(active_tab) = self.get_active_tab() {
             let current_lang = active_tab.state.language.blocking_read();
             let current_lang_str = current_lang.to_file_string();
             drop(current_lang); // Drop the lock before borrowing config mutably
 
             if self.config.settings.language != current_lang_str {
-                if let Err(e) = self.config.update_language(&current_lang_str) {
-                    eprintln!(
-                        "Failed to update language: {}",
-                        e.to_message(Language::English)
-                    );
-                }
+                self.config.update_language(&current_lang_str);
             }
         }
 
@@ -165,6 +171,7 @@ impl RedisApp {
             next_tab_id: 1,
             config,
             new_connection: NewConnectionWindowWindow::new(),
+            show_settings: false,
             global_language,
             prev_connected_states: vec![false],
         }
@@ -334,15 +341,30 @@ impl RedisApp {
             None
         };
 
-        if let Some(tab) = self.tabs.get_mut(tab_idx) {
-            let rounded_width = (width.max(MIN_SIDE_PANEL_WIDTH).min(MAX_SIDE_PANEL_WIDTH)).round();
-            tab.side_panel_width = rounded_width;
+        let rounded_width = (width.max(MIN_SIDE_PANEL_WIDTH).min(MAX_SIDE_PANEL_WIDTH)).round();
 
-            // Save to config if connected
-            if let Some(name) = conn_name {
-                let _ = self
-                    .config
-                    .update_side_panel_width_for_connection(&name, rounded_width);
+        // Update the current tab
+        if let Some(tab) = self.tabs.get_mut(tab_idx) {
+            tab.side_panel_width = rounded_width;
+        }
+
+        // If connected, sync width to all tabs with the same connection
+        if let Some(ref name) = conn_name {
+            // Update config (marks as dirty, doesn't save immediately)
+            self.config
+                .update_side_panel_width_for_connection(name, rounded_width);
+
+            // Sync width to all other tabs with the same connection
+            for (idx, tab) in self.tabs.iter_mut().enumerate() {
+                if idx != tab_idx {
+                    if let Some(conn_idx) = tab.selected_connection {
+                        if let Some(conn) = self.config.connections.get(conn_idx) {
+                            if conn.name == *name {
+                                tab.side_panel_width = rounded_width;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

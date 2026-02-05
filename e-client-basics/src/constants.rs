@@ -44,7 +44,7 @@ pub const UI_UPDATE_INTERVAL_BATCHES: usize = 2;
 
 /// Time durations (in milliseconds)
 pub const UI_REPAINT_INTERVAL_MS: u64 = 10;
-pub const SCAN_SLEEP_INTERVAL_MS: u64 = 1;
+pub const SCAN_SLEEP_INTERVAL_MS: u64 = 10;
 
 /// UI colors (RGB values)
 pub const ACTIVE_TAB_BACKGROUND_COLOR: [u8; 3] = [200, 220, 240];
