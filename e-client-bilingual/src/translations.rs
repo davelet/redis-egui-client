@@ -22,6 +22,7 @@ pub mod keys {
     pub const LANGUAGE: &str = "language";
     pub const SETTINGS: &str = "settings";
     pub const AUTO_CONNECT: &str = "auto_connect";
+    pub const NEW_KEY: &str = "new_key";
     pub const CLOSE: &str = "close";
     pub const CLOSE_OTHERS: &str = "close_others";
     pub const DUPLICATE: &str = "duplicate";
@@ -56,6 +57,13 @@ pub mod keys {
     pub const LOAD_MORE_KEYS: &str = "load_more_keys";
     pub const LOAD_ALL_KEYS: &str = "load_all_keys";
     pub const TOO_MANY_KEYS: &str = "too_many_keys";
+    pub const COPY_KEY: &str = "copy_key";
+    pub const COPY_VALUE: &str = "copy_value";
+    pub const EDIT: &str = "edit";
+    pub const DELETE: &str = "delete";
+    pub const REFRESH: &str = "refresh";
+    pub const ADD_FIELD: &str = "add_field";
+    pub const ADD_ITEM: &str = "add_item";
     pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
@@ -215,6 +223,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Auto Connect");
             m.insert(Language::Chinese, "自动连接");
+            m
+        });
+
+        strings.insert(keys::NEW_KEY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "New Key");
+            m.insert(Language::Chinese, "新增键");
             m
         });
 
@@ -560,6 +575,55 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Disconnected");
             m.insert(Language::Chinese, "未连接");
+            m
+        });
+
+        strings.insert(keys::COPY_KEY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Copy Key");
+            m.insert(Language::Chinese, "复制键");
+            m
+        });
+
+        strings.insert(keys::COPY_VALUE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Copy Value");
+            m.insert(Language::Chinese, "复制值");
+            m
+        });
+
+        strings.insert(keys::EDIT, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Edit");
+            m.insert(Language::Chinese, "编辑");
+            m
+        });
+
+        strings.insert(keys::DELETE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Delete");
+            m.insert(Language::Chinese, "删除");
+            m
+        });
+
+        strings.insert(keys::REFRESH, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Refresh");
+            m.insert(Language::Chinese, "刷新");
+            m
+        });
+
+        strings.insert(keys::ADD_FIELD, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Add Field");
+            m.insert(Language::Chinese, "添加字段");
+            m
+        });
+
+        strings.insert(keys::ADD_ITEM, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Add Item");
+            m.insert(Language::Chinese, "添加项");
             m
         });
 

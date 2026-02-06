@@ -1,6 +1,7 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
 use e_client_config::constants::WILD_KEY_FILTER;
+use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
 
@@ -56,12 +57,20 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 keys.len(),
                 total_display
             );
-            ui.heading(heading_text);
+            ui.horizontal(|ui| {
+                ui.heading(heading_text);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("➕").clicked() {
+                        app.new_key_dialog.reset();
+                        app.new_key_dialog.show = true;
+                    }
+                });
+            });
 
             ui.horizontal(|ui| {
                 ui.label(tr(keys::FILTER, current_lang));
                 let tab = &mut app.tabs[active_tab_idx];
-                let available_width = ui.available_width();
+                let available_width = ui.available_width() - 30.0; // Reserve space for refresh button
                 let changed = ui
                     .add_sized(
                         egui::vec2(available_width, 20.0),
@@ -84,6 +93,11 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                     // Release mutable borrow
                     app.update_string(key_filter, processed_filter);
+                    app.tabs[active_tab_idx].state.spawn_load_keys();
+                }
+
+                // Refresh keys button
+                if ui.button("🔄").clicked() {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
             });
@@ -182,4 +196,138 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     }
                 });
         });
+
+    // New key dialog
+    if app.new_key_dialog.show {
+        let current_lang = {
+            let tab = &app.tabs[app.active_tab];
+            app.poll_language(tab.state.language.clone())
+        };
+        render_new_key_dialog(app, ctx, current_lang);
+    }
+}
+
+fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    let mut open = true;
+    egui::Window::new(tr(keys::NEW_KEY, current_lang))
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .default_pos(ctx.screen_rect().center())
+        .show(ctx, |ui| {
+            egui::Grid::new("new_key_grid")
+                .num_columns(2)
+                .spacing([20.0, 8.0])
+                .min_col_width(80.0)
+                .show(ui, |ui| {
+                    // Key name
+                    ui.label("Key:");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.new_key_dialog.key_name)
+                            .desired_width(250.0)
+                            .hint_text("my_key"),
+                    );
+                    ui.end_row();
+
+                    // Type selector
+                    ui.label("Type:");
+                    egui::ComboBox::from_id_salt("new_key_type")
+                        .selected_text(&app.new_key_dialog.key_type)
+                        .width(250.0)
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut app.new_key_dialog.key_type,
+                                "string".to_string(),
+                                "string",
+                            );
+                            ui.selectable_value(
+                                &mut app.new_key_dialog.key_type,
+                                "hash".to_string(),
+                                "hash",
+                            );
+                            ui.selectable_value(
+                                &mut app.new_key_dialog.key_type,
+                                "list".to_string(),
+                                "list",
+                            );
+                            ui.selectable_value(
+                                &mut app.new_key_dialog.key_type,
+                                "set".to_string(),
+                                "set",
+                            );
+                            ui.selectable_value(
+                                &mut app.new_key_dialog.key_type,
+                                "zset".to_string(),
+                                "zset",
+                            );
+                        });
+                    ui.end_row();
+
+                    // TTL
+                    ui.label("TTL:");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.new_key_dialog.ttl)
+                            .desired_width(250.0)
+                            .hint_text("-1 (no expiration)"),
+                    );
+                    ui.end_row();
+                });
+
+            ui.separator();
+
+            // Value input with hint based on type
+            let hint = match app.new_key_dialog.key_type.as_str() {
+                "string" => "Enter value",
+                "list" => "One item per line",
+                "set" => "One member per line",
+                "hash" => "field:value per line",
+                "zset" => "score:member per line",
+                _ => "Enter value",
+            };
+            ui.label(format!("Value ({})", hint));
+            ui.add_sized(
+                [ui.available_width(), 120.0],
+                egui::TextEdit::multiline(&mut app.new_key_dialog.value).hint_text(hint),
+            );
+
+            // Error message
+            if !app.new_key_dialog.error_message.is_empty() {
+                ui.colored_label(egui::Color32::RED, &app.new_key_dialog.error_message);
+            }
+
+            ui.separator();
+
+            // Buttons
+            ui.horizontal(|ui| {
+                if ui
+                    .button(
+                        egui::RichText::new(tr(keys::SAVE, current_lang))
+                            .color(egui::Color32::from_rgb(50, 180, 50)),
+                    )
+                    .clicked()
+                {
+                    let key_name = app.new_key_dialog.key_name.trim().to_string();
+                    if key_name.is_empty() {
+                        app.new_key_dialog.error_message = "Key name cannot be empty".to_string();
+                    } else {
+                        let key_type = app.new_key_dialog.key_type.clone();
+                        let value = app.new_key_dialog.value.clone();
+                        let ttl: i64 = app.new_key_dialog.ttl.trim().parse().unwrap_or(-1);
+                        let active_tab_idx = app.active_tab;
+                        app.tabs[active_tab_idx]
+                            .state
+                            .spawn_create_new_key(key_name, key_type, value, ttl);
+                        app.new_key_dialog.show = false;
+                    }
+                }
+
+                if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                    app.new_key_dialog.show = false;
+                }
+            });
+        });
+
+    if !open {
+        app.new_key_dialog.show = false;
+    }
 }

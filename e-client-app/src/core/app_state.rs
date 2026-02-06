@@ -1,13 +1,76 @@
 use crate::core::redis_client::{RedisClient, ValueData};
 use e_client_basics::constants::{
-    ITEMS_PER_LOAD, LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS,
-    SCAN_COUNT, SCAN_SLEEP_INTERVAL_MS, SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES,
-    WILD_KEY_FILTER,
+    ITEMS_PER_LOAD, LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS, SCAN_COUNT,
+    SCAN_SLEEP_INTERVAL_MS, SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES, WILD_KEY_FILTER,
 };
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+#[derive(Debug, Clone)]
+pub enum EditedValue {
+    String(String),
+    List(Vec<String>),
+    Hash(Vec<(String, String)>),
+    Set(Vec<String>),
+    ZSet(Vec<(String, String)>),
+    None,
+}
+
+#[derive(Debug, Clone)]
+pub struct EditState {
+    pub editing: bool,
+    pub edited_key: String,
+    pub edited_ttl: String,
+    pub edited_value: EditedValue,
+    pub save_message: String,
+}
+
+impl Default for EditState {
+    fn default() -> Self {
+        Self {
+            editing: false,
+            edited_key: String::new(),
+            edited_ttl: String::new(),
+            edited_value: EditedValue::None,
+            save_message: String::new(),
+        }
+    }
+}
+
+impl EditState {
+    pub fn enter_edit(&mut self, key: &str, ttl: i64, value: &Option<ValueData>) {
+        self.editing = true;
+        self.edited_key = key.to_string();
+        self.edited_ttl = if ttl == -1 {
+            "-1".to_string()
+        } else if ttl >= 0 {
+            ttl.to_string()
+        } else {
+            String::new()
+        };
+        self.edited_value = match value {
+            Some(ValueData::String(s)) => EditedValue::String(s.clone()),
+            Some(ValueData::List { items, .. }) => EditedValue::List(items.clone()),
+            Some(ValueData::Hash { fields, .. }) => EditedValue::Hash(fields.clone()),
+            Some(ValueData::Set { items, .. }) => EditedValue::Set(items.clone()),
+            Some(ValueData::ZSet { items, .. }) => EditedValue::ZSet(
+                items
+                    .iter()
+                    .map(|(m, s)| (m.clone(), s.to_string()))
+                    .collect(),
+            ),
+            _ => EditedValue::None,
+        };
+        self.save_message.clear();
+    }
+
+    pub fn cancel_edit(&mut self) {
+        self.editing = false;
+        self.save_message.clear();
+    }
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -19,6 +82,8 @@ pub struct AppState {
     pub keys: Arc<RwLock<Vec<String>>>,
     pub selected_key: Arc<RwLock<Option<String>>>,
     pub key_value: Arc<RwLock<Option<ValueData>>>,
+    pub key_ttl: Arc<RwLock<i64>>,
+    pub edit_state: Arc<RwLock<EditState>>,
     pub key_filter: Arc<RwLock<String>>,
     pub loading: Arc<RwLock<bool>>,
     pub error_message: Arc<RwLock<String>>,
@@ -41,6 +106,8 @@ impl Default for AppState {
             keys: Arc::new(RwLock::new(vec![])),
             selected_key: Arc::new(RwLock::new(None)),
             key_value: Arc::new(RwLock::new(None)),
+            key_ttl: Arc::new(RwLock::new(-2)),
+            edit_state: Arc::new(RwLock::new(EditState::default())),
             key_filter: Arc::new(RwLock::new(String::new())),
             loading: Arc::new(RwLock::new(false)),
             error_message: Arc::new(RwLock::new(String::new())),
@@ -190,7 +257,9 @@ impl AppState {
 
                         // Update UI every SCAN batch with periodic sorting for display
                         // Sort and display every SORT_INTERVAL_KEYS keys
-                        if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS || current_cursor == 0 {
+                        if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS
+                            || current_cursor == 0
+                        {
                             let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
                             all_keys.sort();
                             *state.keys.write().await = all_keys;
@@ -211,7 +280,10 @@ impl AppState {
                         *state.loading_progress_text.write().await = progress_text;
 
                         // Small delay to allow UI to refresh and prevent tight loop
-                        tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(
+                            SCAN_SLEEP_INTERVAL_MS,
+                        ))
+                        .await;
 
                         // Stop if we reached max initial keys
                         if loaded_count >= MAX_INITIAL_KEYS {
@@ -302,7 +374,9 @@ impl AppState {
                         current_cursor = new_cursor;
 
                         // Update UI every UI_UPDATE_INTERVAL_BATCHES SCAN batches for display
-                        if batch_count - last_update_batch >= UI_UPDATE_INTERVAL_BATCHES || current_cursor == 0 {
+                        if batch_count - last_update_batch >= UI_UPDATE_INTERVAL_BATCHES
+                            || current_cursor == 0
+                        {
                             let mut all_keys: Vec<String> = existing_keys.iter().cloned().collect();
                             all_keys.sort();
                             *state.keys.write().await = all_keys;
@@ -324,7 +398,10 @@ impl AppState {
                         *state.loaded_keys_count.write().await = total;
 
                         // Small delay to allow UI to refresh and prevent tight loop
-                        tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(
+                            SCAN_SLEEP_INTERVAL_MS,
+                        ))
+                        .await;
 
                         // Check if we should stop loading more
                         let total_new_keys = existing_keys.len() - keys_at_start;
@@ -395,11 +472,23 @@ impl AppState {
         let state = self.clone();
         tokio::spawn(async move {
             *state.loading.write().await = true;
+            // Cancel editing when reloading
+            state.edit_state.write().await.cancel_edit();
 
             match state.redis_client.get_value(&key).await {
                 Ok(value) => {
-                    *state.selected_key.write().await = Some(key);
+                    *state.selected_key.write().await = Some(key.clone());
                     *state.key_value.write().await = Some(value);
+
+                    // Get TTL for the key
+                    match state.redis_client.get_ttl(&key).await {
+                        Ok(ttl) => {
+                            *state.key_ttl.write().await = ttl;
+                        }
+                        Err(_) => {
+                            *state.key_ttl.write().await = -2;
+                        }
+                    }
                 }
                 Err(_) => {
                     // Ignore error - command_output was removed
@@ -407,6 +496,228 @@ impl AppState {
             }
 
             *state.loading.write().await = false;
+        });
+    }
+
+    pub fn spawn_create_new_key(&self, key: String, key_type: String, value: String, ttl: i64) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            let result = match key_type.as_str() {
+                "string" => state.redis_client.set_string(&key, &value).await,
+                "list" => {
+                    let mut r = Ok(());
+                    for item in value.lines() {
+                        let item = item.trim();
+                        if !item.is_empty() {
+                            if let Err(e) = state.redis_client.rpush(&key, item).await {
+                                r = Err(e);
+                                break;
+                            }
+                        }
+                    }
+                    r
+                }
+                "hash" => {
+                    let mut r = Ok(());
+                    for line in value.lines() {
+                        let line = line.trim();
+                        if let Some((field, val)) = line.split_once(':') {
+                            let field = field.trim();
+                            let val = val.trim();
+                            if !field.is_empty() {
+                                if let Err(e) = state.redis_client.hset(&key, field, val).await {
+                                    r = Err(e);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    r
+                }
+                "set" => {
+                    let mut r = Ok(());
+                    for item in value.lines() {
+                        let item = item.trim();
+                        if !item.is_empty() {
+                            if let Err(e) = state.redis_client.sadd(&key, item).await {
+                                r = Err(e);
+                                break;
+                            }
+                        }
+                    }
+                    r
+                }
+                "zset" => {
+                    let mut r = Ok(());
+                    for line in value.lines() {
+                        let line = line.trim();
+                        if let Some((score_str, member)) = line.split_once(':') {
+                            let score: f64 = score_str.trim().parse().unwrap_or(0.0);
+                            let member = member.trim();
+                            if !member.is_empty() {
+                                if let Err(e) = state.redis_client.zadd(&key, score, member).await {
+                                    r = Err(e);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    r
+                }
+                _ => Ok(()),
+            };
+
+            match result {
+                Ok(_) => {
+                    // Set TTL if specified
+                    if ttl >= 0 {
+                        let _ = state.redis_client.set_ttl(&key, ttl).await;
+                    }
+                    // Select the new key and load its value
+                    *state.selected_key.write().await = Some(key.clone());
+                    state.edit_state.write().await.cancel_edit();
+                    state.spawn_load_value(key);
+                    state.spawn_load_keys();
+                }
+                Err(e) => {
+                    *state.error_message.write().await = format!("Create key failed: {}", e);
+                }
+            }
+        });
+    }
+
+    pub fn spawn_delete_key(&self, key: String) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            match state.redis_client.del_key(&key).await {
+                Ok(_) => {
+                    *state.selected_key.write().await = None;
+                    *state.key_value.write().await = None;
+                    *state.key_ttl.write().await = -2;
+                    state.edit_state.write().await.cancel_edit();
+                    // Refresh key list
+                    state.spawn_load_keys();
+                }
+                Err(e) => {
+                    state.edit_state.write().await.save_message = format!("Delete failed: {}", e);
+                }
+            }
+        });
+    }
+
+    pub fn spawn_save_edits(&self, original_key: String) {
+        let state = self.clone();
+        let edit = state.edit_state.blocking_read().clone();
+        tokio::spawn(async move {
+            let new_key = edit.edited_key.trim().to_string();
+            let mut current_key = original_key.clone();
+
+            // 1. Rename key if changed
+            if new_key != original_key && !new_key.is_empty() {
+                match state
+                    .redis_client
+                    .rename_key_nx(&original_key, &new_key)
+                    .await
+                {
+                    Ok(true) => {
+                        current_key = new_key.clone();
+                    }
+                    Ok(false) => {
+                        state.edit_state.write().await.save_message =
+                            "Rename failed: target key already exists".to_string();
+                        return;
+                    }
+                    Err(e) => {
+                        state.edit_state.write().await.save_message =
+                            format!("Rename failed: {}", e);
+                        return;
+                    }
+                }
+            }
+
+            // 2. Update TTL
+            if let Ok(ttl) = edit.edited_ttl.trim().parse::<i64>() {
+                if let Err(e) = state.redis_client.set_ttl(&current_key, ttl).await {
+                    state.edit_state.write().await.save_message =
+                        format!("TTL update failed: {}", e);
+                    return;
+                }
+            }
+
+            // 3. Save value by type
+            let save_result = match &edit.edited_value {
+                EditedValue::String(s) => state.redis_client.set_string(&current_key, s).await,
+                EditedValue::Hash(fields) => {
+                    // Delete old key and re-create with new fields
+                    let _ = state.redis_client.del_key(&current_key).await;
+                    let mut result = Ok(());
+                    for (field, value) in fields {
+                        if !field.is_empty() {
+                            if let Err(e) =
+                                state.redis_client.hset(&current_key, field, value).await
+                            {
+                                result = Err(e);
+                                break;
+                            }
+                        }
+                    }
+                    result
+                }
+                EditedValue::List(items) => {
+                    let _ = state.redis_client.del_key(&current_key).await;
+                    let mut result = Ok(());
+                    for item in items {
+                        if let Err(e) = state.redis_client.rpush(&current_key, item).await {
+                            result = Err(e);
+                            break;
+                        }
+                    }
+                    result
+                }
+                EditedValue::Set(items) => {
+                    let _ = state.redis_client.del_key(&current_key).await;
+                    let mut result = Ok(());
+                    for item in items {
+                        if !item.is_empty() {
+                            if let Err(e) = state.redis_client.sadd(&current_key, item).await {
+                                result = Err(e);
+                                break;
+                            }
+                        }
+                    }
+                    result
+                }
+                EditedValue::ZSet(items) => {
+                    let _ = state.redis_client.del_key(&current_key).await;
+                    let mut result = Ok(());
+                    for (member, score_str) in items {
+                        if !member.is_empty() {
+                            let score: f64 = score_str.parse().unwrap_or(0.0);
+                            if let Err(e) =
+                                state.redis_client.zadd(&current_key, score, member).await
+                            {
+                                result = Err(e);
+                                break;
+                            }
+                        }
+                    }
+                    result
+                }
+                EditedValue::None => Ok(()),
+            };
+
+            match save_result {
+                Ok(_) => {
+                    state.edit_state.write().await.cancel_edit();
+                    // Reload value and keys
+                    *state.selected_key.write().await = Some(current_key.clone());
+                    state.spawn_load_value(current_key);
+                    state.spawn_load_keys();
+                }
+                Err(e) => {
+                    state.edit_state.write().await.save_message = format!("Save failed: {}", e);
+                }
+            }
         });
     }
 

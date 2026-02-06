@@ -23,8 +23,8 @@ impl RedisClient {
     #[instrument]
     pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
         let client = Client::open(redis)?;
-        let config = ConnectionManagerConfig::default()
-            .set_number_of_retries(CONNECTION_RETRY_COUNT);
+        let config =
+            ConnectionManagerConfig::default().set_number_of_retries(CONNECTION_RETRY_COUNT);
         let manager = ConnectionManager::new_with_config(client, config).await?;
         *self.manager.write().await = Some(manager);
         Ok(())
@@ -150,6 +150,15 @@ impl RedisClient {
         }
     }
 
+    pub async fn get_ttl(&self, key: &str) -> Result<i64, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("TTL").arg(key).query_async(conn).await
+        } else {
+            Ok(-2)
+        }
+    }
+
     pub async fn get_value(&self, key: &str) -> Result<ValueData, RedisError> {
         let key_type = self.get_key_type(key).await?;
         let mut manager = self.manager.write().await;
@@ -267,6 +276,183 @@ impl RedisClient {
             Ok(items)
         } else {
             Ok(vec![])
+        }
+    }
+}
+
+// Write operations
+impl RedisClient {
+    pub async fn rename_key_nx(&self, old_key: &str, new_key: &str) -> Result<bool, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let result: i32 = redis::cmd("RENAMENX")
+                .arg(old_key)
+                .arg(new_key)
+                .query_async(conn)
+                .await?;
+            Ok(result == 1)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub async fn set_ttl(&self, key: &str, ttl: i64) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            if ttl < 0 {
+                redis::cmd("PERSIST")
+                    .arg(key)
+                    .query_async::<String>(conn)
+                    .await?;
+            } else {
+                redis::cmd("EXPIRE")
+                    .arg(key)
+                    .arg(ttl)
+                    .query_async::<i32>(conn)
+                    .await?;
+            }
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn del_key(&self, key: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("DEL").arg(key).query_async::<i32>(conn).await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn set_string(&self, key: &str, value: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("SET")
+                .arg(key)
+                .arg(value)
+                .query_async::<String>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn hset(&self, key: &str, field: &str, value: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("HSET")
+                .arg(key)
+                .arg(field)
+                .arg(value)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn hdel(&self, key: &str, field: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("HDEL")
+                .arg(key)
+                .arg(field)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn lset(&self, key: &str, index: i64, value: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("LSET")
+                .arg(key)
+                .arg(index)
+                .arg(value)
+                .query_async::<String>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn sadd(&self, key: &str, member: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("SADD")
+                .arg(key)
+                .arg(member)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn srem(&self, key: &str, member: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("SREM")
+                .arg(key)
+                .arg(member)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn zadd(&self, key: &str, score: f64, member: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("ZADD")
+                .arg(key)
+                .arg(score)
+                .arg(member)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn rpush(&self, key: &str, value: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("RPUSH")
+                .arg(key)
+                .arg(value)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn zrem(&self, key: &str, member: &str) -> Result<(), RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            redis::cmd("ZREM")
+                .arg(key)
+                .arg(member)
+                .query_async::<i32>(conn)
+                .await?;
+            Ok(())
+        } else {
+            Ok(())
         }
     }
 }

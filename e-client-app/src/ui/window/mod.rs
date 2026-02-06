@@ -61,6 +61,36 @@ impl RedisTab {
     }
 }
 
+pub struct NewKeyDialog {
+    pub show: bool,
+    pub key_name: String,
+    pub key_type: String,
+    pub value: String,
+    pub ttl: String,
+    pub error_message: String,
+}
+
+impl NewKeyDialog {
+    pub fn new() -> Self {
+        Self {
+            show: false,
+            key_name: String::new(),
+            key_type: "string".to_string(),
+            value: String::new(),
+            ttl: "-1".to_string(),
+            error_message: String::new(),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.key_name.clear();
+        self.key_type = "string".to_string();
+        self.value.clear();
+        self.ttl = "-1".to_string();
+        self.error_message.clear();
+    }
+}
+
 pub struct RedisApp {
     tabs: Vec<RedisTab>,
     active_tab: usize,
@@ -68,6 +98,7 @@ pub struct RedisApp {
     config: Config,
     new_connection: NewConnectionWindowWindow,
     show_settings: bool,
+    new_key_dialog: NewKeyDialog,
     global_language: Language,
     // Track previous connection states to detect changes
     prev_connected_states: Vec<bool>,
@@ -172,6 +203,7 @@ impl RedisApp {
             config,
             new_connection: NewConnectionWindowWindow::new(),
             show_settings: false,
+            new_key_dialog: NewKeyDialog::new(),
             global_language,
             prev_connected_states: vec![false],
         }
@@ -284,6 +316,10 @@ impl RedisApp {
 
     fn poll_u32(&self, lock: Arc<RwLock<u32>>) -> u32 {
         lock.try_read().map(|v| *v).unwrap_or(0)
+    }
+
+    fn poll_i64(&self, lock: Arc<RwLock<i64>>) -> i64 {
+        lock.try_read().map(|v| *v).unwrap_or(-2)
     }
 
     fn poll_usize(&self, lock: Arc<RwLock<usize>>) -> usize {
