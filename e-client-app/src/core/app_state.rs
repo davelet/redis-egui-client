@@ -53,7 +53,22 @@ impl EditState {
         self.edited_value = match value {
             Some(ValueData::String(s)) => EditedValue::String(s.clone()),
             Some(ValueData::List { items, .. }) => EditedValue::List(items.clone()),
-            Some(ValueData::Hash { fields, .. }) => EditedValue::Hash(fields.clone()),
+            Some(ValueData::Hash {
+                fields,
+                loaded_values,
+                ..
+            }) => {
+                let hash_fields: Vec<(String, String)> = fields
+                    .iter()
+                    .map(|f| {
+                        (
+                            f.clone(),
+                            loaded_values.get(f).cloned().unwrap_or_default(),
+                        )
+                    })
+                    .collect();
+                EditedValue::Hash(hash_fields)
+            }
             Some(ValueData::Set { items, .. }) => EditedValue::Set(items.clone()),
             Some(ValueData::ZSet { items, .. }) => EditedValue::ZSet(
                 items
@@ -85,6 +100,7 @@ pub struct AppState {
     pub key_ttl: Arc<RwLock<i64>>,
     pub edit_state: Arc<RwLock<EditState>>,
     pub key_filter: Arc<RwLock<String>>,
+    pub hash_field_filter: Arc<RwLock<String>>,
     pub loading: Arc<RwLock<bool>>,
     pub error_message: Arc<RwLock<String>>,
     pub language: Arc<RwLock<Language>>,
@@ -109,6 +125,7 @@ impl Default for AppState {
             key_ttl: Arc::new(RwLock::new(-2)),
             edit_state: Arc::new(RwLock::new(EditState::default())),
             key_filter: Arc::new(RwLock::new(String::new())),
+            hash_field_filter: Arc::new(RwLock::new(String::new())),
             loading: Arc::new(RwLock::new(false)),
             error_message: Arc::new(RwLock::new(String::new())),
             language: Arc::new(RwLock::new(Language::English)),
@@ -474,6 +491,8 @@ impl AppState {
             *state.loading.write().await = true;
             // Cancel editing when reloading
             state.edit_state.write().await.cancel_edit();
+            // Clear hash field filter when switching keys
+            *state.hash_field_filter.write().await = String::new();
 
             match state.redis_client.get_value(&key).await {
                 Ok(value) => {
@@ -488,6 +507,11 @@ impl AppState {
                         Err(_) => {
                             *state.key_ttl.write().await = -2;
                         }
+                    }
+
+                    // For Hash type, automatically load all field names
+                    if let Some(ValueData::Hash { .. }) = &*state.key_value.read().await {
+                        state.spawn_load_hash_fields(key);
                     }
                 }
                 Err(_) => {
@@ -595,6 +619,7 @@ impl AppState {
                     *state.key_value.write().await = None;
                     *state.key_ttl.write().await = -2;
                     state.edit_state.write().await.cancel_edit();
+                    *state.hash_field_filter.write().await = String::new();
                     // Refresh key list
                     state.spawn_load_keys();
                 }
@@ -742,21 +767,42 @@ impl AppState {
     pub fn spawn_load_hash_fields(&self, key: String) {
         let state = self.clone();
         tokio::spawn(async move {
-            match state
-                .redis_client
-                .get_hash_fields(&key, 0, ITEMS_PER_LOAD)
-                .await
-            {
+            match state.redis_client.get_hash_fields(&key, 0, ITEMS_PER_LOAD).await {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Hash {
-                        fields: existing, ..
+                        fields: existing_fields,
+                        loaded_values,
+                        ..
                     }) = value.as_mut()
                     {
-                        *existing = fields;
+                        *existing_fields = fields;
+                        loaded_values.clear();
                     }
                 }
                 Err(_) => {}
+            }
+        });
+    }
+
+    pub fn spawn_load_hash_field_value(&self, key: String, field: String) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            match state
+                .redis_client
+                .get_hash_field_value(&key, &field)
+                .await
+            {
+                Ok(Some(value_str)) => {
+                    let mut value = state.key_value.write().await;
+                    if let Some(ValueData::Hash {
+                        loaded_values, ..
+                    }) = value.as_mut()
+                    {
+                        loaded_values.insert(field, value_str);
+                    }
+                }
+                _ => {}
             }
         });
     }

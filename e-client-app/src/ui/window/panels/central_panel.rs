@@ -37,9 +37,19 @@ fn value_to_copy_text(val: &ValueData) -> String {
     match val {
         ValueData::String(s) => s.clone(),
         ValueData::List { items, .. } => items.join("\n"),
-        ValueData::Hash { fields, .. } => fields
+        ValueData::Hash {
+            fields,
+            loaded_values,
+            ..
+        } => fields
             .iter()
-            .map(|(k, v)| format!("{}: {}", k, v))
+            .map(|k| {
+                format!(
+                    "{}: {}",
+                    k,
+                    loaded_values.get(k).cloned().unwrap_or_default()
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n"),
         ValueData::Set { items, .. } => items.join("\n"),
@@ -148,7 +158,7 @@ fn render_view_mode(
 
         // Right side: TTL + refresh
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui.button(tr(keys::REFRESH, current_lang)).clicked() {
+            if ui.button("🔄").clicked() {
                 app.tabs[active_tab_idx]
                     .state
                     .spawn_load_value(key.to_string());
@@ -514,23 +524,63 @@ fn render_value_view(
                 });
             }
         }
-        ValueData::Hash { len, fields } => {
+        ValueData::Hash {
+            len,
+            fields,
+            loaded_values,
+        } => {
             ui.label(tr_fmt(keys::TYPE_HASH, current_lang, &[&len.to_string()]));
 
-            if fields.is_empty() && *len > 0 {
-                if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
-                    app.tabs[active_tab_idx]
-                        .state
-                        .spawn_load_hash_fields(key.to_string());
+            // Field filter input
+            ui.horizontal(|ui| {
+                ui.label(tr(keys::FILTER, current_lang));
+                let mut filter_text = app.poll_string_hash_field_filter();
+                if ui.text_edit_singleline(&mut filter_text).changed() {
+                    app.set_hash_field_filter(filter_text);
+                }
+            });
+
+            if fields.is_empty() {
+                if *len > 0 {
+                    if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
+                        app.tabs[active_tab_idx]
+                            .state
+                            .spawn_load_hash_fields(key.to_string());
+                    }
                 }
             } else {
+                let filter = app.poll_string_hash_field_filter();
+
+                let filtered_fields: Vec<&String> = fields
+                    .iter()
+                    .filter(|f| {
+                        filter.is_empty() || f.to_lowercase().contains(&filter.to_lowercase())
+                    })
+                    .collect();
+
                 egui::ScrollArea::both()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
-                        for (field, value) in fields.iter() {
-                            ui.horizontal_wrapped(|ui| {
+                        for field in filtered_fields {
+                            let value = loaded_values.get(field).cloned();
+                            ui.horizontal(|ui| {
                                 ui.label(egui::RichText::new(format!("{}: ", field)).strong());
-                                ui.label(value);
+                                match value {
+                                    Some(v) => {
+                                        ui.label(v);
+                                    }
+                                    None => {
+                                        if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked()
+                                        {
+                                            app.tabs[active_tab_idx]
+                                                .state
+                                                .spawn_load_hash_field_value(
+                                                    key.to_string(),
+                                                    field.clone(),
+                                                );
+                                        }
+                                    }
+                                }
                             });
                             ui.separator();
                         }

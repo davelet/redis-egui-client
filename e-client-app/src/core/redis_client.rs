@@ -1,5 +1,5 @@
 use e_client_basics::constants::{
-    CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT, HASH_FIELD_PAIR_STEP,
+    CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT,
 };
 use e_client_config::connection::RedisConnectionConfig;
 use redis::aio::ConnectionManagerConfig;
@@ -186,6 +186,7 @@ impl RedisClient {
                     Ok(ValueData::Hash {
                         len,
                         fields: vec![],
+                        loaded_values: std::collections::HashMap::new(),
                     })
                 }
                 _ => Ok(ValueData::None),
@@ -212,28 +213,32 @@ impl RedisClient {
     pub async fn get_hash_fields(
         &self,
         key: &str,
-        cursor: u64,
-        count: usize,
-    ) -> Result<(u64, Vec<(String, String)>), RedisError> {
+        _cursor: u64,
+        _count: usize,
+    ) -> Result<(u64, Vec<String>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let (new_cursor, items): (u64, Vec<String>) = redis::cmd("HSCAN")
+            let fields: Vec<String> = redis::cmd("HKEYS")
                 .arg(key)
-                .arg(cursor)
-                .arg("COUNT")
-                .arg(count)
                 .query_async(conn)
                 .await?;
-
-            let mut pairs = vec![];
-            for i in (0..items.len()).step_by(HASH_FIELD_PAIR_STEP) {
-                if i + 1 < items.len() {
-                    pairs.push((items[i].clone(), items[i + 1].clone()));
-                }
-            }
-            Ok((new_cursor, pairs))
+            Ok((0, fields))
         } else {
             Ok((0, vec![]))
+        }
+    }
+
+    pub async fn get_hash_field_value(
+        &self,
+        key: &str,
+        field: &str,
+    ) -> Result<Option<String>, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let value: Option<String> = conn.hget(key, field).await?;
+            Ok(value)
+        } else {
+            Ok(None)
         }
     }
 
@@ -474,7 +479,8 @@ pub enum ValueData {
     },
     Hash {
         len: usize,
-        fields: Vec<(String, String)>,
+        fields: Vec<String>,
+        loaded_values: std::collections::HashMap<String, String>,
     },
     None,
 }

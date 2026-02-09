@@ -352,6 +352,20 @@ impl RedisApp {
         }
     }
 
+    fn poll_string_hash_field_filter(&self) -> String {
+        if let Some(tab) = self.get_active_tab() {
+            self.poll_string(tab.state.hash_field_filter.clone())
+        } else {
+            String::new()
+        }
+    }
+
+    fn set_hash_field_filter(&self, value: String) {
+        if let Some(tab) = self.get_active_tab() {
+            self.update_string(tab.state.hash_field_filter.clone(), value);
+        }
+    }
+
     fn poll_language(&self, lock: Arc<RwLock<Language>>) -> Language {
         *lock.blocking_read()
     }
