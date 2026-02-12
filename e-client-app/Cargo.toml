@@ -2,6 +2,12 @@
 name = "e-client-app"
 version = "0.2.0"
 edition = "2024"
+repository = "https://github.com/davelet/redis-egui-client"
+authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
+readme = "README.md"
+description = "A small Redis GUI client built with egui/eframe"
+categories = ["gui"]
+keywords = ["redis", "egui", "eframe", "gui"]
 
 [dependencies]
 e-client-config = { path = "../e-client-config" }
@@ -30,3 +36,9 @@ short_description = "A small Redis GUI client built with egui/eframe"
 
 [package.metadata.bundle.macOS]
 entitlements = "entitlements.plist"
+
+[package.metadata.wix]
+upgrade-guid = "7B341871-490E-44C5-BE5B-9BDE6D84A371"
+path-guid = "11E8DDEE-AA89-406C-9A09-8558E7D5BE88"
+license = false
+eula = false

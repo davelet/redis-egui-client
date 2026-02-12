@@ -21,6 +21,16 @@ fn truncate_key(key: &str) -> String {
     }
 }
 
+fn truncate_with_ellipsis(text: &str, max_chars: usize) -> String {
+    let char_count = text.chars().count();
+    if char_count > max_chars {
+        let truncated: String = text.chars().take(max_chars).collect();
+        format!("{}...", truncated)
+    } else {
+        text.to_string()
+    }
+}
+
 fn format_ttl(ttl: i64) -> String {
     match ttl {
         -1 => "ttl: -1".to_string(),
@@ -588,19 +598,19 @@ fn render_value_view(
                     .show(ui, |ui| {
                         use egui_extras::Column;
                         egui_extras::TableBuilder::new(ui)
-                            .auto_shrink([false, true])
                             .striped(true)
                             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                            .column(Column::remainder().at_most(200.0).clip(true)) // Field - max 200px
                             .column(
-                                Column::remainder()
+                                Column::initial(150.0)
                                     .at_least(100.0)
-                                    .at_most(400.0)
+                                    .at_most(300.0)
                                     .clip(true),
-                            ) // Value - max 400px
-                            .column(Column::exact(80.0)) // Copy button - fixed 80px
+                            )
+                            .column(Column::remainder().at_least(200.0).clip(true))
+                            .column(Column::exact(80.0))
+                            .resizable(true)
                             .min_scrolled_height(0.0)
-                            .header(20.0, |mut header| {
+                            .header(24.0, |mut header| {
                                 header.col(|ui| {
                                     ui.strong("Field");
                                 });
@@ -616,19 +626,16 @@ fn render_value_view(
                                     body.row(24.0, |mut row| {
                                         // Left: Field name
                                         row.col(|ui| {
-                                            ui.label(&display_field);
+                                            ui.label(format!("{}", display_field));
                                         });
 
                                         // Middle: Value or load button
                                         row.col(|ui| match value {
                                             Some(v) => {
-                                                let display_value = if v.len() > 100 {
-                                                    format!("{}...", &v[..100])
-                                                } else {
-                                                    v.clone()
-                                                };
-                                                let response =
-                                                    ui.selectable_label(false, &display_value);
+                                                let text = egui::RichText::new(
+                                                    truncate_with_ellipsis(&v, 150),
+                                                );
+                                                let response = ui.selectable_label(false, text);
                                                 if response.clicked() {
                                                     app.element_edit_dialog.key = key.to_string();
                                                     app.element_edit_dialog.field =
