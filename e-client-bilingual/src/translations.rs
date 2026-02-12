@@ -23,6 +23,7 @@ pub mod keys {
     pub const SETTINGS: &str = "settings";
     pub const AUTO_CONNECT: &str = "auto_connect";
     pub const NEW_KEY: &str = "new_key";
+    pub const EDIT_ELEMENT: &str = "edit_element";
     pub const CLOSE: &str = "close";
     pub const CLOSE_OTHERS: &str = "close_others";
     pub const DUPLICATE: &str = "duplicate";
@@ -230,6 +231,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "New Key");
             m.insert(Language::Chinese, "新增键");
+            m
+        });
+
+        strings.insert(keys::EDIT_ELEMENT, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Edit Element");
+            m.insert(Language::Chinese, "编辑元素");
             m
         });
 

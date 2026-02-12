@@ -109,6 +109,9 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
             ui.label(tr(keys::SELECT_KEY_PROMPT, current_lang));
         }
     });
+
+    // Element edit dialog
+    render_element_edit_dialog(app, ctx, current_lang);
 }
 
 fn render_view_mode(
@@ -519,7 +522,16 @@ fn render_value_view(
             } else {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for (idx, item) in items.iter().enumerate() {
-                        ui.label(format!("[{}] {}", idx, item));
+                        let response = ui.selectable_label(false, format!("[{}] {}", idx, item));
+                        if response.clicked() {
+                            app.element_edit_dialog.key = key.to_string();
+                            app.element_edit_dialog.field = idx.to_string();
+                            app.element_edit_dialog.value = item.clone();
+                            app.element_edit_dialog.original_value = item.clone();
+                            app.element_edit_dialog.key_type = "list".to_string();
+                            app.element_edit_dialog.show = true;
+                            app.element_edit_dialog.just_opened = true;
+                        }
                     }
                 });
             }
@@ -567,7 +579,17 @@ fn render_value_view(
                                 ui.label(egui::RichText::new(format!("{}: ", field)).strong());
                                 match value {
                                     Some(v) => {
-                                        ui.label(v);
+                                        let v_clone = v.clone();
+                                        let response = ui.selectable_label(false, &v_clone);
+                                        if response.clicked() {
+                                            app.element_edit_dialog.key = key.to_string();
+                                            app.element_edit_dialog.field = field.to_string();
+                                            app.element_edit_dialog.value = v_clone;
+                                            app.element_edit_dialog.original_value = v.clone();
+                                            app.element_edit_dialog.key_type = "hash".to_string();
+                                            app.element_edit_dialog.show = true;
+                                            app.element_edit_dialog.just_opened = true;
+                                        }
                                     }
                                     None => {
                                         if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked()
@@ -601,8 +623,16 @@ fn render_value_view(
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         for item in items.iter() {
-                            ui.label(item);
-                            ui.separator();
+                            let response = ui.selectable_label(false, item);
+                            if response.clicked() {
+                                app.element_edit_dialog.key = key.to_string();
+                                app.element_edit_dialog.field = item.clone();
+                                app.element_edit_dialog.value = item.clone();
+                                app.element_edit_dialog.original_value = item.clone();
+                                app.element_edit_dialog.key_type = "set".to_string();
+                                app.element_edit_dialog.show = true;
+                                app.element_edit_dialog.just_opened = true;
+                            }
                         }
                     });
             }
@@ -621,11 +651,17 @@ fn render_value_view(
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         for (member, score) in items.iter() {
-                            ui.horizontal(|ui| {
-                                ui.label(egui::RichText::new(format!("{}: ", score)).strong());
-                                ui.label(member);
-                            });
-                            ui.separator();
+                            let response =
+                                ui.selectable_label(false, format!("{}: {}", score, member));
+                            if response.clicked() {
+                                app.element_edit_dialog.key = key.to_string();
+                                app.element_edit_dialog.field = member.clone();
+                                app.element_edit_dialog.value = score.to_string();
+                                app.element_edit_dialog.original_value = score.to_string();
+                                app.element_edit_dialog.key_type = "zset".to_string();
+                                app.element_edit_dialog.show = true;
+                                app.element_edit_dialog.just_opened = true;
+                            }
                         }
                     });
             }
@@ -633,6 +669,135 @@ fn render_value_view(
         ValueData::None => {
             ui.label(tr(keys::KEY_NOT_EXIST, current_lang));
         }
+    }
+}
+
+pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    if !app.element_edit_dialog.show {
+        return;
+    }
+
+    let mut open = true;
+    let key_type = app.element_edit_dialog.key_type.clone();
+
+    // Calculate dialog position only when dialog just opened
+    let dialog_size = egui::vec2(800.0, 600.0);
+    let window_builder = if app.element_edit_dialog.just_opened {
+        // Auto-format JSON if valid
+        if let Ok(json_value) =
+            serde_json::from_str::<serde_json::Value>(&app.element_edit_dialog.value)
+        {
+            if let Ok(formatted) = serde_json::to_string_pretty(&json_value) {
+                app.element_edit_dialog.value = formatted;
+            }
+        }
+
+        app.element_edit_dialog.just_opened = false;
+
+        // Center on screen
+        let screen_rect = ctx.screen_rect();
+        let dialog_pos = screen_rect.center() - dialog_size * 0.5;
+
+        egui::Window::new(tr(keys::EDIT_ELEMENT, current_lang))
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .fixed_size(dialog_size)
+            .default_pos(dialog_pos)
+    } else {
+        egui::Window::new(tr(keys::EDIT_ELEMENT, current_lang))
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .fixed_size(dialog_size)
+    };
+
+    window_builder.show(ctx, |ui| {
+        // Show context info
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("Key:").strong());
+            egui::ScrollArea::horizontal()
+                .max_height(20.0)
+                .show(ui, |ui| {
+                    ui.label(&app.element_edit_dialog.key);
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("Type:").strong());
+            ui.label(&key_type);
+        });
+
+        if key_type == "hash" || key_type == "list" {
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new(if key_type == "hash" {
+                        "Field:"
+                    } else {
+                        "Index:"
+                    })
+                    .strong(),
+                );
+                ui.label(&app.element_edit_dialog.field);
+            });
+        }
+
+        ui.separator();
+
+        // Value editor - try to format as JSON for display
+        let display_value = if let Ok(json_value) =
+            serde_json::from_str::<serde_json::Value>(&app.element_edit_dialog.value)
+        {
+            if let Ok(formatted) = serde_json::to_string_pretty(&json_value) {
+                formatted
+            } else {
+                app.element_edit_dialog.value.clone()
+            }
+        } else {
+            app.element_edit_dialog.value.clone()
+        };
+
+        // Value editor
+        ui.label(egui::RichText::new("Value:").strong());
+        let available_height = ui.available_height() - 60.0; // Reserve space for buttons
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                ui.add_sized(
+                    [ui.available_width(), available_height],
+                    egui::TextEdit::multiline(&mut app.element_edit_dialog.value).code_editor(),
+                );
+            });
+
+        ui.separator();
+
+        // Buttons
+        ui.horizontal(|ui| {
+            if ui
+                .button(
+                    egui::RichText::new(tr(keys::SAVE, current_lang))
+                        .color(egui::Color32::from_rgb(50, 180, 50)),
+                )
+                .clicked()
+            {
+                let active_tab_idx = app.active_tab;
+                app.tabs[active_tab_idx].state.spawn_save_element(
+                    app.element_edit_dialog.key.clone(),
+                    app.element_edit_dialog.key_type.clone(),
+                    app.element_edit_dialog.field.clone(),
+                    app.element_edit_dialog.value.clone(),
+                );
+                app.element_edit_dialog.show = false;
+            }
+
+            if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                app.element_edit_dialog.show = false;
+            }
+        });
+    });
+
+    if !open {
+        app.element_edit_dialog.show = false;
     }
 }
 

@@ -60,12 +60,7 @@ impl EditState {
             }) => {
                 let hash_fields: Vec<(String, String)> = fields
                     .iter()
-                    .map(|f| {
-                        (
-                            f.clone(),
-                            loaded_values.get(f).cloned().unwrap_or_default(),
-                        )
-                    })
+                    .map(|f| (f.clone(), loaded_values.get(f).cloned().unwrap_or_default()))
                     .collect();
                 EditedValue::Hash(hash_fields)
             }
@@ -630,6 +625,48 @@ impl AppState {
         });
     }
 
+    pub fn spawn_save_element(&self, key: String, key_type: String, field: String, value: String) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            let result = match key_type.as_str() {
+                "hash" => state.redis_client.hset(&key, &field, &value).await,
+                "list" => {
+                    if let Ok(index) = field.parse::<i64>() {
+                        state.redis_client.lset(&key, index, &value).await
+                    } else {
+                        Err(redis::RedisError::from((
+                            redis::ErrorKind::InvalidClientConfig,
+                            "Invalid list index",
+                            format!("Field '{}' is not a valid index", field),
+                        )))
+                    }
+                }
+                "set" => {
+                    // For set, we need to remove old member and add new one
+                    let _ = state.redis_client.srem(&key, &field).await;
+                    state.redis_client.sadd(&key, &value).await
+                }
+                "zset" => {
+                    // For zset, remove old member and add with score
+                    let _ = state.redis_client.zrem(&key, &field).await;
+                    let score: f64 = value.parse().unwrap_or(0.0);
+                    state.redis_client.zadd(&key, score, &field).await
+                }
+                _ => Ok(()),
+            };
+
+            match result {
+                Ok(_) => {
+                    // Reload the value
+                    state.spawn_load_value(key);
+                }
+                Err(e) => {
+                    *state.error_message.write().await = format!("Save element failed: {}", e);
+                }
+            }
+        });
+    }
+
     pub fn spawn_save_edits(&self, original_key: String) {
         let state = self.clone();
         let edit = state.edit_state.blocking_read().clone();
@@ -767,7 +804,11 @@ impl AppState {
     pub fn spawn_load_hash_fields(&self, key: String) {
         let state = self.clone();
         tokio::spawn(async move {
-            match state.redis_client.get_hash_fields(&key, 0, ITEMS_PER_LOAD).await {
+            match state
+                .redis_client
+                .get_hash_fields(&key, 0, ITEMS_PER_LOAD)
+                .await
+            {
                 Ok((_, fields)) => {
                     let mut value = state.key_value.write().await;
                     if let Some(ValueData::Hash {
@@ -788,17 +829,10 @@ impl AppState {
     pub fn spawn_load_hash_field_value(&self, key: String, field: String) {
         let state = self.clone();
         tokio::spawn(async move {
-            match state
-                .redis_client
-                .get_hash_field_value(&key, &field)
-                .await
-            {
+            match state.redis_client.get_hash_field_value(&key, &field).await {
                 Ok(Some(value_str)) => {
                     let mut value = state.key_value.write().await;
-                    if let Some(ValueData::Hash {
-                        loaded_values, ..
-                    }) = value.as_mut()
-                    {
+                    if let Some(ValueData::Hash { loaded_values, .. }) = value.as_mut() {
                         loaded_values.insert(field, value_str);
                     }
                 }

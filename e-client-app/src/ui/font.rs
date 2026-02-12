@@ -52,8 +52,11 @@ pub fn setup_chinese_fonts(ctx: &Context) -> Result<(), FontError> {
         .entry(FontFamily::Proportional)
         .or_default()
         .insert(0, "chinese".to_owned());
-    // fonts.families.entry(FontFamily::Monospace).or_default()
-    //     .insert(0, "chinese".to_owned());
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .insert(0, "chinese".to_owned());
 
     // Apply the font configuration
     ctx.set_fonts(fonts);

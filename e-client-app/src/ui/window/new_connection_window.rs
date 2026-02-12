@@ -5,6 +5,22 @@ use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 use egui::Context;
 
+// Predefined high-contrast colors for connections
+const PREDEFINED_COLORS: &[(&str, [f32; 3])] = &[
+    ("#E53935", [0.90, 0.22, 0.21]), // Red
+    ("#D81B60", [0.85, 0.11, 0.38]), // Pink
+    ("#8E24AA", [0.56, 0.14, 0.67]), // Purple
+    ("#5E35B1", [0.37, 0.21, 0.69]), // Deep Purple
+    ("#3949AB", [0.22, 0.29, 0.67]), // Indigo
+    ("#1E88E5", [0.12, 0.53, 0.90]), // Blue
+    ("#00ACC1", [0.00, 0.67, 0.76]), // Cyan
+    ("#43A047", [0.26, 0.63, 0.28]), // Green
+    ("#C0CA33", [0.75, 0.79, 0.20]), // Lime
+    ("#FDD835", [0.99, 0.85, 0.21]), // Yellow
+    ("#FB8C00", [0.98, 0.55, 0.00]), // Orange
+    ("#F4511E", [0.96, 0.32, 0.12]), // Deep Orange
+];
+
 pub(crate) struct NewConnectionWindowWindow {
     pub show: bool,
     pub edit_mode: bool,
@@ -14,7 +30,6 @@ pub(crate) struct NewConnectionWindowWindow {
     pub new_connection_port: String,
     pub new_connection_username: String,
     pub new_connection_password: String,
-    new_connection_color: [f32; 3],
     pub new_connection_color_hex: Option<String>,
     pub error_message: Option<String>,
 }
@@ -30,7 +45,6 @@ impl NewConnectionWindowWindow {
             new_connection_port: DEFAULT_REDIS_PORT.to_string(),
             new_connection_username: String::new(),
             new_connection_password: String::new(),
-            new_connection_color: [0f32, 0f32, 0f32],
             new_connection_color_hex: None,
             error_message: None,
         }
@@ -47,27 +61,9 @@ impl NewConnectionWindowWindow {
         self.new_connection_password = conn.password.clone().unwrap_or_default();
 
         // Parse color hex to RGB
-        if let Some(hex) = &conn.color {
-            if let Some(color) = Self::hex_to_rgb(hex) {
-                self.new_connection_color = color;
-                self.new_connection_color_hex = Some(hex.clone());
-            }
-        }
+        self.new_connection_color_hex = conn.color.clone();
 
         self.error_message = None;
-    }
-
-    fn hex_to_rgb(hex: &str) -> Option<[f32; 3]> {
-        let hex = hex.trim_start_matches('#');
-        if hex.len() != 6 {
-            return None;
-        }
-
-        let r = u8::from_str_radix(&hex[0..2], 16).ok()? as f32;
-        let g = u8::from_str_radix(&hex[2..4], 16).ok()? as f32;
-        let b = u8::from_str_radix(&hex[4..6], 16).ok()? as f32;
-
-        Some([r, g, b])
     }
 
     pub(crate) fn render_new_connection_dialog(
@@ -122,21 +118,28 @@ impl NewConnectionWindowWindow {
                     });
                     ui.horizontal(|ui| {
                         ui.label(tr(keys::CONNECTION_COLOR, current_lang));
-                        if ui
-                            .color_edit_button_rgb(&mut self.new_connection_color)
-                            .changed()
-                        {
-                            let c = self.new_connection_color;
-                            let rgb_values = [
-                                (c[0].max(0.0).min(1.0) * 255.0) as u8,
-                                (c[1].max(0.0).min(1.0) * 255.0) as u8,
-                                (c[2].max(0.0).min(1.0) * 255.0) as u8,
-                            ];
-                            self.new_connection_color_hex = Some(format!(
-                                "#{:02X}{:02X}{:02X}",
-                                rgb_values[0], rgb_values[1], rgb_values[2]
-                            ));
-                        };
+                        ui.horizontal_wrapped(|ui| {
+                            for (hex, rgb) in PREDEFINED_COLORS {
+                                let color = egui::Color32::from_rgb(
+                                    (rgb[0] * 255.0) as u8,
+                                    (rgb[1] * 255.0) as u8,
+                                    (rgb[2] * 255.0) as u8,
+                                );
+                                let is_selected = self.new_connection_color_hex.as_ref()
+                                    == Some(&hex.to_string());
+                                let button = egui::Button::new("")
+                                    .fill(color)
+                                    .min_size(egui::vec2(24.0, 24.0))
+                                    .stroke(if is_selected {
+                                        egui::Stroke::new(2.0, egui::Color32::WHITE)
+                                    } else {
+                                        egui::Stroke::NONE
+                                    });
+                                if ui.add(button).clicked() {
+                                    self.new_connection_color_hex = Some(hex.to_string());
+                                }
+                            }
+                        });
                     });
 
                     if let Some(err) = &self.error_message {
@@ -221,7 +224,6 @@ impl NewConnectionWindowWindow {
         self.new_connection_port = DEFAULT_REDIS_PORT.to_string();
         self.new_connection_username = String::new();
         self.new_connection_password = String::new();
-        self.new_connection_color = [0f32, 0f32, 0f32];
         self.new_connection_color_hex = None;
         self.edit_mode = false;
         self.editing_connection_name = None;

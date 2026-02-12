@@ -665,6 +665,7 @@ dependencies = [
  "egui",
  "image",
  "redis",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

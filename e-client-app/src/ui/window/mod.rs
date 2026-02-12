@@ -91,6 +91,30 @@ impl NewKeyDialog {
     }
 }
 
+pub struct ElementEditDialog {
+    pub show: bool,
+    pub key: String,
+    pub field: String, // For hash: field name, for list/set/zset: index
+    pub value: String,
+    pub original_value: String,
+    pub key_type: String,  // hash, list, set, zset
+    pub just_opened: bool, // Track if dialog just opened for auto-formatting
+}
+
+impl Default for ElementEditDialog {
+    fn default() -> Self {
+        Self {
+            show: false,
+            key: String::new(),
+            field: String::new(),
+            value: String::new(),
+            original_value: String::new(),
+            key_type: String::new(),
+            just_opened: false,
+        }
+    }
+}
+
 pub struct RedisApp {
     tabs: Vec<RedisTab>,
     active_tab: usize,
@@ -99,6 +123,7 @@ pub struct RedisApp {
     new_connection: NewConnectionWindowWindow,
     show_settings: bool,
     new_key_dialog: NewKeyDialog,
+    pub element_edit_dialog: ElementEditDialog,
     global_language: Language,
     // Track previous connection states to detect changes
     prev_connected_states: Vec<bool>,
@@ -204,6 +229,7 @@ impl RedisApp {
             new_connection: NewConnectionWindowWindow::new(),
             show_settings: false,
             new_key_dialog: NewKeyDialog::new(),
+            element_edit_dialog: ElementEditDialog::default(),
             global_language,
             prev_connected_states: vec![false],
         }
