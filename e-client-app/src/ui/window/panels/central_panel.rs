@@ -1,7 +1,9 @@
 use crate::core::app_state::EditedValue;
 use crate::core::redis_client::ValueData;
 use crate::ui::window::RedisApp;
-use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
+use e_client_basics::constants::{
+    MAX_CENTRAL_PANEL_HEIGHT, MAX_KEY_DISPLAY_LENGTH, MIN_CENTRAL_PANEL_HEIGHT,
+};
 use e_client_config::config::Config;
 use e_client_config::constants::APP_NAME;
 use e_client_config::constants::LOAD_ERROR_TITLE;
@@ -10,6 +12,14 @@ use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
 use e_client_config::translations::tr_fmt;
+
+fn truncate_key(key: &str) -> String {
+    if key.len() > MAX_KEY_DISPLAY_LENGTH {
+        format!("{}...", &key[..MAX_KEY_DISPLAY_LENGTH])
+    } else {
+        key.to_string()
+    }
+}
 
 fn format_ttl(ttl: i64) -> String {
     match ttl {
@@ -126,16 +136,18 @@ fn render_view_mode(
 ) {
     // Header row
     ui.horizontal(|ui| {
-        ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[key]));
+        let display_key = truncate_key(key);
+        ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&display_key]));
 
         // Copy key
         if ui.button(tr(keys::COPY_KEY, current_lang)).clicked() {
             ctx.copy_text(key.to_string());
         }
 
-        // Copy value
+        // Copy value (not for Hash type)
         if let Some(val) = value.as_ref() {
-            if ui.button(tr(keys::COPY_VALUE, current_lang)).clicked() {
+            let is_hash = matches!(val, ValueData::Hash { .. });
+            if !is_hash && ui.button(tr(keys::COPY_VALUE, current_lang)).clicked() {
                 ctx.copy_text(value_to_copy_text(val));
             }
         }
@@ -176,7 +188,7 @@ fn render_view_mode(
 
     // Value display
     if let Some(val) = value {
-        render_value_view(app, ui, active_tab_idx, key, val, current_lang);
+        render_value_view(app, ui, ctx, active_tab_idx, key, val, current_lang);
     }
 }
 
@@ -488,6 +500,7 @@ fn render_edit_mode(
 fn render_value_view(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
+    ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
     val: &ValueData,
@@ -573,39 +586,94 @@ fn render_value_view(
                 egui::ScrollArea::both()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
-                        for field in filtered_fields {
-                            let value = loaded_values.get(field).cloned();
-                            ui.horizontal(|ui| {
-                                ui.label(egui::RichText::new(format!("{}: ", field)).strong());
-                                match value {
-                                    Some(v) => {
-                                        let v_clone = v.clone();
-                                        let response = ui.selectable_label(false, &v_clone);
-                                        if response.clicked() {
-                                            app.element_edit_dialog.key = key.to_string();
-                                            app.element_edit_dialog.field = field.to_string();
-                                            app.element_edit_dialog.value = v_clone;
-                                            app.element_edit_dialog.original_value = v.clone();
-                                            app.element_edit_dialog.key_type = "hash".to_string();
-                                            app.element_edit_dialog.show = true;
-                                            app.element_edit_dialog.just_opened = true;
-                                        }
-                                    }
-                                    None => {
-                                        if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked()
-                                        {
-                                            app.tabs[active_tab_idx]
-                                                .state
-                                                .spawn_load_hash_field_value(
-                                                    key.to_string(),
-                                                    field.clone(),
-                                                );
-                                        }
-                                    }
+                        use egui_extras::Column;
+                        egui_extras::TableBuilder::new(ui)
+                            .auto_shrink([false, true])
+                            .striped(true)
+                            .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .column(Column::remainder().at_most(200.0).clip(true)) // Field - max 200px
+                            .column(
+                                Column::remainder()
+                                    .at_least(100.0)
+                                    .at_most(400.0)
+                                    .clip(true),
+                            ) // Value - max 400px
+                            .column(Column::exact(80.0)) // Copy button - fixed 80px
+                            .min_scrolled_height(0.0)
+                            .header(20.0, |mut header| {
+                                header.col(|ui| {
+                                    ui.strong("Field");
+                                });
+                                header.col(|ui| {
+                                    ui.strong("Value");
+                                });
+                                header.col(|_ui| {});
+                            })
+                            .body(|mut body| {
+                                for field in filtered_fields {
+                                    let value = loaded_values.get(field).cloned();
+                                    let display_field = truncate_key(field);
+                                    body.row(24.0, |mut row| {
+                                        // Left: Field name
+                                        row.col(|ui| {
+                                            ui.label(&display_field);
+                                        });
+
+                                        // Middle: Value or load button
+                                        row.col(|ui| match value {
+                                            Some(v) => {
+                                                let display_value = if v.len() > 100 {
+                                                    format!("{}...", &v[..100])
+                                                } else {
+                                                    v.clone()
+                                                };
+                                                let response =
+                                                    ui.selectable_label(false, &display_value);
+                                                if response.clicked() {
+                                                    app.element_edit_dialog.key = key.to_string();
+                                                    app.element_edit_dialog.field =
+                                                        field.to_string();
+                                                    app.element_edit_dialog.value = v.clone();
+                                                    app.element_edit_dialog.original_value =
+                                                        v.clone();
+                                                    app.element_edit_dialog.key_type =
+                                                        "hash".to_string();
+                                                    app.element_edit_dialog.show = true;
+                                                    app.element_edit_dialog.just_opened = true;
+                                                }
+                                            }
+                                            None => {
+                                                if ui
+                                                    .button(tr(keys::LOAD_FIELDS, current_lang))
+                                                    .clicked()
+                                                {
+                                                    app.tabs[active_tab_idx]
+                                                        .state
+                                                        .spawn_load_hash_field_value(
+                                                            key.to_string(),
+                                                            field.clone(),
+                                                        );
+                                                }
+                                            }
+                                        });
+
+                                        // Right: Copy field button
+                                        row.col(|ui| {
+                                            ui.with_layout(
+                                                egui::Layout::right_to_left(egui::Align::Center),
+                                                |ui| {
+                                                    if ui
+                                                        .button(tr(keys::COPY_KEY, current_lang))
+                                                        .clicked()
+                                                    {
+                                                        ctx.copy_text(field.to_string());
+                                                    }
+                                                },
+                                            );
+                                        });
+                                    });
                                 }
                             });
-                            ui.separator();
-                        }
                     });
             }
         }
@@ -723,11 +791,6 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
                 });
         });
 
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Type:").strong());
-            ui.label(&key_type);
-        });
-
         if key_type == "hash" || key_type == "list" {
             ui.horizontal(|ui| {
                 ui.label(
@@ -757,9 +820,7 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
             app.element_edit_dialog.value.clone()
         };
 
-        // Value editor
-        ui.label(egui::RichText::new("Value:").strong());
-        let available_height = ui.available_height() - 60.0; // Reserve space for buttons
+        let available_height = ui.available_height() - 15.0; // Reserve space for buttons
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
@@ -788,6 +849,10 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
                     app.element_edit_dialog.value.clone(),
                 );
                 app.element_edit_dialog.show = false;
+            }
+
+            if ui.button(tr(keys::COPY_VALUE, current_lang)).clicked() {
+                ctx.copy_text(app.element_edit_dialog.value.clone());
             }
 
             if ui.button(tr(keys::CANCEL, current_lang)).clicked() {

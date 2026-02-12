@@ -32,11 +32,12 @@ pub const ITEMS_PER_LOAD: usize = 100;
 pub const HASH_FIELD_PAIR_STEP: usize = 2; // Step for iterating hash key-value pairs
 
 /// UI size constants
-pub const DEFAULT_SIDE_PANEL_WIDTH: f32 = 300.0;
+pub const DEFAULT_SIDE_PANEL_WIDTH: f32 = 400.0;
 pub const MIN_SIDE_PANEL_WIDTH: f32 = 250.0;
 pub const MAX_SIDE_PANEL_WIDTH: f32 = 800.0;
 pub const MIN_CENTRAL_PANEL_HEIGHT: f32 = 300.0;
 pub const MAX_CENTRAL_PANEL_HEIGHT: f32 = 600.0;
+pub const MAX_KEY_DISPLAY_LENGTH: usize = 60;
 
 /// Batch processing
 pub const SORT_INTERVAL_KEYS: usize = 200;
