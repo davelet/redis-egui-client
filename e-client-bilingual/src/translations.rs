@@ -60,6 +60,8 @@ pub mod keys {
     pub const TOO_MANY_KEYS: &str = "too_many_keys";
     pub const COPY_KEY: &str = "copy_key";
     pub const COPY_VALUE: &str = "copy_value";
+    pub const COPY_SUCCESS: &str = "copy_success";
+    pub const COPY_FAILED: &str = "copy_failed";
     pub const EDIT: &str = "edit";
     pub const DELETE: &str = "delete";
     pub const REFRESH: &str = "refresh";
@@ -597,6 +599,20 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Value");
             m.insert(Language::Chinese, "复制值");
+            m
+        });
+
+        strings.insert(keys::COPY_SUCCESS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Copied");
+            m.insert(Language::Chinese, "已复制");
+            m
+        });
+
+        strings.insert(keys::COPY_FAILED, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Copy Failed");
+            m.insert(Language::Chinese, "复制失败");
             m
         });
 

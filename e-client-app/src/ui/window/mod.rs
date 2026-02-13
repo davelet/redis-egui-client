@@ -9,6 +9,7 @@ use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::RwLock;
 
 // Re-export panel functions for convenient access
@@ -127,6 +128,10 @@ pub struct RedisApp {
     global_language: Language,
     // Track previous connection states to detect changes
     prev_connected_states: Vec<bool>,
+    // Copy button feedback: (success_time, failure_time)
+    copy_feedback: (Option<Instant>, Option<Instant>),
+    // Track which button was last clicked for per-button feedback
+    last_copy_button_id: Option<egui::Id>,
 }
 
 impl eframe::App for RedisApp {
@@ -160,6 +165,24 @@ impl eframe::App for RedisApp {
 
         // Check and save side panel width if debounce time has passed
         let _ = self.config.check_and_save_side_panel_width();
+
+        // Clear expired copy feedback
+        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
+        use std::time::Duration;
+        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
+        let now = std::time::Instant::now();
+
+        if let Some(time) = self.copy_feedback.0 {
+            if now.duration_since(time) >= duration {
+                self.copy_feedback.0 = None;
+            }
+        }
+
+        if let Some(time) = self.copy_feedback.1 {
+            if now.duration_since(time) >= duration {
+                self.copy_feedback.1 = None;
+            }
+        }
 
         // Handle language updates (marks as dirty, doesn't save immediately)
         if let Some(active_tab) = self.get_active_tab() {
@@ -232,6 +255,8 @@ impl RedisApp {
             element_edit_dialog: ElementEditDialog::default(),
             global_language,
             prev_connected_states: vec![false],
+            copy_feedback: (None, None),
+            last_copy_button_id: None,
         }
     }
 
@@ -249,6 +274,85 @@ impl RedisApp {
         self.active_tab = self.tabs.len() - 1;
         self.next_tab_id += 1;
         self.prev_connected_states.push(false);
+    }
+
+    // Record copy operation feedback
+    pub fn record_copy_success(&mut self) {
+        self.copy_feedback.0 = Some(std::time::Instant::now());
+        self.copy_feedback.1 = None;
+    }
+
+    pub fn record_copy_failure(&mut self) {
+        self.copy_feedback.1 = Some(std::time::Instant::now());
+        self.copy_feedback.0 = None;
+    }
+
+    // Record copy success with button id for per-button feedback
+    pub fn record_copy_success_with_id(&mut self, button_id: egui::Id) {
+        let now = std::time::Instant::now();
+        self.copy_feedback.0 = Some(now);
+        self.last_copy_button_id = Some(button_id);
+        self.copy_feedback.1 = None;
+    }
+
+    // Record copy failure with button id for per-button feedback
+    pub fn record_copy_failure_with_id(&mut self, button_id: egui::Id) {
+        let now = std::time::Instant::now();
+        self.copy_feedback.1 = Some(now);
+        self.last_copy_button_id = Some(button_id);
+        self.copy_feedback.0 = None;
+    }
+
+    // Get feedback color for a specific copy button
+    pub fn copy_button_text_color(&self, button_id: egui::Id) -> egui::Color32 {
+        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
+        use std::time::Duration;
+        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
+        let (success_time, failure_time) = self.copy_feedback;
+        let now = std::time::Instant::now();
+
+        // Only show feedback if this is the button that was clicked
+        if self.last_copy_button_id == Some(button_id) {
+            if let Some(time) = success_time {
+                if now.duration_since(time) < duration {
+                    return egui::Color32::from_rgb(50, 200, 50); // Green
+                }
+            }
+
+            if let Some(time) = failure_time {
+                if now.duration_since(time) < duration {
+                    return egui::Color32::from_rgb(220, 50, 50); // Red
+                }
+            }
+        }
+
+        egui::Color32::BLACK
+    }
+
+    // Get feedback text for a specific copy button
+    pub fn copy_button_text(&self, button_id: egui::Id, original_text: &str) -> String {
+        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
+        use std::time::Duration;
+        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
+        let (success_time, failure_time) = self.copy_feedback;
+        let now = std::time::Instant::now();
+
+        // Only show feedback if this is the button that was clicked
+        if self.last_copy_button_id == Some(button_id) {
+            if let Some(time) = success_time {
+                if now.duration_since(time) < duration {
+                    return tr(keys::COPY_SUCCESS, self.global_language).to_string();
+                }
+            }
+
+            if let Some(time) = failure_time {
+                if now.duration_since(time) < duration {
+                    return tr(keys::COPY_FAILED, self.global_language).to_string();
+                }
+            }
+        }
+
+        original_text.to_string()
     }
 
     pub fn create_tab_with_connection(&mut self, conn_idx: usize, conn: RedisConnectionConfig) {

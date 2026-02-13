@@ -149,16 +149,34 @@ fn render_view_mode(
         let display_key = truncate_key(key);
         ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&display_key]));
 
+        let copy_key_id = egui::Id::new("copy_key").with(key);
+        let copy_key_color = app.copy_button_text_color(copy_key_id);
+        let copy_key_text = app.copy_button_text(copy_key_id, tr(keys::COPY_KEY, current_lang));
+
         // Copy key
-        if ui.button(tr(keys::COPY_KEY, current_lang)).clicked() {
+        if ui
+            .button(egui::RichText::new(copy_key_text).color(copy_key_color))
+            .clicked()
+        {
             ctx.copy_text(key.to_string());
+            app.record_copy_success_with_id(copy_key_id);
         }
 
         // Copy value (not for Hash type)
         if let Some(val) = value.as_ref() {
             let is_hash = matches!(val, ValueData::Hash { .. });
-            if !is_hash && ui.button(tr(keys::COPY_VALUE, current_lang)).clicked() {
-                ctx.copy_text(value_to_copy_text(val));
+            if !is_hash {
+                let copy_value_id = egui::Id::new("copy_value").with(key);
+                let copy_value_color = app.copy_button_text_color(copy_value_id);
+                let copy_value_text =
+                    app.copy_button_text(copy_value_id, tr(keys::COPY_VALUE, current_lang));
+                if ui
+                    .button(egui::RichText::new(copy_value_text).color(copy_value_color))
+                    .clicked()
+                {
+                    ctx.copy_text(value_to_copy_text(val));
+                    app.record_copy_success_with_id(copy_value_id);
+                }
             }
         }
 
@@ -669,11 +687,27 @@ fn render_value_view(
                                             ui.with_layout(
                                                 egui::Layout::right_to_left(egui::Align::Center),
                                                 |ui| {
+                                                    let copy_field_id =
+                                                        egui::Id::new("copy_hash_field")
+                                                            .with(key)
+                                                            .with(field);
+                                                    let copy_field_color =
+                                                        app.copy_button_text_color(copy_field_id);
+                                                    let copy_field_text = app.copy_button_text(
+                                                        copy_field_id,
+                                                        tr(keys::COPY_KEY, current_lang),
+                                                    );
                                                     if ui
-                                                        .button(tr(keys::COPY_KEY, current_lang))
+                                                        .button(
+                                                            egui::RichText::new(copy_field_text)
+                                                                .color(copy_field_color),
+                                                        )
                                                         .clicked()
                                                     {
                                                         ctx.copy_text(field.to_string());
+                                                        app.record_copy_success_with_id(
+                                                            copy_field_id,
+                                                        );
                                                     }
                                                 },
                                             );
@@ -858,8 +892,18 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
                 app.element_edit_dialog.show = false;
             }
 
-            if ui.button(tr(keys::COPY_VALUE, current_lang)).clicked() {
+            if ui
+                .button(
+                    egui::RichText::new(app.copy_button_text(
+                        egui::Id::new("copy_edit_dialog_value"),
+                        tr(keys::COPY_VALUE, current_lang),
+                    ))
+                    .color(app.copy_button_text_color(egui::Id::new("copy_edit_dialog_value"))),
+                )
+                .clicked()
+            {
                 ctx.copy_text(app.element_edit_dialog.value.clone());
+                app.record_copy_success_with_id(egui::Id::new("copy_edit_dialog_value"));
             }
 
             if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
