@@ -26,6 +26,7 @@ pub struct Config {
     dirty_preferences: bool,
     // Debouncer for side panel width
     last_side_panel_update: Option<Instant>,
+    last_window_update: Option<Instant>,
     debounce_duration: Duration,
 }
 
@@ -40,6 +41,7 @@ impl Default for Config {
             dirty_settings: false,
             dirty_preferences: false,
             last_side_panel_update: None,
+            last_window_update: None,
             debounce_duration: Duration::from_millis(500), // 500ms debounce
         }
     }
@@ -90,6 +92,7 @@ impl Config {
             dirty_settings: false,
             dirty_preferences: false,
             last_side_panel_update: None,
+            last_window_update: None,
             debounce_duration: Duration::from_millis(500),
         };
         Ok(config)
@@ -306,12 +309,37 @@ impl Config {
         Ok(false)
     }
 
+    /// Check if debounce time has passed and save window config if needed
+    pub fn check_and_save_window(&mut self) -> Result<bool, ConfigError> {
+        if let Some(last_update) = self.last_window_update {
+            if last_update.elapsed() >= self.debounce_duration && self.dirty_window {
+                self.save_window_config()?;
+                self.dirty_window = false;
+                self.last_window_update = None;
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// Get the side panel width for a connection
     pub fn get_side_panel_width_for_connection(&self, connection_name: &str) -> f32 {
         self.connected_preferences
             .get_preference(connection_name)
             .map(|pref| pref.side_panel_width)
             .unwrap_or(300.0)
+    }
+
+    /// Get the hash table column widths
+    pub fn get_hash_column_widths(&self) -> (u32, u32) {
+        (self.window.hash_field_width, self.window.hash_value_width)
+    }
+
+    pub fn update_hash_column_widths(&mut self, field_width: u32, value_width: u32) {
+        self.window.hash_field_width = field_width.max(80).min(600);
+        self.window.hash_value_width = value_width.max(100).min(1200);
+        self.dirty_window = true;
+        self.last_window_update = Some(Instant::now());
     }
 
     pub fn update_db_for_connection(

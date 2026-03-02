@@ -166,6 +166,9 @@ impl eframe::App for RedisApp {
         // Check and save side panel width if debounce time has passed
         let _ = self.config.check_and_save_side_panel_width();
 
+        // Check and save hash column widths if debounce time has passed
+        self.check_and_save_hash_column_widths();
+
         // Clear expired copy feedback
         use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
         use std::time::Duration;
@@ -573,6 +576,19 @@ impl RedisApp {
 
     fn update_db_for_connection(&mut self, connection_name: &str, db: u32) {
         let _ = self.config.update_db_for_connection(connection_name, db);
+    }
+
+    pub fn get_hash_column_widths(&self) -> (u32, u32) {
+        self.config.get_hash_column_widths()
+    }
+
+    pub fn save_hash_column_widths(&mut self, field_width: u32, value_width: u32) {
+        self.config
+            .update_hash_column_widths(field_width, value_width);
+    }
+
+    pub fn check_and_save_hash_column_widths(&mut self) {
+        let _ = self.config.check_and_save_window();
     }
 }
 

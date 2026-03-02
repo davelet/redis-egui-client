@@ -9,10 +9,22 @@ pub struct ConfigOnWindowFace {
     pub y: f32,
     #[serde(default = "default_maximized")]
     pub maximized: bool,
+    #[serde(default = "default_hash_field_width")]
+    pub hash_field_width: u32,
+    #[serde(default = "default_hash_value_width")]
+    pub hash_value_width: u32,
 }
 
 fn default_maximized() -> bool {
     false
+}
+
+fn default_hash_field_width() -> u32 {
+    200
+}
+
+fn default_hash_value_width() -> u32 {
+    400
 }
 
 impl Default for ConfigOnWindowFace {
@@ -23,6 +35,8 @@ impl Default for ConfigOnWindowFace {
             x: 0.0,
             y: 0.0,
             maximized: false,
+            hash_field_width: default_hash_field_width(),
+            hash_value_width: default_hash_value_width(),
         }
     }
 }

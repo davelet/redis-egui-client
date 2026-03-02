@@ -98,6 +98,7 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
     egui::CentralPanel::default().show(ctx, |ui| {
         if !connected {
+            render_welcome_page(app, ui, ctx, current_lang);
             return;
         }
 
@@ -615,17 +616,22 @@ fn render_value_view(
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         use egui_extras::Column;
+                        let (saved_field_width, saved_value_width) = app.get_hash_column_widths();
+                        let copy_button_width = 80.0;
+                        let field_width = saved_field_width as f32;
+                        let value_width = saved_value_width as f32;
+
                         egui_extras::TableBuilder::new(ui)
                             .striped(true)
                             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
                             .column(
-                                Column::initial(150.0)
-                                    .at_least(100.0)
-                                    .at_most(300.0)
+                                Column::initial(field_width)
+                                    .at_least(80.0)
+                                    .at_most(400.0)
                                     .clip(true),
                             )
-                            .column(Column::remainder().at_least(200.0).clip(true))
-                            .column(Column::exact(80.0))
+                            .column(Column::initial(value_width).at_least(100.0).clip(true))
+                            .column(Column::exact(copy_button_width))
                             .resizable(true)
                             .min_scrolled_height(0.0)
                             .header(24.0, |mut header| {
@@ -638,6 +644,12 @@ fn render_value_view(
                                 header.col(|_ui| {});
                             })
                             .body(|mut body| {
+                                let widths = body.widths();
+                                let field_width = widths.get(0).copied().unwrap_or(field_width);
+                                let value_width = widths.get(1).copied().unwrap_or(value_width);
+
+                                app.save_hash_column_widths(field_width as u32, value_width as u32);
+
                                 for field in filtered_fields {
                                     let value = loaded_values.get(field).cloned();
                                     let display_field = truncate_key(field);
@@ -915,6 +927,46 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
     if !open {
         app.element_edit_dialog.show = false;
     }
+}
+
+fn render_welcome_page(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    _ctx: &egui::Context,
+    current_lang: Language,
+) {
+    ui.vertical_centered(|ui| {
+        ui.add_space(100.0);
+
+        // Welcome title
+        ui.heading(egui::RichText::new(tr(keys::WELCOME_TITLE, current_lang)).size(32.0));
+        ui.add_space(20.0);
+
+        // Welcome message
+        ui.label(egui::RichText::new(tr(keys::WELCOME_MESSAGE, current_lang)).size(16.0));
+        ui.add_space(40.0);
+
+        // Get started button
+        if ui
+            .button(
+                egui::RichText::new(tr(keys::NEW_CONNECTION, current_lang))
+                    .size(18.0)
+                    .color(egui::Color32::WHITE),
+            )
+            .clicked()
+        {
+            app.new_connection.show = true;
+        }
+
+        ui.add_space(20.0);
+
+        // Instructions
+        ui.label(
+            egui::RichText::new(tr(keys::WELCOME_INSTRUCTION, current_lang))
+                .weak()
+                .size(14.0),
+        );
+    });
 }
 
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {

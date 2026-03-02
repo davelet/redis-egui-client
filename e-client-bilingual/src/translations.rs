@@ -85,6 +85,9 @@ pub mod keys {
     pub const LOADING: &str = "loading";
     pub const READY: &str = "ready";
     pub const DISCONNECTED: &str = "disconnected";
+    pub const WELCOME_TITLE: &str = "welcome_title";
+    pub const WELCOME_MESSAGE: &str = "welcome_message";
+    pub const WELCOME_INSTRUCTION: &str = "welcome_instruction";
 }
 
 impl Default for Translator {
@@ -585,6 +588,36 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Disconnected");
             m.insert(Language::Chinese, "未连接");
+            m
+        });
+
+        strings.insert(keys::WELCOME_TITLE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Welcome to Redis Client");
+            m.insert(Language::Chinese, "欢迎使用 Redis 客户端");
+            m
+        });
+
+        strings.insert(keys::WELCOME_MESSAGE, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "Connect to a Redis server to start managing your keys and data.",
+            );
+            m.insert(
+                Language::Chinese,
+                "连接到 Redis 服务器以开始管理您的键和数据。",
+            );
+            m
+        });
+
+        strings.insert(keys::WELCOME_INSTRUCTION, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "Click the button above to create a new Redis server.",
+            );
+            m.insert(Language::Chinese, "点击上方按钮以创建新的 Redis 服务器。");
             m
         });
 

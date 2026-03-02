@@ -1,6 +1,4 @@
-use e_client_basics::constants::{
-    CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT,
-};
+use e_client_basics::constants::{CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT};
 use e_client_config::connection::RedisConnectionConfig;
 use redis::aio::ConnectionManagerConfig;
 use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
@@ -218,10 +216,7 @@ impl RedisClient {
     ) -> Result<(u64, Vec<String>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let fields: Vec<String> = redis::cmd("HKEYS")
-                .arg(key)
-                .query_async(conn)
-                .await?;
+            let fields: Vec<String> = redis::cmd("HKEYS").arg(key).query_async(conn).await?;
             Ok((0, fields))
         } else {
             Ok((0, vec![]))

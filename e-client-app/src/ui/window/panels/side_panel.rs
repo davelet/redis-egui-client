@@ -13,12 +13,17 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let active_tab_idx = app.active_tab;
     let tab = &app.tabs[active_tab_idx];
     let current_lang = app.poll_language(tab.state.language.clone());
+    let connected = app.poll_bool(tab.state.connected.clone());
+
+    if !connected {
+        return;
+    }
+
     let keys = app.poll_vec_string(tab.state.keys.clone());
     let selected_key = app.poll_option_string(tab.state.selected_key.clone());
     let loading = app.poll_bool(tab.state.loading.clone());
     let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
     let total_keys = app.poll_usize(tab.state.total_keys.clone());
-    let connected = app.poll_bool(tab.state.connected.clone());
     let loading_progress_text = app.poll_string(tab.state.loading_progress_text.clone());
     let key_filter = app.poll_string(tab.state.key_filter.clone());
     let side_panel_width = tab.side_panel_width;
@@ -33,15 +38,6 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             let current_width = ui.available_width();
             if (current_width - side_panel_width).abs() > 1.0 {
                 app.update_tab_side_panel_width(active_tab_idx, current_width);
-            }
-
-            if !connected {
-                // Show blank when not connected
-                return;
-            }
-            if !connected {
-                // Show blank when not connected
-                return;
             }
 
             // Heading with loaded/total key count
