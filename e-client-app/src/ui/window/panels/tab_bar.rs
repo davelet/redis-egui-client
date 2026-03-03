@@ -122,8 +122,8 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
     if let Some(idx) = duplicate_tab {
         // Duplicate tab by creating a new tab with the same connection
         if let Some(conn_idx) = app.tabs.get(idx).and_then(|t| t.selected_connection) {
-            if let Some(conn) = app.config.connections.get(conn_idx) {
-                app.create_tab_with_connection(conn_idx, conn.clone());
+            if let Some(conn) = app.config.connections.get(conn_idx).cloned() {
+                app.create_tab_with_connection(conn_idx, conn);
             }
         }
     }

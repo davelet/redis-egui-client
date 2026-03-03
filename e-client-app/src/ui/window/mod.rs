@@ -132,10 +132,33 @@ pub struct RedisApp {
     copy_feedback: (Option<Instant>, Option<Instant>),
     // Track which button was last clicked for per-button feedback
     last_copy_button_id: Option<egui::Id>,
+    // Track if open connections prompt should be shown
+    show_open_connections_prompt: bool,
 }
 
 impl eframe::App for RedisApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        // Collect all connected connection names
+        let mut connected_names = Vec::new();
+        for tab in &self.tabs {
+            if let Some(conn_idx) = tab.selected_connection {
+                if let Some(conn) = self.config.connections.get(conn_idx) {
+                    // Check if the tab is actually connected
+                    if *tab.state.connected.blocking_read() {
+                        connected_names.push(conn.name.clone());
+                    }
+                }
+            }
+        }
+
+        // Save open connections to window config
+        self.config
+            .window
+            .open_connections
+            .set_connections(connected_names);
+        // Mark window as dirty to save (open_connections was modified)
+        self.config.mark_window_dirty();
+
         // Save all dirty configurations on exit
         if let Err(e) = self.config.save_all_if_dirty() {
             eprintln!(
@@ -146,6 +169,8 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        // Open connections prompt is now shown in the welcome page
+
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
         let is_maximized = viewport.maximized.unwrap_or(false);
@@ -162,9 +187,6 @@ impl eframe::App for RedisApp {
                 self.config.update_maximized(is_maximized);
             }
         }
-
-        // Check and save side panel width if debounce time has passed
-        let _ = self.config.check_and_save_side_panel_width();
 
         // Check and save hash column widths if debounce time has passed
         self.check_and_save_hash_column_widths();
@@ -244,6 +266,9 @@ impl RedisApp {
             Language::English
         };
 
+        // Check if there are open connections before moving config
+        let has_open_connections = !config.window.open_connections.is_empty();
+
         // Create initial tab
         let initial_tab = RedisTab::new(0, global_language);
 
@@ -260,6 +285,7 @@ impl RedisApp {
             prev_connected_states: vec![false],
             copy_feedback: (None, None),
             last_copy_button_id: None,
+            show_open_connections_prompt: has_open_connections,
         }
     }
 
@@ -588,7 +614,7 @@ impl RedisApp {
     }
 
     pub fn check_and_save_hash_column_widths(&mut self) {
-        let _ = self.config.check_and_save_window();
+        // Window config is now only saved on exit, no need to check here
     }
 }
 

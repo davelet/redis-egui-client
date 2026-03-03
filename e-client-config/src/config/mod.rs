@@ -1,6 +1,7 @@
 mod app_window;
 mod connected_preference;
 mod connections;
+mod open_connections;
 mod user_config;
 
 use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
@@ -12,7 +13,6 @@ use crate::config::connections::ConfigOnConnections;
 use crate::config::user_config::ConfigOfUser;
 use std::fs;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -24,10 +24,6 @@ pub struct Config {
     dirty_window: bool,
     dirty_settings: bool,
     dirty_preferences: bool,
-    // Debouncer for side panel width
-    last_side_panel_update: Option<Instant>,
-    last_window_update: Option<Instant>,
-    debounce_duration: Duration,
 }
 
 impl Default for Config {
@@ -40,9 +36,6 @@ impl Default for Config {
             dirty_window: false,
             dirty_settings: false,
             dirty_preferences: false,
-            last_side_panel_update: None,
-            last_window_update: None,
-            debounce_duration: Duration::from_millis(500), // 500ms debounce
         }
     }
 }
@@ -69,6 +62,10 @@ impl Config {
         Ok(Self::config_path()?.join("connected_preference.toml"))
     }
 
+    pub fn open_connections_file_path() -> Result<PathBuf, ConfigError> {
+        Ok(Self::config_path()?.join("open_connections.toml"))
+    }
+
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_path()?;
         if !path.exists() {
@@ -91,9 +88,6 @@ impl Config {
             dirty_window: false,
             dirty_settings: false,
             dirty_preferences: false,
-            last_side_panel_update: None,
-            last_window_update: None,
-            debounce_duration: Duration::from_millis(500),
         };
         Ok(config)
     }
@@ -292,34 +286,6 @@ impl Config {
         self.connected_preferences
             .update_side_panel_width(connection_name, width);
         self.dirty_preferences = true;
-        self.last_side_panel_update = Some(Instant::now());
-    }
-
-    /// Check if debounce time has passed and save if needed
-    /// Returns true if save was performed
-    pub fn check_and_save_side_panel_width(&mut self) -> Result<bool, ConfigError> {
-        if let Some(last_update) = self.last_side_panel_update {
-            if last_update.elapsed() >= self.debounce_duration && self.dirty_preferences {
-                self.save_connected_preferences()?;
-                self.dirty_preferences = false;
-                self.last_side_panel_update = None;
-                return Ok(true);
-            }
-        }
-        Ok(false)
-    }
-
-    /// Check if debounce time has passed and save window config if needed
-    pub fn check_and_save_window(&mut self) -> Result<bool, ConfigError> {
-        if let Some(last_update) = self.last_window_update {
-            if last_update.elapsed() >= self.debounce_duration && self.dirty_window {
-                self.save_window_config()?;
-                self.dirty_window = false;
-                self.last_window_update = None;
-                return Ok(true);
-            }
-        }
-        Ok(false)
     }
 
     /// Get the side panel width for a connection
@@ -339,7 +305,6 @@ impl Config {
         self.window.hash_field_width = field_width.max(80).min(600);
         self.window.hash_value_width = value_width.max(100).min(1200);
         self.dirty_window = true;
-        self.last_window_update = Some(Instant::now());
     }
 
     pub fn update_db_for_connection(
@@ -355,6 +320,24 @@ impl Config {
         self.connected_preferences
             .get_preference(connection_name)
             .cloned()
+    }
+}
+
+// fn for open connections
+impl Config {
+    pub fn add_open_connection(&mut self, name: &str) {
+        self.window.open_connections.add_connection(name);
+        self.dirty_window = true;
+    }
+
+    pub fn remove_open_connection(&mut self, name: &str) {
+        self.window.open_connections.remove_connection(name);
+        self.dirty_window = true;
+    }
+
+    pub fn clear_open_connections(&mut self) {
+        self.window.open_connections.clear();
+        self.dirty_window = true;
     }
 }
 
@@ -380,6 +363,11 @@ impl Config {
     pub fn update_auto_connect(&mut self, auto_connect: bool) {
         self.settings.auto_connect = auto_connect;
         self.dirty_settings = true;
+    }
+
+    /// Mark window config as dirty (for when window.open_connections is modified directly)
+    pub fn mark_window_dirty(&mut self) {
+        self.dirty_window = true;
     }
 
     /// Save all dirty configurations (call on app exit)

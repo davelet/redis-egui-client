@@ -85,6 +85,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     tab.name = format!("{} {}", tr(keys::TAB, current_lang), tab.id);
                     tab.connected_color = None;
                     tab.key_filter_input.clear();
+
                     let key_filter = tab.state.key_filter.clone();
                     app.update_string(key_filter, WILD_KEY_FILTER.to_string());
                 }
@@ -118,7 +119,8 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     let tab = &mut app.tabs[active_tab_idx];
                     if let Some(idx) = tab.selected_connection {
                         if let Some(conn) = app.config.connections.get(idx) {
-                            *tab.state.connection_param.blocking_write() = Some(conn.clone());
+                            let conn_clone = conn.clone();
+                            *tab.state.connection_param.blocking_write() = Some(conn_clone.clone());
                             // Update tab name and color to connection name and color
                             tab.name = conn.name.clone();
                             tab.connected_color = conn.color.clone();

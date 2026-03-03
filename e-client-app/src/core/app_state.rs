@@ -104,6 +104,8 @@ pub struct AppState {
     pub total_keys: Arc<RwLock<usize>>,
     pub loaded_keys_count: Arc<RwLock<usize>>,
     pub loading_progress_text: Arc<RwLock<String>>,
+    pub ttl_edit_mode: Arc<RwLock<bool>>,
+    pub ttl_edit_value: Arc<RwLock<String>>,
 }
 
 impl Default for AppState {
@@ -129,6 +131,8 @@ impl Default for AppState {
             total_keys: Arc::new(RwLock::new(0)),
             loaded_keys_count: Arc::new(RwLock::new(0)),
             loading_progress_text: Arc::new(RwLock::new(String::new())),
+            ttl_edit_mode: Arc::new(RwLock::new(false)),
+            ttl_edit_value: Arc::new(RwLock::new(String::new())),
         }
     }
 }
@@ -667,6 +671,19 @@ impl AppState {
         });
     }
 
+    pub fn spawn_update_ttl(&self, key: String, ttl: i64) {
+        let state = self.clone();
+        tokio::spawn(async move {
+            if let Err(e) = state.redis_client.set_ttl(&key, ttl).await {
+                state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
+            } else {
+                state.edit_state.write().await.save_message = "TTL updated successfully".to_string();
+                // Refresh TTL display
+                state.spawn_load_value(key);
+            }
+        });
+    }
+
     pub fn spawn_save_edits(&self, original_key: String) {
         let state = self.clone();
         let edit = state.edit_state.blocking_read().clone();
@@ -708,7 +725,24 @@ impl AppState {
 
             // 3. Save value by type
             let save_result = match &edit.edited_value {
-                EditedValue::String(s) => state.redis_client.set_string(&current_key, s).await,
+                EditedValue::String(s) => {
+                    // Check if it's JSON and if the original was compact (no newlines)
+                    let value_to_save = if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(s) {
+                        // Check if original string has newlines
+                        let has_newlines = s.contains('\n');
+                        if !has_newlines {
+                            // Original was compact, save as compact JSON
+                            serde_json::to_string(&json_value).unwrap_or(s.clone())
+                        } else {
+                            // Original was formatted, save as is
+                            s.clone()
+                        }
+                    } else {
+                        // Not JSON, save as is
+                        s.clone()
+                    };
+                    state.redis_client.set_string(&current_key, &value_to_save).await
+                },
                 EditedValue::Hash(fields) => {
                     // Delete old key and re-create with new fields
                     let _ = state.redis_client.del_key(&current_key).await;

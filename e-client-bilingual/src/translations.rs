@@ -67,6 +67,7 @@ pub mod keys {
     pub const REFRESH: &str = "refresh";
     pub const ADD_FIELD: &str = "add_field";
     pub const ADD_ITEM: &str = "add_item";
+    pub const EDIT_TTL: &str = "edit_ttl";
     pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
     pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
     pub const CONFIG_READ_FAILED: &str = "config_read_failed";
@@ -88,6 +89,9 @@ pub mod keys {
     pub const WELCOME_TITLE: &str = "welcome_title";
     pub const WELCOME_MESSAGE: &str = "welcome_message";
     pub const WELCOME_INSTRUCTION: &str = "welcome_instruction";
+    pub const OPEN_CONNECTIONS_PROMPT_TITLE: &str = "open_connections_prompt_title";
+    pub const OPEN_CONNECTIONS_PROMPT_MESSAGE: &str = "open_connections_prompt_message";
+    pub const CONNECT_ALL: &str = "connect_all";
 }
 
 impl Default for Translator {
@@ -621,6 +625,33 @@ impl Default for Translator {
             m
         });
 
+        strings.insert(keys::OPEN_CONNECTIONS_PROMPT_TITLE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Open Connections");
+            m.insert(Language::Chinese, "未关闭的连接");
+            m
+        });
+
+        strings.insert(keys::OPEN_CONNECTIONS_PROMPT_MESSAGE, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "The following connections were not closed in the last session. Click 'Connect All' to reconnect or connect individually:",
+            );
+            m.insert(
+                Language::Chinese,
+                "以下连接在上一次会话中未关闭。点击'全部连接'重新连接，或单独连接：",
+            );
+            m
+        });
+
+        strings.insert(keys::CONNECT_ALL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Connect All");
+            m.insert(Language::Chinese, "全部连接");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");
@@ -681,6 +712,13 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Add Item");
             m.insert(Language::Chinese, "添加项");
+            m
+        });
+
+        strings.insert(keys::EDIT_TTL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Edit TTL");
+            m.insert(Language::Chinese, "编辑TTL");
             m
         });
 

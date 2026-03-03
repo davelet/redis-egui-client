@@ -1,3 +1,4 @@
+use super::open_connections::OpenConnections;
 use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +14,8 @@ pub struct ConfigOnWindowFace {
     pub hash_field_width: u32,
     #[serde(default = "default_hash_value_width")]
     pub hash_value_width: u32,
+    #[serde(default)]
+    pub open_connections: OpenConnections,
 }
 
 fn default_maximized() -> bool {
@@ -37,6 +40,7 @@ impl Default for ConfigOnWindowFace {
             maximized: false,
             hash_field_width: default_hash_field_width(),
             hash_value_width: default_hash_value_width(),
+            open_connections: OpenConnections::default(),
         }
     }
 }
