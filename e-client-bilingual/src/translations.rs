@@ -94,6 +94,17 @@ pub mod keys {
     pub const CONNECT_ALL: &str = "connect_all";
     pub const SAVED_CONNECTIONS: &str = "saved_connections";
     pub const ACTION: &str = "action";
+    // Keyboard shortcuts
+    pub const KEYBOARD_SHORTCUTS: &str = "keyboard_shortcuts";
+    pub const SHORTCUT_NEW_TAB: &str = "shortcut_new_tab";
+    pub const SHORTCUT_CLOSE_TAB: &str = "shortcut_close_tab";
+    pub const SHORTCUT_REFRESH_KEY: &str = "shortcut_refresh_key";
+    pub const SHORTCUT_FOCUS_FILTER: &str = "shortcut_focus_filter";
+    pub const SHORTCUT_PRESS_KEYS: &str = "shortcut_press_keys";
+    pub const SHORTCUT_CONFLICTS_WITH: &str = "shortcut_conflicts_with";
+    pub const SHORTCUT_RESET_DEFAULTS: &str = "shortcut_reset_defaults";
+    pub const SHORTCUT_CLOSE_SETTINGS: &str = "shortcut_close_settings";
+    pub const SHORTCUT_OPEN_SETTINGS: &str = "shortcut_open_settings";
 }
 
 impl Default for Translator {
@@ -665,6 +676,80 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Action");
             m.insert(Language::Chinese, "操作");
+            m
+        });
+
+        // Keyboard shortcuts
+        strings.insert(keys::KEYBOARD_SHORTCUTS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Keyboard Shortcuts");
+            m.insert(Language::Chinese, "键盘快捷键");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_NEW_TAB, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "New Tab");
+            m.insert(Language::Chinese, "新建标签页");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_CLOSE_TAB, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Close Tab");
+            m.insert(Language::Chinese, "关闭标签页");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_REFRESH_KEY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Refresh Key");
+            m.insert(Language::Chinese, "刷新键");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_FOCUS_FILTER, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Focus Filter");
+            m.insert(Language::Chinese, "聚焦过滤器");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_PRESS_KEYS, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "⏺ Press the key combination you want to set...",
+            );
+            m.insert(Language::Chinese, "⏺ 按下要设置的快捷键组合...");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_CONFLICTS_WITH, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Conflicts with '{}'");
+            m.insert(Language::Chinese, "与'{}'冲突");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_RESET_DEFAULTS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Reset to Defaults");
+            m.insert(Language::Chinese, "恢复默认设置");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_CLOSE_SETTINGS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Close Settings");
+            m.insert(Language::Chinese, "关闭设置");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_OPEN_SETTINGS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Open Settings");
+            m.insert(Language::Chinese, "打开设置");
             m
         });
 

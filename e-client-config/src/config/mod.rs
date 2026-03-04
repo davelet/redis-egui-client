@@ -2,6 +2,7 @@ mod app_window;
 mod connected_preference;
 mod connections;
 mod open_connections;
+pub mod shortcuts;
 mod user_config;
 
 use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
@@ -368,6 +369,11 @@ impl Config {
     /// Mark window config as dirty (for when window.open_connections is modified directly)
     pub fn mark_window_dirty(&mut self) {
         self.dirty_window = true;
+    }
+
+    /// Mark settings as dirty (for when shortcuts or other settings are modified)
+    pub fn mark_settings_dirty(&mut self) {
+        self.dirty_settings = true;
     }
 
     /// Save all dirty configurations (call on app exit)

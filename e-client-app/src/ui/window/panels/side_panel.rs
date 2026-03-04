@@ -70,7 +70,8 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 let changed = ui
                     .add_sized(
                         egui::vec2(available_width, 20.0),
-                        egui::TextEdit::singleline(&mut tab.key_filter_input),
+                        egui::TextEdit::singleline(&mut tab.key_filter_input)
+                            .id(egui::Id::new("key_filter_input")),
                     )
                     .changed();
                 if changed {

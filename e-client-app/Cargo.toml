@@ -1,6 +1,6 @@
 [package]
 name = "e-client-app"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 repository = "https://github.com/davelet/redis-egui-client"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]

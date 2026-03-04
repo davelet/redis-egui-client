@@ -1,3 +1,4 @@
+use crate::config::shortcuts::ShortcutConfig;
 use e_client_bilingual::language::Language;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +8,8 @@ pub struct ConfigOfUser {
     pub language: String,
     #[serde(default)]
     pub auto_connect: bool,
+    #[serde(default)]
+    pub shortcuts: ShortcutConfig,
 }
 
 impl Default for ConfigOfUser {
@@ -14,6 +17,7 @@ impl Default for ConfigOfUser {
         Self {
             language: Language::default().to_file_string(),
             auto_connect: false,
+            shortcuts: ShortcutConfig::default(),
         }
     }
 }

@@ -134,6 +134,10 @@ pub struct RedisApp {
     last_copy_button_id: Option<egui::Id>,
     // Track if open connections prompt should be shown
     show_open_connections_prompt: bool,
+    // Shortcut editing state
+    editing_shortcut: Option<String>, // action name being edited
+    shortcut_input_buffer: String,    // buffer for capturing new shortcut
+    shortcut_conflict_warning: Option<String>, // conflict warning message
 }
 
 impl eframe::App for RedisApp {
@@ -170,6 +174,110 @@ impl eframe::App for RedisApp {
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // Open connections prompt is now shown in the welcome page
+
+        // Handle keyboard shortcuts using custom configuration
+        // Only process shortcuts when settings window is not open
+        if !self.show_settings {
+            use e_client_config::config::shortcuts::{ParsedShortcut, ShortcutAction};
+
+            // Collect current input state
+            let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
+                let keys: Vec<egui::Key> = [
+                    egui::Key::A,
+                    egui::Key::B,
+                    egui::Key::C,
+                    egui::Key::D,
+                    egui::Key::E,
+                    egui::Key::F,
+                    egui::Key::G,
+                    egui::Key::H,
+                    egui::Key::I,
+                    egui::Key::J,
+                    egui::Key::K,
+                    egui::Key::L,
+                    egui::Key::M,
+                    egui::Key::N,
+                    egui::Key::O,
+                    egui::Key::P,
+                    egui::Key::Q,
+                    egui::Key::R,
+                    egui::Key::S,
+                    egui::Key::T,
+                    egui::Key::U,
+                    egui::Key::V,
+                    egui::Key::W,
+                    egui::Key::X,
+                    egui::Key::Y,
+                    egui::Key::Z,
+                    egui::Key::F1,
+                    egui::Key::F2,
+                    egui::Key::F3,
+                    egui::Key::F4,
+                    egui::Key::F5,
+                    egui::Key::F6,
+                    egui::Key::F7,
+                    egui::Key::F8,
+                    egui::Key::F9,
+                    egui::Key::F10,
+                    egui::Key::F11,
+                    egui::Key::F12,
+                    egui::Key::Comma,
+                    egui::Key::Period,
+                    egui::Key::Semicolon,
+                ]
+                .into_iter()
+                .filter(|k| i.key_pressed(*k))
+                .collect();
+                (i.modifiers, keys)
+            });
+
+            // Check each configured shortcut
+            let is_macos = cfg!(target_os = "macos");
+            for (action, _) in ShortcutAction::all_actions() {
+                let binding = self.config.settings.shortcuts.get_binding(&action);
+                if let Some(parsed) = ParsedShortcut::parse(&binding) {
+                    for key in &pressed_keys {
+                        let key_str = format!("{:?}", key);
+                        let mod_pressed: bool =
+                            parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                        let alt_match = parsed.alt == modifiers.alt;
+                        let shift_match = parsed.shift == modifiers.shift;
+                        let key_match = parsed.key_matches(&key_str);
+
+                        if mod_pressed && alt_match && shift_match && key_match {
+                            match action {
+                                ShortcutAction::NewTab => self.create_new_tab(),
+                                ShortcutAction::CloseTab => {
+                                    let idx = self.active_tab;
+                                    self.close_tab(idx, ctx);
+                                }
+                                ShortcutAction::RefreshKey => {
+                                    if let Some(tab) = self.tabs.get(self.active_tab) {
+                                        if let Some(key) =
+                                            tab.state.selected_key.blocking_read().clone()
+                                        {
+                                            tab.state.spawn_load_value(key);
+                                        }
+                                    }
+                                }
+                                ShortcutAction::FocusFilter => {
+                                    ctx.memory_mut(|mem| {
+                                        mem.request_focus(egui::Id::new("key_filter_input"));
+                                    });
+                                }
+                                ShortcutAction::CloseSettings => {
+                                    // CloseSettings is handled in top_panel.rs when settings window is open
+                                    // This case should not be reached here since shortcuts are disabled when settings is open
+                                }
+                                ShortcutAction::OpenSettings => {
+                                    self.show_settings = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
@@ -286,6 +394,9 @@ impl RedisApp {
             copy_feedback: (None, None),
             last_copy_button_id: None,
             show_open_connections_prompt: has_open_connections,
+            editing_shortcut: None,
+            shortcut_input_buffer: String::new(),
+            shortcut_conflict_warning: None,
         }
     }
 
