@@ -6,7 +6,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-一个现代化、高性能的 Redis 图形化客户端，基于 Rust 和 egui 构建，支持跨平台（macOS、Windows、Linux）。
+一个现代化、高性能的 Redis 图形化客户端，基于 Rust 和 egui 构建，支持 macOS 和 Windows。
 
 ## 核心特性
 
@@ -36,51 +36,18 @@
 ### 跨平台支持
 - **macOS** - 原生 App Bundle 支持，兼容 Apple Silicon 和 Intel
 - **Windows** - MSI 安装程序，支持添加到系统 PATH
-- **Linux** - 独立可执行文件
-
-## 界面预览
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ [标签 1] [标签 2] [+ 标签]                  [连接] [设置]    │
-├──────────┬──────────────────────────────────────────────────┤
-│          │  键: user:12345                     [保存] [删除] │
-│  键列表   │  TTL: 3600s                                       │
-│  ─────── │                                                   │
-│  user:*  │  类型: Hash                                       │
-│  session:│  ┌─────────┬─────────────────────────────────────┐│
-│  cache:  │  │  字段   │  值                                 ││
-│          │  ├─────────┼─────────────────────────────────────┤│
-│          │  │  name   │  "John Doe"                         ││
-│          │  │  email  │  {                                  ││
-│          │  │         │    "type": "work",                  ││
-│          │  │         │    "address": "john@example.com"    ││
-│          │  │         │  }                                  ││
-│          │  └─────────┴─────────────────────────────────────┘│
-│          │                                                   │
-│          │  > 执行 REDIS 命令                                 │
-└──────────┴──────────────────────────────────────────────────┘
-```
 
 ## 快速开始
 
 ### 安装
 
-#### macOS
-```bash
-# 使用 Homebrew（即将支持）
-brew install rudist
+从 [GitHub Releases](https://github.com/davelet/redis-egui-client/releases) 下载最新版本。
 
-# 或下载 dmg 安装包
-```
+#### macOS
+下载 `.dmg` 文件，将应用拖入应用程序文件夹。
 
 #### Windows
 下载并运行 `.msi` 安装程序。
-
-#### Linux
-```bash
-cargo install rudist
-```
 
 ### 从源码构建
 
@@ -132,7 +99,7 @@ cargo install cargo-bundle
 ## 配置说明
 
 配置文件位置：
-- **macOS/Linux**: `~/.config/rudist/config.toml`
+- **macOS**: `~/.config/rudist/config.toml`
 - **Windows**: `%APPDATA%\rudist\config.toml`
 
 示例配置：
@@ -153,14 +120,6 @@ password = "secret"
 database = 0
 color = "#F44336"
 ```
-
-## 技术栈
-
-- **Rust 2024 Edition** - 系统级性能，内存安全
-- **egui + eframe** - 即时模式 GUI，流畅响应
-- **Tokio** - 异步运行时，高效 I/O
-- **redis-rs** - Redis 客户端库
-- **serde_json** - JSON 数据处理
 
 ## 贡献指南
 

@@ -6,7 +6,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-A modern, high-performance Redis GUI client built with Rust and egui, supporting cross-platform (macOS, Windows, Linux).
+A modern, high-performance Redis GUI client built with Rust and egui, supporting macOS and Windows.
 
 ## Core Features
 
@@ -36,51 +36,18 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
 ### Cross-Platform Support
 - **macOS** - Native App Bundle support, both Apple Silicon and Intel
 - **Windows** - MSI installer with system PATH integration
-- **Linux** - Standalone executable
-
-## UI Preview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ [Tab 1] [Tab 2] [+ Tab]                    [Connect] [Settings]│
-├──────────┬──────────────────────────────────────────────────┤
-│          │  Key: user:12345                    [Save] [Delete]│
-│  Keys    │  TTL: 3600s                                       │
-│  ─────── │                                                   │
-│  user:*  │  Type: Hash                                       │
-│  session:│  ┌─────────┬─────────────────────────────────────┐│
-│  cache:  │  │  field  │  value                              ││
-│          │  ├─────────┼─────────────────────────────────────┤│
-│          │  │  name   │  "John Doe"                         ││
-│          │  │  email  │  {                                  ││
-│          │  │         │    "type": "work",                  ││
-│          │  │         │    "address": "john@example.com"    ││
-│          │  │         │  }                                  ││
-│          │  └─────────┴─────────────────────────────────────┘│
-│          │                                                   │
-│          │  > EXECUTE REDIS COMMAND                          │
-└──────────┴──────────────────────────────────────────────────┘
-```
 
 ## Quick Start
 
 ### Installation
 
-#### macOS
-```bash
-# Using Homebrew (coming soon)
-brew install rudist
+Download the latest release from [GitHub Releases](https://github.com/davelet/redis-egui-client/releases).
 
-# Or download the dmg installer
-```
+#### macOS
+Download the `.dmg` file and drag the app to your Applications folder.
 
 #### Windows
 Download and run the `.msi` installer.
-
-#### Linux
-```bash
-cargo install rudist
-```
 
 ### Build from Source
 
@@ -132,7 +99,7 @@ cargo install cargo-bundle
 ## Configuration
 
 Configuration file locations:
-- **macOS/Linux**: `~/.config/rudist/config.toml`
+- **macOS**: `~/.config/rudist/config.toml`
 - **Windows**: `%APPDATA%\rudist\config.toml`
 
 Example configuration:
@@ -153,14 +120,6 @@ password = "secret"
 database = 0
 color = "#F44336"
 ```
-
-## Tech Stack
-
-- **Rust 2024 Edition** - Systems-level performance, memory safety
-- **egui + eframe** - Immediate mode GUI, smooth response
-- **Tokio** - Async runtime, efficient I/O
-- **redis-rs** - Redis client library
-- **serde_json** - JSON data processing
 
 ## Contributing
 
