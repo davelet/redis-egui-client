@@ -402,9 +402,13 @@ impl RedisApp {
         self.spawn_connect_with_initial_db(new_tab_idx);
     }
 
-    pub fn close_tab(&mut self, index: usize) {
+    pub fn close_tab(&mut self, index: usize, ctx: &egui::Context) {
         if self.tabs.len() <= 1 {
-            // Don't close the last tab
+            // Close the last tab and exit the application
+            if let Some(tab) = self.tabs.get(index) {
+                tab.state.spawn_disconnect();
+            }
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
 

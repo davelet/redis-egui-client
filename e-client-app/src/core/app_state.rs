@@ -8,13 +8,78 @@ use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Compacts JSON value if it was originally single-line (no newlines).
+/// If the value is valid JSON and contains no newlines, returns compact JSON.
+/// Otherwise, returns the original value unchanged.
+pub fn compact_json_if_single_line(value: &str) -> String {
+    if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(value) {
+        // Check if original string has newlines
+        let has_newlines = value.contains('\n');
+        if !has_newlines {
+            // Original was compact, save as compact JSON
+            serde_json::to_string(&json_value).unwrap_or(value.to_string())
+        } else {
+            // Original was formatted, save as is
+            value.to_string()
+        }
+    } else {
+        // Not JSON, save as is
+        value.to_string()
+    }
+}
+
+/// Formats JSON value for display/editing.
+/// If the value is valid JSON, returns pretty-printed JSON.
+/// Otherwise, returns the original value unchanged.
+pub fn format_json_for_edit(value: &str) -> String {
+    if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(value) {
+        if let Ok(formatted) = serde_json::to_string_pretty(&json_value) {
+            formatted
+        } else {
+            value.to_string()
+        }
+    } else {
+        value.to_string()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct JsonValue {
+    pub value: String,
+    pub was_single_line: bool,
+}
+
+impl JsonValue {
+    pub fn new(original: &str) -> Self {
+        let was_single_line = !original.contains('\n');
+        Self {
+            value: format_json_for_edit(original),
+            was_single_line,
+        }
+    }
+
+    pub fn to_save(&self) -> String {
+        if self.was_single_line {
+            // Original was single-line, compact the JSON
+            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&self.value) {
+                serde_json::to_string(&json_value).unwrap_or(self.value.clone())
+            } else {
+                self.value.clone()
+            }
+        } else {
+            // Original was multi-line, save as-is
+            self.value.clone()
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EditedValue {
-    String(String),
-    List(Vec<String>),
-    Hash(Vec<(String, String)>),
-    Set(Vec<String>),
-    ZSet(Vec<(String, String)>),
+    String(JsonValue),
+    List(Vec<JsonValue>),
+    Hash(Vec<(String, JsonValue)>),
+    Set(Vec<JsonValue>),
+    ZSet(Vec<(JsonValue, String)>),
     None,
 }
 
@@ -25,6 +90,7 @@ pub struct EditState {
     pub edited_ttl: String,
     pub edited_value: EditedValue,
     pub save_message: String,
+    pub saving: bool,
 }
 
 impl Default for EditState {
@@ -35,6 +101,7 @@ impl Default for EditState {
             edited_ttl: String::new(),
             edited_value: EditedValue::None,
             save_message: String::new(),
+            saving: false,
         }
     }
 }
@@ -51,34 +118,48 @@ impl EditState {
             String::new()
         };
         self.edited_value = match value {
-            Some(ValueData::String(s)) => EditedValue::String(s.clone()),
-            Some(ValueData::List { items, .. }) => EditedValue::List(items.clone()),
+            Some(ValueData::String(s)) => {
+                // Auto-format JSON if valid, track original format
+                EditedValue::String(JsonValue::new(s))
+            }
+            Some(ValueData::List { items, .. }) => {
+                // Auto-format JSON for each item, track original format
+                EditedValue::List(items.iter().map(|s| JsonValue::new(s)).collect())
+            }
             Some(ValueData::Hash {
                 fields,
                 loaded_values,
                 ..
             }) => {
-                let hash_fields: Vec<(String, String)> = fields
+                let hash_fields: Vec<(String, JsonValue)> = fields
                     .iter()
-                    .map(|f| (f.clone(), loaded_values.get(f).cloned().unwrap_or_default()))
+                    .map(|f| {
+                        let value = loaded_values.get(f).cloned().unwrap_or_default();
+                        (f.clone(), JsonValue::new(&value))
+                    })
                     .collect();
                 EditedValue::Hash(hash_fields)
             }
-            Some(ValueData::Set { items, .. }) => EditedValue::Set(items.clone()),
+            Some(ValueData::Set { items, .. }) => {
+                // Auto-format JSON for each item, track original format
+                EditedValue::Set(items.iter().map(|s| JsonValue::new(s)).collect())
+            }
             Some(ValueData::ZSet { items, .. }) => EditedValue::ZSet(
                 items
                     .iter()
-                    .map(|(m, s)| (m.clone(), s.to_string()))
+                    .map(|(m, s)| (JsonValue::new(m), s.to_string()))
                     .collect(),
             ),
             _ => EditedValue::None,
         };
         self.save_message.clear();
+        self.saving = false;
     }
 
     pub fn cancel_edit(&mut self) {
         self.editing = false;
         self.save_message.clear();
+        self.saving = false;
     }
 }
 
@@ -632,11 +713,14 @@ impl AppState {
     pub fn spawn_save_element(&self, key: String, key_type: String, field: String, value: String) {
         let state = self.clone();
         tokio::spawn(async move {
+            // Compact JSON if original was single-line
+            let value_to_save = compact_json_if_single_line(&value);
+
             let result = match key_type.as_str() {
-                "hash" => state.redis_client.hset(&key, &field, &value).await,
+                "hash" => state.redis_client.hset(&key, &field, &value_to_save).await,
                 "list" => {
                     if let Ok(index) = field.parse::<i64>() {
-                        state.redis_client.lset(&key, index, &value).await
+                        state.redis_client.lset(&key, index, &value_to_save).await
                     } else {
                         Err(redis::RedisError::from((
                             redis::ErrorKind::InvalidClientConfig,
@@ -648,12 +732,12 @@ impl AppState {
                 "set" => {
                     // For set, we need to remove old member and add new one
                     let _ = state.redis_client.srem(&key, &field).await;
-                    state.redis_client.sadd(&key, &value).await
+                    state.redis_client.sadd(&key, &value_to_save).await
                 }
                 "zset" => {
                     // For zset, remove old member and add with score
                     let _ = state.redis_client.zrem(&key, &field).await;
-                    let score: f64 = value.parse().unwrap_or(0.0);
+                    let score: f64 = value_to_save.parse().unwrap_or(0.0);
                     state.redis_client.zadd(&key, score, &field).await
                 }
                 _ => Ok(()),
@@ -687,6 +771,10 @@ impl AppState {
     pub fn spawn_save_edits(&self, original_key: String) {
         let state = self.clone();
         let edit = state.edit_state.blocking_read().clone();
+        
+        // Set saving state to true
+        state.edit_state.blocking_write().saving = true;
+        
         tokio::spawn(async move {
             let new_key = edit.edited_key.trim().to_string();
             let mut current_key = original_key.clone();
@@ -726,22 +814,8 @@ impl AppState {
             // 3. Save value by type
             let save_result = match &edit.edited_value {
                 EditedValue::String(s) => {
-                    // Check if it's JSON and if the original was compact (no newlines)
-                    let value_to_save = if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(s) {
-                        // Check if original string has newlines
-                        let has_newlines = s.contains('\n');
-                        if !has_newlines {
-                            // Original was compact, save as compact JSON
-                            serde_json::to_string(&json_value).unwrap_or(s.clone())
-                        } else {
-                            // Original was formatted, save as is
-                            s.clone()
-                        }
-                    } else {
-                        // Not JSON, save as is
-                        s.clone()
-                    };
-                    state.redis_client.set_string(&current_key, &value_to_save).await
+                    // Use JsonValue.to_save() to handle JSON compression
+                    state.redis_client.set_string(&current_key, &s.to_save()).await
                 },
                 EditedValue::Hash(fields) => {
                     // Delete old key and re-create with new fields
@@ -749,8 +823,9 @@ impl AppState {
                     let mut result = Ok(());
                     for (field, value) in fields {
                         if !field.is_empty() {
+                            // Use JsonValue.to_save() to handle JSON compression
                             if let Err(e) =
-                                state.redis_client.hset(&current_key, field, value).await
+                                state.redis_client.hset(&current_key, field, &value.to_save()).await
                             {
                                 result = Err(e);
                                 break;
@@ -763,7 +838,8 @@ impl AppState {
                     let _ = state.redis_client.del_key(&current_key).await;
                     let mut result = Ok(());
                     for item in items {
-                        if let Err(e) = state.redis_client.rpush(&current_key, item).await {
+                        // Use JsonValue.to_save() to handle JSON compression
+                        if let Err(e) = state.redis_client.rpush(&current_key, &item.to_save()).await {
                             result = Err(e);
                             break;
                         }
@@ -774,8 +850,9 @@ impl AppState {
                     let _ = state.redis_client.del_key(&current_key).await;
                     let mut result = Ok(());
                     for item in items {
-                        if !item.is_empty() {
-                            if let Err(e) = state.redis_client.sadd(&current_key, item).await {
+                        if !item.value.is_empty() {
+                            // Use JsonValue.to_save() to handle JSON compression
+                            if let Err(e) = state.redis_client.sadd(&current_key, &item.to_save()).await {
                                 result = Err(e);
                                 break;
                             }
@@ -787,10 +864,11 @@ impl AppState {
                     let _ = state.redis_client.del_key(&current_key).await;
                     let mut result = Ok(());
                     for (member, score_str) in items {
-                        if !member.is_empty() {
+                        if !member.value.is_empty() {
                             let score: f64 = score_str.parse().unwrap_or(0.0);
+                            // Use JsonValue.to_save() to handle JSON compression
                             if let Err(e) =
-                                state.redis_client.zadd(&current_key, score, member).await
+                                state.redis_client.zadd(&current_key, score, &member.to_save()).await
                             {
                                 result = Err(e);
                                 break;
@@ -811,7 +889,9 @@ impl AppState {
                     state.spawn_load_keys();
                 }
                 Err(e) => {
-                    state.edit_state.write().await.save_message = format!("Save failed: {}", e);
+                    let mut edit_state = state.edit_state.write().await;
+                    edit_state.save_message = format!("Save failed: {}", e);
+                    edit_state.saving = false;
                 }
             }
         });

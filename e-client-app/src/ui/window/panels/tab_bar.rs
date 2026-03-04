@@ -63,11 +63,9 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                         switch_to_tab = Some(idx);
                                     }
 
-                                    // Close button - only show if more than one tab
-                                    if app.tabs.len() > 1 {
-                                        if ui.small_button("×").clicked() {
-                                            tab_to_close = Some(idx);
-                                        }
+                                    // Close button - always show
+                                    if ui.small_button("×").clicked() {
+                                        tab_to_close = Some(idx);
                                     }
 
                                     // Menu button (three dots) - show if has connection OR more than 2 tabs
@@ -114,7 +112,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
         app.switch_to_tab(idx);
     }
     if let Some(idx) = tab_to_close {
-        app.close_tab(idx);
+        app.close_tab(idx, ctx);
     }
     if let Some(idx) = close_other_tabs {
         app.close_other_tabs(idx);

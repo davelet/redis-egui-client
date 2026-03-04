@@ -286,47 +286,56 @@ fn render_edit_mode(
     let mut changed = false;
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new("Key:").strong());
-        if ui
-            .add(egui::TextEdit::singleline(&mut edit.edited_key).desired_width(300.0))
-            .changed()
-        {
-            changed = true;
-        }
+        ui.add_enabled(
+            !edit.saving,
+            egui::TextEdit::singleline(&mut edit.edited_key).desired_width(300.0),
+        );
 
-        // Save button
-        if ui
-            .button(
-                egui::RichText::new(tr(keys::SAVE, current_lang))
-                    .color(egui::Color32::from_rgb(50, 180, 50)),
-            )
-            .clicked()
-        {
-            *app.tabs[active_tab_idx].state.edit_state.blocking_write() = edit.clone();
-            app.tabs[active_tab_idx]
-                .state
-                .spawn_save_edits(original_key.to_string());
-            return;
-        }
+        // Save button - disabled when saving
+        ui.add_enabled_ui(!edit.saving, |ui| {
+            if ui
+                .button(
+                    egui::RichText::new(tr(keys::SAVE, current_lang))
+                        .color(egui::Color32::from_rgb(50, 180, 50)),
+                )
+                .clicked()
+            {
+                *app.tabs[active_tab_idx].state.edit_state.blocking_write() = edit.clone();
+                app.tabs[active_tab_idx]
+                    .state
+                    .spawn_save_edits(original_key.to_string());
+            }
+        });
 
-        // Cancel button
-        if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
-            app.tabs[active_tab_idx]
-                .state
-                .edit_state
-                .blocking_write()
-                .cancel_edit();
-            return;
-        }
+        // Cancel button - disabled when saving
+        ui.add_enabled_ui(!edit.saving, |ui| {
+            if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                app.tabs[active_tab_idx]
+                    .state
+                    .edit_state
+                    .blocking_write()
+                    .cancel_edit();
+            }
+        });
 
-        // Delete button
-        if ui
-            .button(egui::RichText::new(tr(keys::DELETE, current_lang)).color(egui::Color32::RED))
-            .clicked()
-        {
-            app.tabs[active_tab_idx]
-                .state
-                .spawn_delete_key(original_key.to_string());
-            return;
+        // Delete button - disabled when saving
+        ui.add_enabled_ui(!edit.saving, |ui| {
+            if ui
+                .button(
+                    egui::RichText::new(tr(keys::DELETE, current_lang)).color(egui::Color32::RED),
+                )
+                .clicked()
+            {
+                app.tabs[active_tab_idx]
+                    .state
+                    .spawn_delete_key(original_key.to_string());
+            }
+        });
+
+        // Show saving indicator
+        if edit.saving {
+            ui.spinner();
+            ui.label(egui::RichText::new("Saving...").color(egui::Color32::YELLOW));
         }
     });
 
@@ -338,6 +347,7 @@ fn render_edit_mode(
     ui.separator();
 
     // Value editing by type
+    let editable = !edit.saving;
     match &mut edit.edited_value {
         EditedValue::String(s) => {
             ui.label(tr(keys::TYPE_STRING, current_lang));
@@ -349,8 +359,12 @@ fn render_edit_mode(
                         .y
                         .max(MIN_CENTRAL_PANEL_HEIGHT)
                         .min(MAX_CENTRAL_PANEL_HEIGHT);
+                    let mut text_edit = egui::TextEdit::multiline(&mut s.value);
+                    if !editable {
+                        text_edit = text_edit.interactive(false);
+                    }
                     if ui
-                        .add_sized([available.x, desired_height], egui::TextEdit::multiline(s))
+                        .add_sized([available.x, desired_height], text_edit)
                         .changed()
                     {
                         changed = true;
@@ -373,27 +387,28 @@ fn render_edit_mode(
                         ui.horizontal(|ui| {
                             // Add delete button with fixed width at the beginning
                             let delete_button_width = 60.0;
-                            ui.add_sized(
-                                [delete_button_width, 24.0],
-                                egui::Button::new(
-                                    egui::RichText::new(tr(keys::DELETE, current_lang))
-                                        .color(egui::Color32::RED),
-                                ),
-                            )
-                            .clicked()
-                            .then(|| {
-                                delete_idx = Some(idx);
+                            ui.add_enabled_ui(editable, |ui| {
+                                ui.add_sized(
+                                    [delete_button_width, 24.0],
+                                    egui::Button::new(
+                                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                                            .color(egui::Color32::RED),
+                                    ),
+                                )
+                                .clicked()
+                                .then(|| {
+                                    delete_idx = Some(idx);
+                                });
                             });
 
                             ui.label(format!("{}.", idx));
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(field)
-                                        .desired_width(150.0)
-                                        .hint_text("field"),
-                                )
-                                .changed()
-                            {
+                            let mut field_edit = egui::TextEdit::singleline(field)
+                                .desired_width(150.0)
+                                .hint_text("field");
+                            if !editable {
+                                field_edit = field_edit.interactive(false);
+                            }
+                            if ui.add(field_edit).changed() {
                                 changed = true;
                             }
                             ui.label(":");
@@ -401,28 +416,32 @@ fn render_edit_mode(
                             let available_for_value =
                                 ui.ctx().available_rect().width() - delete_button_width;
 
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(value)
-                                        .desired_width(available_for_value)
-                                        .hint_text("value"),
-                                )
-                                .changed()
-                            {
+                            let mut value_edit = egui::TextEdit::singleline(&mut value.value)
+                                .desired_width(available_for_value)
+                                .hint_text("value");
+                            if !editable {
+                                value_edit = value_edit.interactive(false);
+                            }
+                            if ui.add(value_edit).changed() {
                                 changed = true;
                             }
                         });
                     }
 
-                    if ui.button(tr(keys::ADD_FIELD, current_lang)).clicked() {
-                        fields.push((String::new(), String::new()));
-                        changed = true;
-                    }
+                    ui.add_enabled_ui(editable, |ui| {
+                        if ui.button(tr(keys::ADD_FIELD, current_lang)).clicked() {
+                            use crate::core::app_state::JsonValue;
+                            fields.push((String::new(), JsonValue::new("")));
+                            changed = true;
+                        }
+                    });
                 });
 
-            if let Some(idx) = delete_idx {
-                fields.remove(idx);
-                changed = true;
+            if editable {
+                if let Some(idx) = delete_idx {
+                    fields.remove(idx);
+                    changed = true;
+                }
             }
         }
         EditedValue::List(items) => {
@@ -441,16 +460,18 @@ fn render_edit_mode(
                         ui.horizontal(|ui| {
                             // Add delete button with fixed width at the beginning
                             let delete_button_width = 60.0;
-                            ui.add_sized(
-                                [delete_button_width, 24.0],
-                                egui::Button::new(
-                                    egui::RichText::new(tr(keys::DELETE, current_lang))
-                                        .color(egui::Color32::RED),
-                                ),
-                            )
-                            .clicked()
-                            .then(|| {
-                                delete_idx = Some(idx);
+                            ui.add_enabled_ui(editable, |ui| {
+                                ui.add_sized(
+                                    [delete_button_width, 24.0],
+                                    egui::Button::new(
+                                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                                            .color(egui::Color32::RED),
+                                    ),
+                                )
+                                .clicked()
+                                .then(|| {
+                                    delete_idx = Some(idx);
+                                });
                             });
 
                             ui.label(format!("[{}]", idx));
@@ -458,27 +479,31 @@ fn render_edit_mode(
                             let available_for_value =
                                 ui.ctx().available_rect().width() - delete_button_width;
 
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(item)
-                                        .desired_width(available_for_value),
-                                )
-                                .changed()
-                            {
+                            let mut item_edit = egui::TextEdit::singleline(&mut item.value)
+                                .desired_width(available_for_value);
+                            if !editable {
+                                item_edit = item_edit.interactive(false);
+                            }
+                            if ui.add(item_edit).changed() {
                                 changed = true;
                             }
                         });
                     }
 
-                    if ui.button(tr(keys::ADD_ITEM, current_lang)).clicked() {
-                        items.push(String::new());
-                        changed = true;
-                    }
+                    ui.add_enabled_ui(editable, |ui| {
+                        if ui.button(tr(keys::ADD_ITEM, current_lang)).clicked() {
+                            use crate::core::app_state::JsonValue;
+                            items.push(JsonValue::new(""));
+                            changed = true;
+                        }
+                    });
                 });
 
-            if let Some(idx) = delete_idx {
-                items.remove(idx);
-                changed = true;
+            if editable {
+                if let Some(idx) = delete_idx {
+                    items.remove(idx);
+                    changed = true;
+                }
             }
         }
         EditedValue::Set(items) => {
@@ -497,16 +522,18 @@ fn render_edit_mode(
                         ui.horizontal(|ui| {
                             // Add delete button with fixed width at the beginning
                             let delete_button_width = 60.0;
-                            ui.add_sized(
-                                [delete_button_width, 24.0],
-                                egui::Button::new(
-                                    egui::RichText::new(tr(keys::DELETE, current_lang))
-                                        .color(egui::Color32::RED),
-                                ),
-                            )
-                            .clicked()
-                            .then(|| {
-                                delete_idx = Some(idx);
+                            ui.add_enabled_ui(editable, |ui| {
+                                ui.add_sized(
+                                    [delete_button_width, 24.0],
+                                    egui::Button::new(
+                                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                                            .color(egui::Color32::RED),
+                                    ),
+                                )
+                                .clicked()
+                                .then(|| {
+                                    delete_idx = Some(idx);
+                                });
                             });
 
                             ui.label(format!("{}.", idx));
@@ -514,27 +541,31 @@ fn render_edit_mode(
                             let available_for_value =
                                 ui.ctx().available_rect().width() - delete_button_width;
 
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(item)
-                                        .desired_width(available_for_value),
-                                )
-                                .changed()
-                            {
+                            let mut item_edit = egui::TextEdit::singleline(&mut item.value)
+                                .desired_width(available_for_value);
+                            if !editable {
+                                item_edit = item_edit.interactive(false);
+                            }
+                            if ui.add(item_edit).changed() {
                                 changed = true;
                             }
                         });
                     }
 
-                    if ui.button("+ Add Member").clicked() {
-                        items.push(String::new());
-                        changed = true;
-                    }
+                    ui.add_enabled_ui(editable, |ui| {
+                        if ui.button("+ Add Member").clicked() {
+                            use crate::core::app_state::JsonValue;
+                            items.push(JsonValue::new(""));
+                            changed = true;
+                        }
+                    });
                 });
 
-            if let Some(idx) = delete_idx {
-                items.remove(idx);
-                changed = true;
+            if editable {
+                if let Some(idx) = delete_idx {
+                    items.remove(idx);
+                    changed = true;
+                }
             }
         }
         EditedValue::ZSet(items) => {
@@ -553,28 +584,29 @@ fn render_edit_mode(
                         ui.horizontal(|ui| {
                             // Add delete button with fixed width at the beginning
                             let delete_button_width = 60.0;
-                            ui.add_sized(
-                                [delete_button_width, 24.0],
-                                egui::Button::new(
-                                    egui::RichText::new(tr(keys::DELETE, current_lang))
-                                        .color(egui::Color32::RED),
-                                ),
-                            )
-                            .clicked()
-                            .then(|| {
-                                delete_idx = Some(idx);
+                            ui.add_enabled_ui(editable, |ui| {
+                                ui.add_sized(
+                                    [delete_button_width, 24.0],
+                                    egui::Button::new(
+                                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                                            .color(egui::Color32::RED),
+                                    ),
+                                )
+                                .clicked()
+                                .then(|| {
+                                    delete_idx = Some(idx);
+                                });
                             });
 
                             ui.label(format!("{}.", idx));
                             ui.label("score:");
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(score)
-                                        .desired_width(80.0)
-                                        .hint_text("0.0"),
-                                )
-                                .changed()
-                            {
+                            let mut score_edit = egui::TextEdit::singleline(score)
+                                .desired_width(80.0)
+                                .hint_text("0.0");
+                            if !editable {
+                                score_edit = score_edit.interactive(false);
+                            }
+                            if ui.add(score_edit).changed() {
                                 changed = true;
                             }
                             ui.label("member:");
@@ -582,27 +614,31 @@ fn render_edit_mode(
                             let available_for_value =
                                 ui.ctx().available_rect().width() - delete_button_width;
 
-                            if ui
-                                .add(
-                                    egui::TextEdit::singleline(member)
-                                        .desired_width(available_for_value),
-                                )
-                                .changed()
-                            {
+                            let mut member_edit = egui::TextEdit::singleline(&mut member.value)
+                                .desired_width(available_for_value);
+                            if !editable {
+                                member_edit = member_edit.interactive(false);
+                            }
+                            if ui.add(member_edit).changed() {
                                 changed = true;
                             }
                         });
                     }
 
-                    if ui.button("+ Add Member").clicked() {
-                        items.push((String::new(), "0".to_string()));
-                        changed = true;
-                    }
+                    ui.add_enabled_ui(editable, |ui| {
+                        if ui.button("+ Add Member").clicked() {
+                            use crate::core::app_state::JsonValue;
+                            items.push((JsonValue::new(""), "0".to_string()));
+                            changed = true;
+                        }
+                    });
                 });
 
-            if let Some(idx) = delete_idx {
-                items.remove(idx);
-                changed = true;
+            if editable {
+                if let Some(idx) = delete_idx {
+                    items.remove(idx);
+                    changed = true;
+                }
             }
         }
         EditedValue::None => {
@@ -1035,7 +1071,7 @@ fn render_welcome_page(
 
         // Welcome message
         ui.label(egui::RichText::new(tr(keys::WELCOME_MESSAGE, current_lang)).size(16.0));
-        ui.add_space(40.0);
+        ui.add_space(30.0);
 
         // Get started button
         if ui
@@ -1049,7 +1085,7 @@ fn render_welcome_page(
             app.new_connection.show = true;
         }
 
-        ui.add_space(20.0);
+        ui.add_space(10.0);
 
         // Instructions
         ui.label(
@@ -1058,63 +1094,114 @@ fn render_welcome_page(
                 .size(14.0),
         );
 
-        // Show open connections section if there are any
-        if show_open_connections {
+        // Connection list section
+        let connections: Vec<_> = app.config.connections.connections.iter().cloned().collect();
+        let open_conn_names: Vec<_> = app.config.window.open_connections.connection_names.clone();
+
+        if !connections.is_empty() {
             ui.add_space(40.0);
             ui.separator();
             ui.add_space(20.0);
 
-            // Open connections prompt
-            ui.label(
-                egui::RichText::new(tr(keys::OPEN_CONNECTIONS_PROMPT_MESSAGE, current_lang))
-                    .size(16.0),
-            );
+            // Section title
+            ui.heading(egui::RichText::new(tr(keys::SAVED_CONNECTIONS, current_lang)).size(20.0));
             ui.add_space(10.0);
 
-            // Get open connections
-            let open_conn_names: Vec<_> =
-                app.config.window.open_connections.connection_names.clone();
-            let connections: Vec<_> = app.config.connections.connections.iter().cloned().collect();
+            // Show open connections prompt and Connect All button if there are any
+            if show_open_connections && !open_conn_names.is_empty() {
+                ui.label(
+                    egui::RichText::new(tr(keys::OPEN_CONNECTIONS_PROMPT_MESSAGE, current_lang))
+                        .size(12.0)
+                        .color(egui::Color32::BLUE),
+                );
+                ui.add_space(10.0);
 
-            // List open connections
-            for conn_name in &open_conn_names {
-                ui.horizontal(|ui| {
-                    ui.label(conn_name);
-                    if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
-                        // Find the connection in the connections list
+                // Connect All button
+                if ui.button(tr(keys::CONNECT_ALL, current_lang)).clicked() {
+                    for conn_name in &open_conn_names {
                         if let Some(conn_idx) =
                             connections.iter().position(|c| &c.name == conn_name)
                         {
                             let conn = connections[conn_idx].clone();
                             app.create_tab_with_connection(conn_idx, conn);
-                            app.show_open_connections_prompt = false;
-                            app.config.clear_open_connections();
                         }
                     }
-                });
+                    app.show_open_connections_prompt = false;
+                }
+                ui.add_space(10.0);
             }
 
-            ui.add_space(10.0);
+            // Connection table
+            let available_width = ui.available_width();
+            let table_width = available_width.min(600.0).max(400.0);
 
-            // Connect All button
-            if ui.button(tr(keys::CONNECT_ALL, current_lang)).clicked() {
-                for conn_name in &open_conn_names {
-                    if let Some(conn_idx) = connections.iter().position(|c| &c.name == conn_name) {
-                        let conn = connections[conn_idx].clone();
-                        app.create_tab_with_connection(conn_idx, conn);
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.set_width(table_width);
+
+                // Table header
+                ui.horizontal(|ui| {
+                    ui.set_width(table_width);
+                    ui.colored_label(egui::Color32::GRAY, tr(keys::CONNECTION_NAME, current_lang));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.colored_label(egui::Color32::GRAY, tr(keys::ACTION, current_lang));
+                    });
+                });
+                ui.separator();
+
+                // Table rows
+                for (idx, conn) in connections.iter().enumerate() {
+                    let is_open = open_conn_names.contains(&conn.name);
+
+                    ui.horizontal(|ui| {
+                        ui.set_width(table_width);
+
+                        // Color indicator and name
+                        ui.horizontal(|ui| {
+                            if let Some(color_hex) = &conn.color {
+                                if let Some(color) = parse_color_hex(color_hex) {
+                                    ui.colored_label(color, "●");
+                                }
+                            }
+
+                            let name_text = if is_open {
+                                egui::RichText::new(&conn.name)
+                                    .color(egui::Color32::BLUE)
+                                    .strong()
+                            } else {
+                                egui::RichText::new(&conn.name)
+                            };
+                            ui.label(name_text);
+                        });
+
+                        // Action buttons
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
+                                app.create_tab_with_connection(idx, conn.clone());
+                            }
+                        });
+                    });
+
+                    if idx < connections.len() - 1 {
+                        ui.separator();
                     }
                 }
-                app.show_open_connections_prompt = false;
-                app.config.clear_open_connections();
-            }
-
-            // Close button
-            if ui.button(tr(keys::CLOSE, current_lang)).clicked() {
-                app.show_open_connections_prompt = false;
-                app.config.clear_open_connections();
-            }
+            });
         }
     });
+}
+
+/// Parse hex color string (#RRGGBB) to egui Color32
+fn parse_color_hex(hex: &str) -> Option<egui::Color32> {
+    let hex = hex.trim_start_matches('#');
+    if hex.len() != 6 {
+        return None;
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+
+    Some(egui::Color32::from_rgb(r, g, b))
 }
 
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {

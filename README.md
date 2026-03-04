@@ -1,115 +1,190 @@
-# Redis egui Client
+# Rudist - Redis GUI Client
 
-基于 egui 的 macOS Redis 客户端,采用异步 IO 和 lazy loading 优化性能。
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/davelet/redis-egui-client)
+[![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 
-## 功能特性
+[English](README.md) | [中文](README.zh-CN.md)
 
-- ✅ redis 客户端
-- ✅ 全键盘操作，脱离鼠标手
-- ✅ 多 Tab 支持，可同时打开多个连接
-- ✅ 连接颜色标识，快速区分不同环境
+A modern, high-performance Redis GUI client built with Rust and egui, supporting cross-platform (macOS, Windows, Linux).
 
-## 编译与运行
+## Core Features
 
-### 开发模式
+### Multi-Connection Management
+- **Multi-Tab Support** - Open multiple Redis connections simultaneously, switch between tabs quickly
+- **Connection Color Coding** - Assign different colors to different environments (dev/test/prod) for instant visual distinction
+- **Persistent Configuration** - Connection settings are automatically saved and available on next launch
+- **Connect All** - Quickly restore all previously opened connections
+
+### Data Browsing & Editing
+- **Full Type Support** - Complete support for String, List, Hash, Set, ZSet
+- **Smart JSON Handling** - Auto-format JSON data for friendly editing, intelligent compression on save
+- **Lazy Loading** - Smooth browsing with large datasets, load keys and values on demand
+- **Real-time Filtering** - Key list supports real-time search and filtering
+
+### Efficient Operations
+- **Keyboard-First** - Shortcut support reduces mouse usage and improves efficiency
+- **Command Line Mode** - Execute any Redis command directly
+- **TTL Management** - Conveniently view and modify key expiration times
+- **Data Operations** - Support copy, delete, rename, and other common operations
+
+### Performance Optimization
+- **Async I/O** - Tokio-based asynchronous architecture, operations never block
+- **Incremental Loading** - Batch loading for large key sets, UI remains responsive
+- **Memory Optimization** - Large values loaded on demand, prevents memory spikes
+
+### Cross-Platform Support
+- **macOS** - Native App Bundle support, both Apple Silicon and Intel
+- **Windows** - MSI installer with system PATH integration
+- **Linux** - Standalone executable
+
+## UI Preview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Tab 1] [Tab 2] [+ Tab]                    [Connect] [Settings]│
+├──────────┬──────────────────────────────────────────────────┤
+│          │  Key: user:12345                    [Save] [Delete]│
+│  Keys    │  TTL: 3600s                                       │
+│  ─────── │                                                   │
+│  user:*  │  Type: Hash                                       │
+│  session:│  ┌─────────┬─────────────────────────────────────┐│
+│  cache:  │  │  field  │  value                              ││
+│          │  ├─────────┼─────────────────────────────────────┤│
+│          │  │  name   │  "John Doe"                         ││
+│          │  │  email  │  {                                  ││
+│          │  │         │    "type": "work",                  ││
+│          │  │         │    "address": "john@example.com"    ││
+│          │  │         │  }                                  ││
+│          │  └─────────┴─────────────────────────────────────┘│
+│          │                                                   │
+│          │  > EXECUTE REDIS COMMAND                          │
+└──────────┴──────────────────────────────────────────────────┘
+```
+
+## Quick Start
+
+### Installation
+
+#### macOS
+```bash
+# Using Homebrew (coming soon)
+brew install rudist
+
+# Or download the dmg installer
+```
+
+#### Windows
+Download and run the `.msi` installer.
+
+#### Linux
+```bash
+cargo install rudist
+```
+
+### Build from Source
 
 ```bash
+# Clone the repository
+git clone https://github.com/davelet/redis-egui-client.git
+cd redis-egui-client
+
+# Run in development mode
 cargo run
+
+# Release build
+cargo build --release
 ```
 
-### 开发 & Git hooks
-
-项目包含一个 pre-commit hook，用于在提交前自动运行格式化。要启用仓库内的 hooks（只需在本地运行一次）：
+### macOS App Bundle Build
 
 ```bash
-sh scripts/setup-git-hooks.sh
-# 之后每次 git commit 时会自动运行 `cargo fmt --all`，并将格式化改动暂存
-```
-
-如果你更喜欢手动运行格式化：
-
-```bash
-cargo fmt --all
-```
-
-### macOS App Bundle
-
-To build a macOS `.app` bundle and installer packages use `cargo-bundle`.
-
-1. Install the packaging tool:
-
-```bash
+# Install cargo-bundle
 cargo install cargo-bundle
-```
 
-2. Build a macOS app (local host arch):
-
-```bash
+# Build macOS app
 ./scripts/build-macos.sh
 ```
 
-3. Build for specific architectures (optional):
+## Usage Guide
 
-```bash
-# Apple Silicon
-cargo bundle --release --target aarch64-apple-darwin
+### Creating a Connection
+1. Click the dropdown at the top and select "+ New"
+2. Fill in connection details (name, host, port, password, etc.)
+3. Choose a connection color to distinguish environments
+4. Click save, connection config will be persisted locally
 
-# Intel
-cargo bundle --release --target x86_64-apple-darwin
+### Managing Data
+- **Browse Keys** - Left panel shows all keys, supports `*` wildcard filtering
+- **View Values** - Click a key to see detailed content on the right
+- **Edit Data** - Double-click a value or click edit button, JSON data auto-formats
+- **Execute Commands** - Enter any Redis command in the bottom command line, press Enter to execute
+
+### Keyboard Shortcuts
+| Shortcut | Function |
+|----------|----------|
+| `Cmd/Ctrl + T` | New Tab |
+| `Cmd/Ctrl + W` | Close current Tab |
+| `Cmd/Ctrl + R` | Refresh current Key |
+| `Cmd/Ctrl + F` | Focus to Key filter box |
+| `Enter` | Execute command |
+
+## Configuration
+
+Configuration file locations:
+- **macOS/Linux**: `~/.config/rudist/config.toml`
+- **Windows**: `%APPDATA%\rudist\config.toml`
+
+Example configuration:
+```toml
+[[connections]]
+name = "Local Dev"
+host = "localhost"
+port = 6379
+password = ""
+database = 0
+color = "#4CAF50"
+
+[[connections]]
+name = "Production"
+host = "redis.example.com"
+port = 6380
+password = "secret"
+database = 0
+color = "#F44336"
 ```
 
-4. The generated bundles and installers will be in `./dist/`.
+## Tech Stack
 
-Notes:
-- To distribute on the App Store or notarize, you must code sign and notarize the packages using your Apple Developer account.
-- Provide a proper `assets/icon.icns` file to set the app icon and update `identifier` in `Cargo.toml`.
+- **Rust 2024 Edition** - Systems-level performance, memory safety
+- **egui + eframe** - Immediate mode GUI, smooth response
+- **Tokio** - Async runtime, efficient I/O
+- **redis-rs** - Redis client library
+- **serde_json** - JSON data processing
 
-Alternative: simple manual bundle
+## Contributing
 
-If you prefer a minimal manual bundling step (no extra tools), build the release binary and run:
-
-```bash
-cargo build --release
-./scripts/make-macos-app.sh
-```
-
-This will create `RedisGUI.app` in the workspace root; it does not perform codesigning or notarization.
-
-Generating a default app icon
-
-Note: `cargo-bundle` reads the icon path from `Cargo.toml` (`package.metadata.bundle.icon = "assets/icon.icns"`). The manual bundler (`scripts/make-macos-app.sh`) copies any `assets/icon.icns` into the app as `AppIcon.icns` (this matches the `CFBundleIconFile` used in the generated `Info.plist`).
-
-A simple placeholder vector icon is included at `assets/icon.svg`. To generate `assets/icon.icns` from the SVG (required by `cargo-bundle` and the manual bundler), run:
+Issues and PRs are welcome!
 
 ```bash
-./scripts/generate-icon.sh
+# Setup Git hooks
+sh scripts/setup-git-hooks.sh
+
+# Code formatting
+cargo fmt --all
+
+# Run tests
+cargo test
 ```
 
-This script uses either `rsvg-convert` or ImageMagick's `convert` to rasterize the SVG, then uses macOS `sips` and `iconutil` to produce `assets/icon.icns`.
+## License
 
-## 配置文件
+Apache License 2.0 - See [LICENSE](LICENSE) file for details
 
-连接配置存储在: `~/.config/rudist/config.toml`
+## Author
 
-首次启动会自动创建默认配置文件。
+Sheldon.Wei <sheldon.sh.hb@gmail.com>
 
-## 使用说明
+---
 
-### 多 Tab 管理
-- 顶部 Tab 栏显示所有打开的连接
-- 点击 "+ Tab" 创建新的空白 Tab
-- 点击 Tab 上的 "✕" 关闭 Tab（自动断开连接）
-- 最后一个 Tab 不能关闭
-- Tab 显示：彩色圆点 ● = 连接颜色，🟢 = 已连接状态
-
-### 连接操作
-1. 在顶部下拉框选择已保存的连接
-2. 点击 "+ 新建" 可添加新连接并保存到配置文件
-   - 可为每个连接设置颜色，便于区分不同环境（如开发/测试/生产）
-   - 连接颜色会在界面顶部和下拉列表中显示为彩色圆点 ●
-3. 点击"连接"按钮在当前 Tab 中建立连接
-4. 点击 "📑 新建连接" 在新 Tab 中打开所选连接（快速创建多连接）
-5. 使用数据库下拉菜单切换 DB
-6. 左侧面板可过滤和选择 Key
-7. 右侧面板显示 Key 的值
-8. 顶部命令行可执行任意 Redis 命令
+⭐ If this project helps you, please give it a Star!

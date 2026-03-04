@@ -92,6 +92,8 @@ pub mod keys {
     pub const OPEN_CONNECTIONS_PROMPT_TITLE: &str = "open_connections_prompt_title";
     pub const OPEN_CONNECTIONS_PROMPT_MESSAGE: &str = "open_connections_prompt_message";
     pub const CONNECT_ALL: &str = "connect_all";
+    pub const SAVED_CONNECTIONS: &str = "saved_connections";
+    pub const ACTION: &str = "action";
 }
 
 impl Default for Translator {
@@ -636,11 +638,11 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(
                 Language::English,
-                "The following connections were not closed in the last session. Click 'Connect All' to reconnect or connect individually:",
+                "The following coloured connections were not closed in the last session. Click 'Connect All' to reconnect",
             );
             m.insert(
                 Language::Chinese,
-                "以下连接在上一次会话中未关闭。点击'全部连接'重新连接，或单独连接：",
+                "这种颜色的连接在上一次会话中未关闭。点击'全部连接'可重新连接",
             );
             m
         });
@@ -649,6 +651,20 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Connect All");
             m.insert(Language::Chinese, "全部连接");
+            m
+        });
+
+        strings.insert(keys::SAVED_CONNECTIONS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Saved Connections");
+            m.insert(Language::Chinese, "已保存的连接");
+            m
+        });
+
+        strings.insert(keys::ACTION, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Action");
+            m.insert(Language::Chinese, "操作");
             m
         });
 
