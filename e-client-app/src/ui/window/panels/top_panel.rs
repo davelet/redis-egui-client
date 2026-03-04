@@ -6,6 +6,65 @@ use e_client_config::language::Language;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
 
+/// All supported keyboard keys for shortcuts
+pub const SUPPORTED_KEYS: [egui::Key; 51] = [
+    egui::Key::A,
+    egui::Key::B,
+    egui::Key::C,
+    egui::Key::D,
+    egui::Key::E,
+    egui::Key::F,
+    egui::Key::G,
+    egui::Key::H,
+    egui::Key::I,
+    egui::Key::J,
+    egui::Key::K,
+    egui::Key::L,
+    egui::Key::M,
+    egui::Key::N,
+    egui::Key::O,
+    egui::Key::P,
+    egui::Key::Q,
+    egui::Key::R,
+    egui::Key::S,
+    egui::Key::T,
+    egui::Key::U,
+    egui::Key::V,
+    egui::Key::W,
+    egui::Key::X,
+    egui::Key::Y,
+    egui::Key::Z,
+    egui::Key::Num0,
+    egui::Key::Num1,
+    egui::Key::Num2,
+    egui::Key::Num3,
+    egui::Key::Num4,
+    egui::Key::Num5,
+    egui::Key::Num6,
+    egui::Key::Num7,
+    egui::Key::Num8,
+    egui::Key::Num9,
+    egui::Key::F1,
+    egui::Key::F2,
+    egui::Key::F3,
+    egui::Key::F4,
+    egui::Key::F5,
+    egui::Key::F6,
+    egui::Key::F7,
+    egui::Key::F8,
+    egui::Key::F9,
+    egui::Key::F10,
+    egui::Key::F11,
+    egui::Key::F12,
+    egui::Key::Comma,
+    egui::Key::Period,
+    egui::Key::Semicolon,
+];
+
+/// Settings window dimensions
+const SETTINGS_WINDOW_WIDTH: f32 = 450.0;
+const SETTINGS_WINDOW_HEIGHT: f32 = 300.0;
+
 /// Parse action key string to ShortcutAction enum
 fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
     match key {
@@ -305,10 +364,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
         }
 
         // Position window at top-right corner with some margin
-        let screen_rect = ctx.screen_rect();
-        let window_width = 450.0;
+        let screen_rect = ctx
+            .input(|i| i.viewport().outer_rect)
+            .unwrap_or(egui::Rect::ZERO);
         let top_right = egui::pos2(
-            screen_rect.max.x - window_width - 20.0,
+            screen_rect.max.x - SETTINGS_WINDOW_WIDTH - 20.0,
             screen_rect.min.y + 40.0,
         );
 
@@ -316,7 +376,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             .collapsible(false)
             .resizable(false)
             .default_pos(top_right)
-            .fixed_size([450.0, 300.0])
+            .fixed_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
             .show(ctx, |ui| {
                 egui::Grid::new("settings_grid")
                     .num_columns(2)
@@ -426,63 +486,12 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
 
                         let modifiers = i.modifiers;
-                        for key in [
-                            egui::Key::A,
-                            egui::Key::B,
-                            egui::Key::C,
-                            egui::Key::D,
-                            egui::Key::E,
-                            egui::Key::F,
-                            egui::Key::G,
-                            egui::Key::H,
-                            egui::Key::I,
-                            egui::Key::J,
-                            egui::Key::K,
-                            egui::Key::L,
-                            egui::Key::M,
-                            egui::Key::N,
-                            egui::Key::O,
-                            egui::Key::P,
-                            egui::Key::Q,
-                            egui::Key::R,
-                            egui::Key::S,
-                            egui::Key::T,
-                            egui::Key::U,
-                            egui::Key::V,
-                            egui::Key::W,
-                            egui::Key::X,
-                            egui::Key::Y,
-                            egui::Key::Z,
-                            egui::Key::Num0,
-                            egui::Key::Num1,
-                            egui::Key::Num2,
-                            egui::Key::Num3,
-                            egui::Key::Num4,
-                            egui::Key::Num5,
-                            egui::Key::Num6,
-                            egui::Key::Num7,
-                            egui::Key::Num8,
-                            egui::Key::Num9,
-                            egui::Key::F1,
-                            egui::Key::F2,
-                            egui::Key::F3,
-                            egui::Key::F4,
-                            egui::Key::F5,
-                            egui::Key::F6,
-                            egui::Key::F7,
-                            egui::Key::F8,
-                            egui::Key::F9,
-                            egui::Key::F10,
-                            egui::Key::F11,
-                            egui::Key::F12,
-                            egui::Key::Comma,
-                            egui::Key::Period,
-                            egui::Key::Semicolon,
-                        ] {
+                        for key in SUPPORTED_KEYS {
                             if i.key_pressed(key) {
                                 let mut parts = Vec::new();
-                                // On macOS, use "Cmd" for command key, "Ctrl" for control key
-                                // On other platforms, use "Ctrl" for both ctrl and command
+                                // Platform-specific modifier key handling:
+                                // - macOS: "Cmd" for Command key, "Ctrl" for Control key
+                                // - Other: "Ctrl" for both Ctrl and Command (they're unified)
                                 if cfg!(target_os = "macos") {
                                     if modifiers.command {
                                         parts.push("Cmd".to_string());

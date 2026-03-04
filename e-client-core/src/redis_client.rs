@@ -1,12 +1,12 @@
 use e_client_basics::constants::{CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT};
 use e_client_config::connection::RedisConnectionConfig;
 use redis::aio::ConnectionManagerConfig;
-use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
+use redis::{aio::ConnectionManager, AsyncCommands, Client, RedisError};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
-#[derive(Clone, Debug)] // with instrument
+#[derive(Clone, Debug)]
 pub struct RedisClient {
     manager: Arc<RwLock<Option<ConnectionManager>>>,
 }
@@ -80,7 +80,6 @@ impl RedisClient {
                     Ok((0..db_count).collect())
                 }
                 Err(_) => Ok((0..DEFAULT_DATABASE_COUNT).collect()),
-                // Default to DEFAULT_DATABASE_COUNT databases if CONFIG fails
             }
         } else {
             Ok(vec![])
@@ -104,7 +103,6 @@ impl RedisClient {
     ) -> Result<(u64, Vec<String>), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            // Use Vec<Vec<u8>> to handle both UTF-8 and binary keys
             let (new_cursor, keys_bytes): (u64, Vec<Vec<u8>>) = redis::cmd("SCAN")
                 .arg(cursor)
                 .arg("MATCH")
@@ -114,13 +112,11 @@ impl RedisClient {
                 .query_async(conn)
                 .await?;
 
-            // Convert bytes to strings, skipping any that can't be converted to UTF-8
             let mut string_keys = Vec::new();
             for key_bytes in keys_bytes {
                 if let Ok(key_str) = String::from_utf8(key_bytes) {
                     string_keys.push(key_str);
                 }
-                // Skip keys that can't be converted to UTF-8
             }
 
             Ok((new_cursor, string_keys))
@@ -280,7 +276,6 @@ impl RedisClient {
     }
 }
 
-// Write operations
 impl RedisClient {
     pub async fn rename_key_nx(&self, old_key: &str, new_key: &str) -> Result<bool, RedisError> {
         let mut manager = self.manager.write().await;

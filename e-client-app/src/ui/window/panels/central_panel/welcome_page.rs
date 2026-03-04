@@ -1,0 +1,204 @@
+use crate::ui::window::RedisApp;
+use e_client_config::config::Config;
+use e_client_config::language::Language;
+use e_client_config::translations::{keys, tr};
+
+use super::utils::parse_color_hex;
+
+/// Render welcome page
+pub fn render_welcome_page(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    _ctx: &egui::Context,
+    current_lang: Language,
+    show_open_connections: bool,
+) {
+    ui.vertical_centered(|ui| {
+        ui.add_space(50.0);
+
+        // Welcome title
+        ui.heading(egui::RichText::new(tr(keys::WELCOME_TITLE, current_lang)).size(32.0));
+        ui.add_space(20.0);
+
+        // Welcome message
+        ui.label(egui::RichText::new(tr(keys::WELCOME_MESSAGE, current_lang)).size(16.0));
+        ui.add_space(30.0);
+
+        // Get started button
+        render_new_connection_button(app, ui, current_lang);
+
+        ui.add_space(10.0);
+
+        // Instructions
+        ui.label(
+            egui::RichText::new(tr(keys::WELCOME_INSTRUCTION, current_lang))
+                .weak()
+                .size(14.0),
+        );
+
+        // Connection list section
+        render_saved_connections(app, ui, current_lang, show_open_connections);
+    });
+}
+
+/// Render new connection button
+fn render_new_connection_button(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
+    if ui
+        .button(
+            egui::RichText::new(tr(keys::NEW_CONNECTION, current_lang))
+                .size(18.0)
+                .color(egui::Color32::WHITE),
+        )
+        .clicked()
+    {
+        app.new_connection.show = true;
+    }
+}
+
+/// Render saved connections list
+fn render_saved_connections(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    show_open_connections: bool,
+) {
+    let connections: Vec<_> = app.config.connections.connections.iter().cloned().collect();
+    let open_conn_names: Vec<_> = app.config.window.open_connections.connection_names.clone();
+
+    if connections.is_empty() {
+        return;
+    }
+
+    ui.add_space(40.0);
+    ui.separator();
+    ui.add_space(20.0);
+
+    // Section title
+    ui.heading(egui::RichText::new(tr(keys::SAVED_CONNECTIONS, current_lang)).size(20.0));
+    ui.add_space(10.0);
+
+    // Show open connections prompt and Connect All button if there are any
+    if show_open_connections && !open_conn_names.is_empty() {
+        render_open_connections_prompt(app, ui, current_lang, &open_conn_names, &connections);
+    }
+
+    // Connection table
+    render_connection_table(app, ui, current_lang, &connections, &open_conn_names);
+}
+
+/// Render open connections prompt
+fn render_open_connections_prompt(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    open_conn_names: &[String],
+    connections: &Vec<e_client_config::connection::RedisConnectionConfig>,
+) {
+    ui.label(
+        egui::RichText::new(tr(keys::OPEN_CONNECTIONS_PROMPT_MESSAGE, current_lang))
+            .size(12.0)
+            .color(egui::Color32::BLUE),
+    );
+    ui.add_space(10.0);
+
+    // Connect All button
+    if ui.button(tr(keys::CONNECT_ALL, current_lang)).clicked() {
+        for conn_name in open_conn_names {
+            if let Some(conn_idx) = connections.iter().position(|c| &c.name == conn_name) {
+                let conn = connections[conn_idx].clone();
+                app.create_tab_with_connection(conn_idx, conn);
+            }
+        }
+        app.show_open_connections_prompt = false;
+    }
+    ui.add_space(10.0);
+}
+
+/// Render connection table
+fn render_connection_table(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    connections: &[e_client_config::connection::RedisConnectionConfig],
+    open_conn_names: &[String],
+) {
+    let available_width = ui.available_width();
+    let table_width = available_width.min(600.0).max(400.0);
+
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.set_width(table_width);
+
+        // Table header
+        ui.horizontal(|ui| {
+            ui.set_width(table_width);
+            ui.colored_label(egui::Color32::GRAY, tr(keys::CONNECTION_NAME, current_lang));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.colored_label(egui::Color32::GRAY, tr(keys::ACTION, current_lang));
+            });
+        });
+        ui.separator();
+
+        // Table rows
+        for (idx, conn) in connections.iter().enumerate() {
+            let is_open = open_conn_names.contains(&conn.name);
+            render_connection_row(app, ui, current_lang, idx, conn, is_open, table_width);
+
+            if idx < connections.len() - 1 {
+                ui.separator();
+            }
+        }
+    });
+}
+
+/// Render single connection row
+fn render_connection_row(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    idx: usize,
+    conn: &e_client_config::connection::RedisConnectionConfig,
+    is_open: bool,
+    table_width: f32,
+) {
+    ui.horizontal(|ui| {
+        ui.set_width(table_width);
+
+        // Color indicator and name
+        ui.horizontal(|ui| {
+            render_color_indicator(ui, &conn.color);
+            render_connection_name(ui, conn, is_open);
+        });
+
+        // Action buttons
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
+                app.create_tab_with_connection(idx, conn.clone());
+            }
+        });
+    });
+}
+
+/// Render color indicator
+fn render_color_indicator(ui: &mut egui::Ui, color: &Option<String>) {
+    if let Some(color_hex) = color {
+        if let Some(color) = parse_color_hex(color_hex) {
+            ui.colored_label(color, "●");
+        }
+    }
+}
+
+/// Render connection name
+fn render_connection_name(
+    ui: &mut egui::Ui,
+    conn: &e_client_config::connection::RedisConnectionConfig,
+    is_open: bool,
+) {
+    let name_text = if is_open {
+        egui::RichText::new(&conn.name)
+            .color(egui::Color32::BLUE)
+            .strong()
+    } else {
+        egui::RichText::new(&conn.name)
+    };
+    ui.label(name_text);
+}

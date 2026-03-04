@@ -661,11 +661,11 @@ version = "0.3.1"
 dependencies = [
  "e-client-basics",
  "e-client-config",
+ "e-client-core",
  "eframe",
  "egui",
  "egui_extras",
  "image",
- "redis",
  "serde_json",
  "tokio",
  "tracing",
@@ -695,6 +695,18 @@ dependencies = [
  "redis",
  "serde",
  "toml",
+]
+
+[[package]]
+name = "e-client-core"
+version = "0.1.0"
+dependencies = [
+ "e-client-basics",
+ "e-client-config",
+ "redis",
+ "serde_json",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -2,7 +2,8 @@
 members = ["e-client-app",
     "e-client-basics",
     "e-client-bilingual",
-    "e-client-config"]
+    "e-client-config",
+    "e-client-core"]
 resolver = "3"
 [profile.release]
 lto = true

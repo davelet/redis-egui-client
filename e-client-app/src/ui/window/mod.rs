@@ -1,5 +1,5 @@
-use crate::core::app_state::AppState;
-use crate::core::redis_client::ValueData;
+use crate::core::AppState;
+use crate::core::ValueData;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_basics::constants::{
     DEFAULT_SIDE_PANEL_WIDTH, MAX_SIDE_PANEL_WIDTH, MIN_SIDE_PANEL_WIDTH, UI_REPAINT_INTERVAL_MS,
@@ -178,56 +178,15 @@ impl eframe::App for RedisApp {
         // Handle keyboard shortcuts using custom configuration
         // Only process shortcuts when settings window is not open
         if !self.show_settings {
+            use crate::ui::window::panels::top_panel::SUPPORTED_KEYS;
             use e_client_config::config::shortcuts::{ParsedShortcut, ShortcutAction};
 
             // Collect current input state
             let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
-                let keys: Vec<egui::Key> = [
-                    egui::Key::A,
-                    egui::Key::B,
-                    egui::Key::C,
-                    egui::Key::D,
-                    egui::Key::E,
-                    egui::Key::F,
-                    egui::Key::G,
-                    egui::Key::H,
-                    egui::Key::I,
-                    egui::Key::J,
-                    egui::Key::K,
-                    egui::Key::L,
-                    egui::Key::M,
-                    egui::Key::N,
-                    egui::Key::O,
-                    egui::Key::P,
-                    egui::Key::Q,
-                    egui::Key::R,
-                    egui::Key::S,
-                    egui::Key::T,
-                    egui::Key::U,
-                    egui::Key::V,
-                    egui::Key::W,
-                    egui::Key::X,
-                    egui::Key::Y,
-                    egui::Key::Z,
-                    egui::Key::F1,
-                    egui::Key::F2,
-                    egui::Key::F3,
-                    egui::Key::F4,
-                    egui::Key::F5,
-                    egui::Key::F6,
-                    egui::Key::F7,
-                    egui::Key::F8,
-                    egui::Key::F9,
-                    egui::Key::F10,
-                    egui::Key::F11,
-                    egui::Key::F12,
-                    egui::Key::Comma,
-                    egui::Key::Period,
-                    egui::Key::Semicolon,
-                ]
-                .into_iter()
-                .filter(|k| i.key_pressed(*k))
-                .collect();
+                let keys: Vec<egui::Key> = SUPPORTED_KEYS
+                    .into_iter()
+                    .filter(|k| i.key_pressed(*k))
+                    .collect();
                 (i.modifiers, keys)
             });
 

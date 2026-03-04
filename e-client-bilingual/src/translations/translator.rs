@@ -5,113 +5,49 @@ pub struct Translator {
     strings: HashMap<&'static str, HashMap<Language, &'static str>>,
 }
 
-pub mod keys {
-    pub const CONNECT: &str = "connect";
-    pub const NEW_CONNECTION: &str = "new_connection";
-    pub const EDIT_CONNECTION: &str = "edit_connection";
-    pub const OPEN_IN_NEW_TAB: &str = "open_in_new_tab";
-    pub const DISCONNECT: &str = "disconnect";
-    pub const CONNECTION_URL: &str = "connection_url";
-    pub const DATABASE: &str = "database";
-    pub const TAB: &str = "tab";
-    pub const KEYS: &str = "keys";
-    pub const FILTER: &str = "filter";
-    pub const COMMAND: &str = "command";
-    pub const EXECUTE: &str = "execute";
-    pub const VALUE: &str = "value";
-    pub const LANGUAGE: &str = "language";
-    pub const SETTINGS: &str = "settings";
-    pub const AUTO_CONNECT: &str = "auto_connect";
-    pub const NEW_KEY: &str = "new_key";
-    pub const EDIT_ELEMENT: &str = "edit_element";
-    pub const CLOSE: &str = "close";
-    pub const CLOSE_OTHERS: &str = "close_others";
-    pub const DUPLICATE: &str = "duplicate";
-    pub const CONNECTION_FAILED: &str = "connection_failed";
-    pub const SELECT_CONNECTION: &str = "select_connection";
-    pub const PLEASE_SELECT_CONNECTION: &str = "please_select_connection";
-    pub const SAVE: &str = "save";
-    pub const CANCEL: &str = "cancel";
-    pub const CONNECTION_NAME: &str = "connection_name";
-    pub const CONNECTION_ADDRESS: &str = "connection_address";
-    pub const CONNECTION_PORT: &str = "connection_port";
-    pub const CONNECTION_USERNAME: &str = "connection_username";
-    pub const CONNECTION_PASSWORD: &str = "connection_password";
-    pub const CONNECTION_COLOR: &str = "connection_color";
-    pub const PLEASE_ENTER_CONNECTION_NAME: &str = "please_enter_connection_name";
-    pub const PLEASE_ENTER_CONNECTION_ADDRESS: &str = "please_enter_connection_address";
-    pub const NEW_CONNECTION_DIALOG: &str = "new_connection_dialog";
-    pub const EDIT_CONNECTION_DIALOG: &str = "edit_connection_dialog";
-    pub const COMMAND_LABEL: &str = "command_label";
-    pub const OUTPUT: &str = "output";
-    pub const SELECT_KEY_PROMPT: &str = "select_key_prompt";
-    pub const KEY_NOT_EXIST: &str = "key_not_exist";
-    pub const KEY_HEADING: &str = "key_heading";
-    pub const TYPE_STRING: &str = "type_string";
-    pub const TYPE_LIST: &str = "type_list";
-    pub const TYPE_HASH: &str = "type_hash";
-    pub const TYPE_SET: &str = "type_set";
-    pub const TYPE_ZSET: &str = "type_zset";
-    pub const LOAD_FIRST_100: &str = "load_first_100";
-    pub const LOAD_FIELDS: &str = "load_fields";
-    pub const LOAD_MEMBERS: &str = "load_members";
-    pub const LOAD_MORE_KEYS: &str = "load_more_keys";
-    pub const LOAD_ALL_KEYS: &str = "load_all_keys";
-    pub const TOO_MANY_KEYS: &str = "too_many_keys";
-    pub const COPY_KEY: &str = "copy_key";
-    pub const COPY_VALUE: &str = "copy_value";
-    pub const COPY_SUCCESS: &str = "copy_success";
-    pub const COPY_FAILED: &str = "copy_failed";
-    pub const EDIT: &str = "edit";
-    pub const DELETE: &str = "delete";
-    pub const REFRESH: &str = "refresh";
-    pub const ADD_FIELD: &str = "add_field";
-    pub const ADD_ITEM: &str = "add_item";
-    pub const EDIT_TTL: &str = "edit_ttl";
-    pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
-    pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
-    pub const CONFIG_READ_FAILED: &str = "config_read_failed";
-    pub const CONFIG_PARSE_FAILED: &str = "config_parse_failed";
-    pub const CONFIG_CREATE_DIR_FAILED: &str = "config_create_dir_failed";
-    pub const CONFIG_WRITE_FAILED: &str = "config_write_failed";
-    pub const CONNECTION_NAME_EXISTS: &str = "connection_name_exists";
-    pub const CONNECTION_NOT_FOUND: &str = "connection_not_found";
-    pub const EMPTY_COMMAND: &str = "empty_command";
-    pub const GENERIC_ERROR: &str = "generic_error";
-    pub const GET_VALUE_FAILED: &str = "get_value_failed";
-    pub const STATUS_BAR: &str = "status_bar";
-    pub const UNKNOWN: &str = "unknown";
-    pub const TOTAL_KEYS: &str = "total_keys";
-    pub const LOADED_KEYS: &str = "loaded_keys";
-    pub const LOADING: &str = "loading";
-    pub const READY: &str = "ready";
-    pub const DISCONNECTED: &str = "disconnected";
-    pub const WELCOME_TITLE: &str = "welcome_title";
-    pub const WELCOME_MESSAGE: &str = "welcome_message";
-    pub const WELCOME_INSTRUCTION: &str = "welcome_instruction";
-    pub const OPEN_CONNECTIONS_PROMPT_TITLE: &str = "open_connections_prompt_title";
-    pub const OPEN_CONNECTIONS_PROMPT_MESSAGE: &str = "open_connections_prompt_message";
-    pub const CONNECT_ALL: &str = "connect_all";
-    pub const SAVED_CONNECTIONS: &str = "saved_connections";
-    pub const ACTION: &str = "action";
-    // Keyboard shortcuts
-    pub const KEYBOARD_SHORTCUTS: &str = "keyboard_shortcuts";
-    pub const SHORTCUT_NEW_TAB: &str = "shortcut_new_tab";
-    pub const SHORTCUT_CLOSE_TAB: &str = "shortcut_close_tab";
-    pub const SHORTCUT_REFRESH_KEY: &str = "shortcut_refresh_key";
-    pub const SHORTCUT_FOCUS_FILTER: &str = "shortcut_focus_filter";
-    pub const SHORTCUT_PRESS_KEYS: &str = "shortcut_press_keys";
-    pub const SHORTCUT_CONFLICTS_WITH: &str = "shortcut_conflicts_with";
-    pub const SHORTCUT_RESET_DEFAULTS: &str = "shortcut_reset_defaults";
-    pub const SHORTCUT_CLOSE_SETTINGS: &str = "shortcut_close_settings";
-    pub const SHORTCUT_OPEN_SETTINGS: &str = "shortcut_open_settings";
-}
-
 impl Default for Translator {
     fn default() -> Self {
         let mut strings = HashMap::new();
 
-        // Connection
+        // Include all translation definitions
+        Self::load_translations(&mut strings);
+
+        Self { strings }
+    }
+}
+
+impl Translator {
+    pub fn get<'a>(&'a self, key: &'a str, lang: Language) -> &'a str {
+        self.strings
+            .get(key)
+            .and_then(|m| m.get(&lang))
+            .map(|s| s.as_ref())
+            .unwrap_or_else(move || {
+                eprintln!(
+                    "Missing translation for key: {} in language: {:?}",
+                    key, lang
+                );
+                key
+            })
+    }
+
+    pub fn format(&self, key: &str, lang: Language, args: &[&str]) -> String {
+        let template = self.get(key, lang);
+        let mut result = template.to_string();
+
+        for arg in args {
+            result = result.replacen("{}", arg, 1);
+        }
+
+        result
+    }
+
+    /// Load all translation strings
+    fn load_translations(strings: &mut HashMap<&'static str, HashMap<Language, &'static str>>) {
+        use super::keys;
+        use Language::*;
+
+        // Connection translations
         strings.insert(keys::CONNECT, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Connect");
@@ -362,6 +298,7 @@ impl Default for Translator {
             m.insert(Language::Chinese, "新建 Redis 连接");
             m
         });
+
         strings.insert(keys::EDIT_CONNECTION_DIALOG, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Modifying Redis Connection");
@@ -480,7 +417,7 @@ impl Default for Translator {
                 Language::English,
                 "Too many keys loaded, please enter proper filter keyword",
             );
-            m.insert(Language::Chinese, "加载的列表过长，请输入合适关键字过滤");
+            m.insert(Language::Chinese, "加载的列表过长,请输入合适关键字过滤");
             m
         });
 
@@ -490,11 +427,10 @@ impl Default for Translator {
                 Language::English,
                 "Config param is too long: {}, the length of '{}' must be less than {}",
             );
-            m.insert(Language::Chinese, "参数超长：{} “{}” 长度不能超过{}");
+            m.insert(Language::Chinese, "参数超长：{} '{}' 长度不能超过{}");
             m
         });
 
-        // Config error messages
         strings.insert(keys::CONFIG_HOME_DIR_MISSING, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Could not determine home directory");
@@ -544,7 +480,6 @@ impl Default for Translator {
             m
         });
 
-        // Generic / command errors
         strings.insert(keys::EMPTY_COMMAND, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Empty command");
@@ -679,7 +614,6 @@ impl Default for Translator {
             m
         });
 
-        // Keyboard shortcuts
         strings.insert(keys::KEYBOARD_SHORTCUTS, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Keyboard Shortcuts");
@@ -719,9 +653,9 @@ impl Default for Translator {
             let mut m = HashMap::new();
             m.insert(
                 Language::English,
-                "⏺ Press the key combination you want to set...",
+                "Press the key combination you want to set...",
             );
-            m.insert(Language::Chinese, "⏺ 按下要设置的快捷键组合...");
+            m.insert(Language::Chinese, "按下想要设置的快捷键组合...");
             m
         });
 
@@ -829,35 +763,6 @@ impl Default for Translator {
             m.insert(Language::Chinese, "未知");
             m
         });
-
-        Self { strings }
-    }
-}
-
-impl Translator {
-    pub fn get<'a>(&'a self, key: &'a str, lang: Language) -> &'a str {
-        self.strings
-            .get(key)
-            .and_then(|m| m.get(&lang))
-            .map(|s| s.as_ref())
-            .unwrap_or_else(move || {
-                eprintln!(
-                    "Missing translation for key: {} in language: {:?}",
-                    key, lang
-                );
-                key
-            })
-    }
-
-    pub fn format(&self, key: &str, lang: Language, args: &[&str]) -> String {
-        let template = self.get(key, lang);
-        let mut result = template.to_string();
-
-        for arg in args {
-            result = result.replacen("{}", arg, 1);
-        }
-
-        result
     }
 }
 
