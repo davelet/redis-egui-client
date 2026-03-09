@@ -142,14 +142,17 @@ pub struct RedisApp {
 
 impl eframe::App for RedisApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        // Collect all connected connection names
+        // Collect all connected connection names (deduplicated)
         let mut connected_names = Vec::new();
         for tab in &self.tabs {
             if let Some(conn_idx) = tab.selected_connection {
                 if let Some(conn) = self.config.connections.get(conn_idx) {
                     // Check if the tab is actually connected
                     if *tab.state.connected.blocking_read() {
-                        connected_names.push(conn.name.clone());
+                        // Only add if not already present
+                        if !connected_names.contains(&conn.name) {
+                            connected_names.push(conn.name.clone());
+                        }
                     }
                 }
             }

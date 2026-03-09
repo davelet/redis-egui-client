@@ -28,7 +28,10 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let key_filter = app.poll_string(tab.state.key_filter.clone());
     let side_panel_width = tab.side_panel_width;
 
-    egui::SidePanel::left("side_panel")
+    // Use a unique panel ID for each tab to avoid sharing state
+    let panel_id = egui::Id::new(("side_panel", active_tab_idx));
+
+    egui::SidePanel::left(panel_id)
         .min_width(250.0)
         .max_width(800.0)
         .default_width(side_panel_width)
