@@ -75,6 +75,16 @@ fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "CloseSettings" => Some(ShortcutAction::CloseSettings),
         "OpenSettings" => Some(ShortcutAction::OpenSettings),
         "ToggleCommandLine" => Some(ShortcutAction::ToggleCommandLine),
+        "CloseCommandLine" => Some(ShortcutAction::CloseCommandLine),
+        "SwitchToTab1" => Some(ShortcutAction::SwitchToTab1),
+        "SwitchToTab2" => Some(ShortcutAction::SwitchToTab2),
+        "SwitchToTab3" => Some(ShortcutAction::SwitchToTab3),
+        "SwitchToTab4" => Some(ShortcutAction::SwitchToTab4),
+        "SwitchToTab5" => Some(ShortcutAction::SwitchToTab5),
+        "SwitchToTab6" => Some(ShortcutAction::SwitchToTab6),
+        "SwitchToTab7" => Some(ShortcutAction::SwitchToTab7),
+        "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
+        "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
         _ => None,
     }
 }
@@ -556,6 +566,9 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                     let is_editing =
                                         app.editing_shortcut.as_ref() == Some(&action_key);
 
+                                    // Check if this shortcut is non-editable
+                                    let is_non_editable = action.is_non_editable();
+
                                     // Action name with bold font (translated)
                                     ui.horizontal(|ui| {
                                         ui.label(
@@ -586,9 +599,20 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                         ui.monospace(&binding);
                                     }
 
-                                    // Edit/Save/Cancel buttons
+                                    // Edit/Save/Cancel buttons or "Not customizable" text
                                     ui.horizontal(|ui| {
-                                        if is_editing {
+                                        if is_non_editable {
+                                            // Show "Not customizable" text for non-editable shortcuts
+                                            ui.label(
+                                                egui::RichText::new(tr(
+                                                    keys::SHORTCUT_NON_EDITABLE,
+                                                    current_lang,
+                                                ))
+                                                .color(ui.visuals().weak_text_color())
+                                                .italics()
+                                                .size(12.0),
+                                            );
+                                        } else if is_editing {
                                             // Check if there's a conflict before allowing save
                                             let has_conflict =
                                                 app.shortcut_conflict_warning.is_some();

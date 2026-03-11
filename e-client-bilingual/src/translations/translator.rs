@@ -694,6 +694,84 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::SHORTCUT_CLOSE_COMMAND_LINE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Close Command Line");
+            m.insert(Language::Chinese, "关闭命令行");
+            m
+        });
+
+        // tab shortcuts
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_1, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 1");
+            m.insert(Language::Chinese, "标签页 1");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_2, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 2");
+            m.insert(Language::Chinese, "标签页 2");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_3, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 3");
+            m.insert(Language::Chinese, "标签页 3");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_4, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 4");
+            m.insert(Language::Chinese, "标签页 4");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_5, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 5");
+            m.insert(Language::Chinese, "标签页 5");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_6, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 6");
+            m.insert(Language::Chinese, "标签页 6");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_7, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 7");
+            m.insert(Language::Chinese, "标签页 7");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_8, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 8");
+            m.insert(Language::Chinese, "标签页 8");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_SWITCH_TO_TAB_9, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Tab 9");
+            m.insert(Language::Chinese, "标签页 9");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_NON_EDITABLE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Not editable");
+            m.insert(Language::Chinese, "不可自定义");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");

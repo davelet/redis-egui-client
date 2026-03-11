@@ -272,6 +272,26 @@ impl eframe::App for RedisApp {
                                         }
                                     }
                                 }
+                                ShortcutAction::CloseCommandLine => {
+                                    if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+                                        tab.command_line_panel.show = false;
+                                    }
+                                }
+                                ShortcutAction::SwitchToTab1
+                                | ShortcutAction::SwitchToTab2
+                                | ShortcutAction::SwitchToTab3
+                                | ShortcutAction::SwitchToTab4
+                                | ShortcutAction::SwitchToTab5
+                                | ShortcutAction::SwitchToTab6
+                                | ShortcutAction::SwitchToTab7
+                                | ShortcutAction::SwitchToTab8
+                                | ShortcutAction::SwitchToTab9 => {
+                                    if let Some(tab_idx) = action.tab_index() {
+                                        if tab_idx < self.tabs.len() {
+                                            self.active_tab = tab_idx;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

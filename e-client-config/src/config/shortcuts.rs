@@ -17,6 +17,26 @@ pub enum ShortcutAction {
     OpenSettings,
     #[serde(rename = "toggle_command_line")]
     ToggleCommandLine,
+    #[serde(rename = "close_command_line")]
+    CloseCommandLine,
+    #[serde(rename = "switch_to_tab_1")]
+    SwitchToTab1,
+    #[serde(rename = "switch_to_tab_2")]
+    SwitchToTab2,
+    #[serde(rename = "switch_to_tab_3")]
+    SwitchToTab3,
+    #[serde(rename = "switch_to_tab_4")]
+    SwitchToTab4,
+    #[serde(rename = "switch_to_tab_5")]
+    SwitchToTab5,
+    #[serde(rename = "switch_to_tab_6")]
+    SwitchToTab6,
+    #[serde(rename = "switch_to_tab_7")]
+    SwitchToTab7,
+    #[serde(rename = "switch_to_tab_8")]
+    SwitchToTab8,
+    #[serde(rename = "switch_to_tab_9")]
+    SwitchToTab9,
 }
 
 impl ShortcutAction {
@@ -33,6 +53,19 @@ impl ShortcutAction {
                 ShortcutAction::ToggleCommandLine,
                 "shortcut_toggle_command_line",
             ),
+            (
+                ShortcutAction::CloseCommandLine,
+                "shortcut_close_command_line",
+            ),
+            (ShortcutAction::SwitchToTab1, "shortcut_switch_to_tab_1"),
+            (ShortcutAction::SwitchToTab2, "shortcut_switch_to_tab_2"),
+            (ShortcutAction::SwitchToTab3, "shortcut_switch_to_tab_3"),
+            (ShortcutAction::SwitchToTab4, "shortcut_switch_to_tab_4"),
+            (ShortcutAction::SwitchToTab5, "shortcut_switch_to_tab_5"),
+            (ShortcutAction::SwitchToTab6, "shortcut_switch_to_tab_6"),
+            (ShortcutAction::SwitchToTab7, "shortcut_switch_to_tab_7"),
+            (ShortcutAction::SwitchToTab8, "shortcut_switch_to_tab_8"),
+            (ShortcutAction::SwitchToTab9, "shortcut_switch_to_tab_9"),
         ]
     }
 
@@ -51,6 +84,16 @@ impl ShortcutAction {
             ShortcutAction::CloseSettings => "Esc".to_string(),
             ShortcutAction::OpenSettings => format!("{}+Comma", mod_key),
             ShortcutAction::ToggleCommandLine => format!("{}+E", mod_key),
+            ShortcutAction::CloseCommandLine => "Esc".to_string(),
+            ShortcutAction::SwitchToTab1 => format!("{}+1", mod_key),
+            ShortcutAction::SwitchToTab2 => format!("{}+2", mod_key),
+            ShortcutAction::SwitchToTab3 => format!("{}+3", mod_key),
+            ShortcutAction::SwitchToTab4 => format!("{}+4", mod_key),
+            ShortcutAction::SwitchToTab5 => format!("{}+5", mod_key),
+            ShortcutAction::SwitchToTab6 => format!("{}+6", mod_key),
+            ShortcutAction::SwitchToTab7 => format!("{}+7", mod_key),
+            ShortcutAction::SwitchToTab8 => format!("{}+8", mod_key),
+            ShortcutAction::SwitchToTab9 => format!("{}+9", mod_key),
         }
     }
 
@@ -64,6 +107,51 @@ impl ShortcutAction {
             ShortcutAction::CloseSettings => "shortcut_close_settings",
             ShortcutAction::OpenSettings => "shortcut_open_settings",
             ShortcutAction::ToggleCommandLine => "shortcut_toggle_command_line",
+            ShortcutAction::CloseCommandLine => "shortcut_close_command_line",
+            ShortcutAction::SwitchToTab1 => "shortcut_switch_to_tab_1",
+            ShortcutAction::SwitchToTab2 => "shortcut_switch_to_tab_2",
+            ShortcutAction::SwitchToTab3 => "shortcut_switch_to_tab_3",
+            ShortcutAction::SwitchToTab4 => "shortcut_switch_to_tab_4",
+            ShortcutAction::SwitchToTab5 => "shortcut_switch_to_tab_5",
+            ShortcutAction::SwitchToTab6 => "shortcut_switch_to_tab_6",
+            ShortcutAction::SwitchToTab7 => "shortcut_switch_to_tab_7",
+            ShortcutAction::SwitchToTab8 => "shortcut_switch_to_tab_8",
+            ShortcutAction::SwitchToTab9 => "shortcut_switch_to_tab_9",
+        }
+    }
+
+    /// Returns true if this shortcut is not customizable
+    pub fn is_non_editable(&self) -> bool {
+        matches!(
+            self,
+            ShortcutAction::OpenSettings
+                | ShortcutAction::CloseSettings
+                | ShortcutAction::CloseCommandLine
+                | ShortcutAction::SwitchToTab1
+                | ShortcutAction::SwitchToTab2
+                | ShortcutAction::SwitchToTab3
+                | ShortcutAction::SwitchToTab4
+                | ShortcutAction::SwitchToTab5
+                | ShortcutAction::SwitchToTab6
+                | ShortcutAction::SwitchToTab7
+                | ShortcutAction::SwitchToTab8
+                | ShortcutAction::SwitchToTab9
+        )
+    }
+
+    /// Returns the tab index for switch actions (1-9), or None if not a switch action
+    pub fn tab_index(&self) -> Option<usize> {
+        match self {
+            ShortcutAction::SwitchToTab1 => Some(0),
+            ShortcutAction::SwitchToTab2 => Some(1),
+            ShortcutAction::SwitchToTab3 => Some(2),
+            ShortcutAction::SwitchToTab4 => Some(3),
+            ShortcutAction::SwitchToTab5 => Some(4),
+            ShortcutAction::SwitchToTab6 => Some(5),
+            ShortcutAction::SwitchToTab7 => Some(6),
+            ShortcutAction::SwitchToTab8 => Some(7),
+            ShortcutAction::SwitchToTab9 => Some(8),
+            _ => None,
         }
     }
 }
@@ -143,6 +231,19 @@ impl ShortcutConfig {
             "CloseTab" => Some(ShortcutAction::CloseTab),
             "RefreshKey" => Some(ShortcutAction::RefreshKey),
             "FocusFilter" => Some(ShortcutAction::FocusFilter),
+            "CloseSettings" => Some(ShortcutAction::CloseSettings),
+            "OpenSettings" => Some(ShortcutAction::OpenSettings),
+            "ToggleCommandLine" => Some(ShortcutAction::ToggleCommandLine),
+            "CloseCommandLine" => Some(ShortcutAction::CloseCommandLine),
+            "SwitchToTab1" => Some(ShortcutAction::SwitchToTab1),
+            "SwitchToTab2" => Some(ShortcutAction::SwitchToTab2),
+            "SwitchToTab3" => Some(ShortcutAction::SwitchToTab3),
+            "SwitchToTab4" => Some(ShortcutAction::SwitchToTab4),
+            "SwitchToTab5" => Some(ShortcutAction::SwitchToTab5),
+            "SwitchToTab6" => Some(ShortcutAction::SwitchToTab6),
+            "SwitchToTab7" => Some(ShortcutAction::SwitchToTab7),
+            "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
+            "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
             _ => None,
         }
     }
@@ -194,7 +295,15 @@ impl ParsedShortcut {
     /// Check if this shortcut matches the given egui modifiers and key
     /// This should be called from the app where egui is available
     pub fn key_matches(&self, key: &str) -> bool {
-        self.key == key.to_uppercase()
+        let normalized_input = key.to_uppercase();
+        // Handle numeric keys: egui reports "NUM1" but config stores "1"
+        let normalized_config =
+            if self.key.len() == 1 && self.key.chars().next().unwrap().is_ascii_digit() {
+                format!("NUM{}", self.key)
+            } else {
+                self.key.clone()
+            };
+        normalized_config == normalized_input || self.key == normalized_input
     }
 
     pub fn is_mod_pressed(&self, is_macos: bool, ctrl: bool, command: bool) -> bool {
