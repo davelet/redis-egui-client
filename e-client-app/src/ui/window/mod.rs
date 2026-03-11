@@ -14,7 +14,8 @@ use tokio::sync::RwLock;
 
 // Re-export panel functions for convenient access
 pub use panels::{
-    render_central_panel, render_side_panel, render_status_bar, render_tab_bar, render_top_panel,
+    render_central_panel, render_command_line_panel, render_side_panel, render_status_bar,
+    render_tab_bar, render_top_panel,
 };
 
 mod new_connection_window;
@@ -29,6 +30,7 @@ pub struct RedisTab {
     pub connected_color: Option<String>, // Connection color (hex) after successful connection
     pub key_filter_input: String,
     pub side_panel_width: f32, // Current side panel width for this tab
+    pub command_line_panel: CommandLinePanel, // Per-tab command line panel state
 }
 
 impl RedisTab {
@@ -44,6 +46,7 @@ impl RedisTab {
             connected_color: None,
             key_filter_input: String::new(),
             side_panel_width: DEFAULT_SIDE_PANEL_WIDTH,
+            command_line_panel: CommandLinePanel::default(),
         }
     }
 
@@ -100,6 +103,25 @@ pub struct ElementEditDialog {
     pub original_value: String,
     pub key_type: String,  // hash, list, set, zset
     pub just_opened: bool, // Track if dialog just opened for auto-formatting
+}
+
+/// Command line panel state
+pub struct CommandLinePanel {
+    pub show: bool,
+    pub input: String,
+    pub history: Vec<(String, String)>, // (command, result)
+    pub scroll_to_bottom: bool,
+}
+
+impl Default for CommandLinePanel {
+    fn default() -> Self {
+        Self {
+            show: false,
+            input: String::new(),
+            history: Vec::new(),
+            scroll_to_bottom: false,
+        }
+    }
 }
 
 impl Default for ElementEditDialog {
@@ -234,6 +256,22 @@ impl eframe::App for RedisApp {
                                 ShortcutAction::OpenSettings => {
                                     self.show_settings = true;
                                 }
+                                ShortcutAction::ToggleCommandLine => {
+                                    if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+                                        if tab.command_line_panel.show {
+                                            // Already open, focus the input
+                                            ctx.memory_mut(|mem| {
+                                                mem.request_focus(egui::Id::new(
+                                                    "command_line_input",
+                                                ));
+                                            });
+                                        } else {
+                                            // Open the panel
+                                            tab.command_line_panel.show = true;
+                                            tab.command_line_panel.scroll_to_bottom = true;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -302,6 +340,9 @@ impl eframe::App for RedisApp {
 
         // Render tab bar
         render_tab_bar(self, ctx);
+
+        // Render command line panel (above status bar if shown)
+        render_command_line_panel(self, ctx);
 
         // Render status bar first to ensure it's on top
         render_status_bar(self, ctx);

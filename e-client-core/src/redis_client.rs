@@ -1,7 +1,7 @@
 use e_client_basics::constants::{CONNECTION_RETRY_COUNT, DEFAULT_DATABASE_COUNT};
 use e_client_config::connection::RedisConnectionConfig;
 use redis::aio::ConnectionManagerConfig;
-use redis::{aio::ConnectionManager, AsyncCommands, Client, RedisError};
+use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::instrument;
@@ -58,6 +58,77 @@ impl RedisClient {
             Ok(format_redis_value(&result))
         } else {
             Err(RedisError::from((redis::ErrorKind::Io, "Not connected")))
+        }
+    }
+
+    /// Execute a raw Redis command synchronously (blocking)
+    pub fn execute_raw_command_sync(&self, cmd: &str) -> Result<String, String> {
+        let parts: Vec<&str> = cmd.split_whitespace().collect();
+        if parts.is_empty() {
+            return Err("Empty command".to_string());
+        }
+
+        // Clone the command parts for the async block
+        let command = parts[0].to_string();
+        let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+        // We need to block on the async operation
+        let rt = tokio::runtime::Handle::try_current();
+        match rt {
+            Ok(handle) => {
+                // We're in an async context, use block_in_place
+                let result: Result<String, String> = tokio::task::block_in_place(|| {
+                    handle.block_on(async {
+                        // Check connection status first with read lock
+                        {
+                            let manager = self.manager.read().await;
+                            if manager.is_none() {
+                                return Err("Not connected to Redis".to_string());
+                            }
+                        } // Read lock is released here
+
+                        // Now acquire write lock to execute command
+                        let mut manager = self.manager.write().await;
+                        if let Some(conn) = manager.as_mut() {
+                            let result: redis::RedisResult<redis::Value> =
+                                redis::cmd(&command).arg(&args).query_async(conn).await;
+                            match result {
+                                Ok(val) => Ok(format_redis_value(&val)),
+                                Err(e) => Err(e.to_string()),
+                            }
+                        } else {
+                            Err("Not connected".to_string())
+                        }
+                    })
+                });
+                result
+            }
+            Err(_) => {
+                // No runtime available, create one
+                let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
+                rt.block_on(async {
+                    // Check connection status first with read lock
+                    {
+                        let manager = self.manager.read().await;
+                        if manager.is_none() {
+                            return Err("Not connected to Redis".to_string());
+                        }
+                    } // Read lock is released here
+
+                    // Now acquire write lock to execute command
+                    let mut manager = self.manager.write().await;
+                    if let Some(conn) = manager.as_mut() {
+                        let result: redis::RedisResult<redis::Value> =
+                            redis::cmd(&command).arg(&args).query_async(conn).await;
+                        match result {
+                            Ok(val) => Ok(format_redis_value(&val)),
+                            Err(e) => Err(e.to_string()),
+                        }
+                    } else {
+                        Err("Not connected".to_string())
+                    }
+                })
+            }
         }
     }
 

@@ -15,18 +15,24 @@ pub enum ShortcutAction {
     CloseSettings,
     #[serde(rename = "open_settings")]
     OpenSettings,
+    #[serde(rename = "toggle_command_line")]
+    ToggleCommandLine,
 }
 
 impl ShortcutAction {
     /// Returns all actions with their translation keys
     pub fn all_actions() -> Vec<(ShortcutAction, &'static str)> {
         vec![
+            (ShortcutAction::OpenSettings, "shortcut_open_settings"),
             (ShortcutAction::NewTab, "shortcut_new_tab"),
             (ShortcutAction::CloseTab, "shortcut_close_tab"),
             (ShortcutAction::RefreshKey, "shortcut_refresh_key"),
             (ShortcutAction::FocusFilter, "shortcut_focus_filter"),
             (ShortcutAction::CloseSettings, "shortcut_close_settings"),
-            (ShortcutAction::OpenSettings, "shortcut_open_settings"),
+            (
+                ShortcutAction::ToggleCommandLine,
+                "shortcut_toggle_command_line",
+            ),
         ]
     }
 
@@ -44,6 +50,7 @@ impl ShortcutAction {
             ShortcutAction::FocusFilter => format!("{}+F", mod_key),
             ShortcutAction::CloseSettings => "Esc".to_string(),
             ShortcutAction::OpenSettings => format!("{}+Comma", mod_key),
+            ShortcutAction::ToggleCommandLine => format!("{}+E", mod_key),
         }
     }
 
@@ -56,6 +63,7 @@ impl ShortcutAction {
             ShortcutAction::FocusFilter => "shortcut_focus_filter",
             ShortcutAction::CloseSettings => "shortcut_close_settings",
             ShortcutAction::OpenSettings => "shortcut_open_settings",
+            ShortcutAction::ToggleCommandLine => "shortcut_toggle_command_line",
         }
     }
 }

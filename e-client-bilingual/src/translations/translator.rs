@@ -687,6 +687,13 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::SHORTCUT_TOGGLE_COMMAND_LINE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Toggle Command Line");
+            m.insert(Language::Chinese, "切出命令行");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");

@@ -4,6 +4,6 @@ pub mod json_value;
 pub mod operations;
 
 pub use app_state_impl::AppState;
-pub use edit_state::{EditedValue, EditState};
-pub use json_value::{compact_json_if_single_line, format_json_for_edit, JsonValue};
+pub use edit_state::{EditState, EditedValue};
+pub use json_value::{JsonValue, compact_json_if_single_line, format_json_for_edit};
 pub use operations::*;

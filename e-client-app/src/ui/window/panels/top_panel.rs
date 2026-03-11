@@ -74,6 +74,7 @@ fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "FocusFilter" => Some(ShortcutAction::FocusFilter),
         "CloseSettings" => Some(ShortcutAction::CloseSettings),
         "OpenSettings" => Some(ShortcutAction::OpenSettings),
+        "ToggleCommandLine" => Some(ShortcutAction::ToggleCommandLine),
         _ => None,
     }
 }

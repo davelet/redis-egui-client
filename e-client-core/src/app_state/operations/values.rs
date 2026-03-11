@@ -1,8 +1,14 @@
 use super::super::AppState;
-use super::super::{compact_json_if_single_line, EditedValue, JsonValue};
+use super::super::{EditedValue, JsonValue, compact_json_if_single_line};
 
 /// Spawn save element operation
-pub fn spawn_save_element(state: &AppState, key: String, key_type: String, field: String, value: String) {
+pub fn spawn_save_element(
+    state: &AppState,
+    key: String,
+    key_type: String,
+    field: String,
+    value: String,
+) {
     let state = state.clone();
     tokio::spawn(async move {
         // Compact JSON if original was single-line
@@ -89,8 +95,7 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                     return;
                 }
                 Err(e) => {
-                    state.edit_state.write().await.save_message =
-                        format!("Rename failed: {}", e);
+                    state.edit_state.write().await.save_message = format!("Rename failed: {}", e);
                     return;
                 }
             }
@@ -99,8 +104,7 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         // 2. Update TTL
         if let Ok(ttl) = edit.edited_ttl.trim().parse::<i64>() {
             if let Err(e) = state.redis_client.set_ttl(&current_key, ttl).await {
-                state.edit_state.write().await.save_message =
-                    format!("TTL update failed: {}", e);
+                state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
                 return;
             }
         }
@@ -109,8 +113,11 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         let save_result = match &edit.edited_value {
             EditedValue::String(s) => {
                 // Use JsonValue.to_save() to handle JSON compression
-                state.redis_client.set_string(&current_key, &s.to_save()).await
-            },
+                state
+                    .redis_client
+                    .set_string(&current_key, &s.to_save())
+                    .await
+            }
             EditedValue::Hash(fields) => {
                 // Delete old key and re-create with new fields
                 let _ = state.redis_client.del_key(&current_key).await;
@@ -118,8 +125,10 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                 for (field, value) in fields {
                     if !field.is_empty() {
                         // Use JsonValue.to_save() to handle JSON compression
-                        if let Err(e) =
-                            state.redis_client.hset(&current_key, field, &value.to_save()).await
+                        if let Err(e) = state
+                            .redis_client
+                            .hset(&current_key, field, &value.to_save())
+                            .await
                         {
                             result = Err(e);
                             break;
@@ -133,7 +142,11 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                 let mut result = Ok(());
                 for item in items {
                     // Use JsonValue.to_save() to handle JSON compression
-                    if let Err(e) = state.redis_client.rpush(&current_key, &item.to_save()).await {
+                    if let Err(e) = state
+                        .redis_client
+                        .rpush(&current_key, &item.to_save())
+                        .await
+                    {
                         result = Err(e);
                         break;
                     }
@@ -146,7 +159,8 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                 for item in items {
                     if !item.value.is_empty() {
                         // Use JsonValue.to_save() to handle JSON compression
-                        if let Err(e) = state.redis_client.sadd(&current_key, &item.to_save()).await {
+                        if let Err(e) = state.redis_client.sadd(&current_key, &item.to_save()).await
+                        {
                             result = Err(e);
                             break;
                         }
@@ -161,8 +175,10 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                     if !member.value.is_empty() {
                         let score: f64 = score_str.parse().unwrap_or(0.0);
                         // Use JsonValue.to_save() to handle JSON compression
-                        if let Err(e) =
-                            state.redis_client.zadd(&current_key, score, &member.to_save()).await
+                        if let Err(e) = state
+                            .redis_client
+                            .zadd(&current_key, score, &member.to_save())
+                            .await
                         {
                             result = Err(e);
                             break;

@@ -50,9 +50,7 @@ pub fn spawn_load_keys(state: &AppState) {
 
                     // Update UI every SCAN batch with periodic sorting for display
                     // Sort and display every SORT_INTERVAL_KEYS keys
-                    if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS
-                        || current_cursor == 0
-                    {
+                    if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS || current_cursor == 0 {
                         let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
                         all_keys.sort();
                         *state.keys.write().await = all_keys;
@@ -73,10 +71,8 @@ pub fn spawn_load_keys(state: &AppState) {
                     *state.loading_progress_text.write().await = progress_text;
 
                     // Small delay to allow UI to refresh and prevent tight loop
-                    tokio::time::sleep(tokio::time::Duration::from_millis(
-                        SCAN_SLEEP_INTERVAL_MS,
-                    ))
-                    .await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS))
+                        .await;
 
                     // Stop if we reached max initial keys
                     if loaded_count >= MAX_INITIAL_KEYS {
@@ -192,15 +188,12 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                     *state.loaded_keys_count.write().await = total;
 
                     // Small delay to allow UI to refresh and prevent tight loop
-                    tokio::time::sleep(tokio::time::Duration::from_millis(
-                        SCAN_SLEEP_INTERVAL_MS,
-                    ))
-                    .await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(SCAN_SLEEP_INTERVAL_MS))
+                        .await;
 
                     // Check if we should stop loading more
                     let total_new_keys = existing_keys.len() - keys_at_start;
-                    if !load_all
-                        && (current_cursor == 0 || total_new_keys >= LOAD_MORE_BATCH_SIZE)
+                    if !load_all && (current_cursor == 0 || total_new_keys >= LOAD_MORE_BATCH_SIZE)
                     {
                         break;
                     }
@@ -302,7 +295,13 @@ pub fn spawn_load_value(state: &AppState, key: String) {
 }
 
 /// Spawn create new key operation
-pub fn spawn_create_new_key(state: &AppState, key: String, key_type: String, value: String, ttl: i64) {
+pub fn spawn_create_new_key(
+    state: &AppState,
+    key: String,
+    key_type: String,
+    value: String,
+    ttl: i64,
+) {
     let state = state.clone();
     tokio::spawn(async move {
         let result = match key_type.as_str() {
@@ -313,9 +312,9 @@ pub fn spawn_create_new_key(state: &AppState, key: String, key_type: String, val
                     let item = item.trim();
                     if !item.is_empty() {
                         if let Err(e) = state.redis_client.rpush(&key, item).await {
-                                r = Err(e);
-                                break;
-                            }
+                            r = Err(e);
+                            break;
+                        }
                     }
                 }
                 r
@@ -329,9 +328,9 @@ pub fn spawn_create_new_key(state: &AppState, key: String, key_type: String, val
                         let val = val.trim();
                         if !field.is_empty() {
                             if let Err(e) = state.redis_client.hset(&key, field, val).await {
-                                    r = Err(e);
-                                    break;
-                                }
+                                r = Err(e);
+                                break;
+                            }
                         }
                     }
                 }
@@ -343,9 +342,9 @@ pub fn spawn_create_new_key(state: &AppState, key: String, key_type: String, val
                     let item = item.trim();
                     if !item.is_empty() {
                         if let Err(e) = state.redis_client.sadd(&key, item).await {
-                                r = Err(e);
-                                break;
-                            }
+                            r = Err(e);
+                            break;
+                        }
                     }
                 }
                 r
@@ -359,9 +358,9 @@ pub fn spawn_create_new_key(state: &AppState, key: String, key_type: String, val
                         let member = member.trim();
                         if !member.is_empty() {
                             if let Err(e) = state.redis_client.zadd(&key, score, member).await {
-                                    r = Err(e);
-                                    break;
-                                }
+                                r = Err(e);
+                                break;
+                            }
                         }
                     }
                 }
