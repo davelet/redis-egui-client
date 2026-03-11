@@ -1,0 +1,21 @@
+site_name: Rudist
+site_description: Redis GUI Client built with Rust and egui with AI
+site_url: https://github.com/davelet/redis-egui-client
+repo_url: https://github.com/davelet/redis-egui-client
+
+theme:
+  name: material
+  palette:
+    - primary: blue
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Usage: usage.md
+  - Changelog: changelog.md
+
+plugins:
+  - search
+
+docs_dir: docs
+site_dir: public
