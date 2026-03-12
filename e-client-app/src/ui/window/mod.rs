@@ -164,6 +164,8 @@ pub struct RedisApp {
     editing_shortcut: Option<String>, // action name being edited
     shortcut_input_buffer: String,    // buffer for capturing new shortcut
     shortcut_conflict_warning: Option<String>, // conflict warning message
+    // Track if tab bar should scroll to show active tab
+    scroll_to_tab: Option<usize>,
 }
 
 impl eframe::App for RedisApp {
@@ -293,7 +295,14 @@ impl eframe::App for RedisApp {
                                     if let Some(tab_idx) = action.tab_index() {
                                         if tab_idx < self.tabs.len() {
                                             self.active_tab = tab_idx;
+                                            self.scroll_to_tab = Some(tab_idx);
                                         }
+                                    }
+                                }
+                                ShortcutAction::SwitchToLastTab => {
+                                    if !self.tabs.is_empty() {
+                                        self.active_tab = self.tabs.len() - 1;
+                                        self.scroll_to_tab = Some(self.tabs.len() - 1);
                                     }
                                 }
                             }
@@ -424,6 +433,7 @@ impl RedisApp {
             editing_shortcut: None,
             shortcut_input_buffer: String::new(),
             shortcut_conflict_warning: None,
+            scroll_to_tab: None,
         }
     }
 
@@ -441,6 +451,8 @@ impl RedisApp {
         self.active_tab = self.tabs.len() - 1;
         self.next_tab_id += 1;
         self.prev_connected_states.push(false);
+        // Scroll to the new tab
+        self.scroll_to_tab = Some(self.active_tab);
     }
 
     // Record copy operation feedback
@@ -536,6 +548,9 @@ impl RedisApp {
         // Add initial connection state (not connected yet)
         self.prev_connected_states.push(false);
 
+        // Scroll to the new tab
+        self.scroll_to_tab = Some(self.active_tab);
+
         // Auto-connect with preferred DB
         self.spawn_connect_with_initial_db(new_tab_idx);
     }
@@ -580,6 +595,7 @@ impl RedisApp {
     pub fn switch_to_tab(&mut self, index: usize) {
         if index < self.tabs.len() {
             self.active_tab = index;
+            self.scroll_to_tab = Some(index);
         }
     }
 

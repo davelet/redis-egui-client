@@ -85,6 +85,7 @@ fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "SwitchToTab7" => Some(ShortcutAction::SwitchToTab7),
         "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
         "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
+        "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
         _ => None,
     }
 }

@@ -10,6 +10,9 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
     let mut switch_to_tab: Option<usize> = None;
     let mut duplicate_tab: Option<usize> = None;
 
+    // Get the scroll_to_tab flag
+    let scroll_to_tab = app.scroll_to_tab.take();
+
     egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 2.0;
@@ -96,6 +99,13 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                     }
                                 });
                             });
+
+                            // Scroll to this tab if needed
+                            if let Some(target_idx) = scroll_to_tab {
+                                if idx == target_idx {
+                                    ui.scroll_to_cursor(Some(egui::Align::Center));
+                                }
+                            }
                         }
 
                         // New tab button

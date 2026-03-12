@@ -101,12 +101,18 @@ fn render_open_connections_prompt(
     );
     ui.add_space(10.0);
 
-    // Connect All button
+    // Connect All button - connect first connection in current tab, others in new tabs
     if ui.button(tr(keys::CONNECT_ALL, current_lang)).clicked() {
-        for conn_name in open_conn_names {
+        for (i, conn_name) in open_conn_names.iter().enumerate() {
             if let Some(conn_idx) = connections.iter().position(|c| &c.name == conn_name) {
                 let conn = connections[conn_idx].clone();
-                app.create_tab_with_connection(conn_idx, conn);
+                if i == 0 {
+                    // Connect first connection in current tab
+                    connect_in_current_tab(app, conn_idx, &conn);
+                } else {
+                    // Create new tabs for remaining connections
+                    app.create_tab_with_connection(conn_idx, conn);
+                }
             }
         }
         app.show_open_connections_prompt = false;
@@ -172,7 +178,7 @@ fn render_connection_row(
         // Action buttons
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
-                app.create_tab_with_connection(idx, conn.clone());
+                connect_in_current_tab(app, idx, conn);
             }
         });
     });
@@ -201,4 +207,27 @@ fn render_connection_name(
         egui::RichText::new(&conn.name)
     };
     ui.label(name_text);
+}
+
+/// Connect to Redis in the current tab
+fn connect_in_current_tab(
+    app: &mut RedisApp,
+    idx: usize,
+    conn: &e_client_config::connection::RedisConnectionConfig,
+) {
+    if let Some(tab) = app.get_active_tab_mut() {
+        let conn_clone = conn.clone();
+        *tab.state.connection_param.blocking_write() = Some(conn_clone.clone());
+        tab.name = conn.name.clone();
+        tab.connected_color = conn.color.clone();
+        tab.selected_connection = Some(idx);
+
+        let active_tab_idx = app.active_tab;
+        app.load_connection_preferences(active_tab_idx);
+        app.spawn_connect_with_initial_db(active_tab_idx);
+
+        // Clear open connections list when connecting (same as "Connect All")
+        app.config.clear_open_connections();
+        app.show_open_connections_prompt = false;
+    }
 }

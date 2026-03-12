@@ -765,6 +765,13 @@ impl Translator {
             m
         });
 
+        strings.insert("shortcut_switch_to_last_tab", {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Last Tab");
+            m.insert(Language::Chinese, "最右边标签页");
+            m
+        });
+
         strings.insert(keys::SHORTCUT_NON_EDITABLE, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Not editable");

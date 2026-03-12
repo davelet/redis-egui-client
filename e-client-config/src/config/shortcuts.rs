@@ -37,6 +37,8 @@ pub enum ShortcutAction {
     SwitchToTab8,
     #[serde(rename = "switch_to_tab_9")]
     SwitchToTab9,
+    #[serde(rename = "switch_to_last_tab")]
+    SwitchToLastTab,
 }
 
 impl ShortcutAction {
@@ -66,6 +68,10 @@ impl ShortcutAction {
             (ShortcutAction::SwitchToTab7, "shortcut_switch_to_tab_7"),
             (ShortcutAction::SwitchToTab8, "shortcut_switch_to_tab_8"),
             (ShortcutAction::SwitchToTab9, "shortcut_switch_to_tab_9"),
+            (
+                ShortcutAction::SwitchToLastTab,
+                "shortcut_switch_to_last_tab",
+            ),
         ]
     }
 
@@ -94,6 +100,7 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab7 => format!("{}+7", mod_key),
             ShortcutAction::SwitchToTab8 => format!("{}+8", mod_key),
             ShortcutAction::SwitchToTab9 => format!("{}+9", mod_key),
+            ShortcutAction::SwitchToLastTab => format!("{}+0", mod_key),
         }
     }
 
@@ -117,6 +124,7 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab7 => "shortcut_switch_to_tab_7",
             ShortcutAction::SwitchToTab8 => "shortcut_switch_to_tab_8",
             ShortcutAction::SwitchToTab9 => "shortcut_switch_to_tab_9",
+            ShortcutAction::SwitchToLastTab => "shortcut_switch_to_last_tab",
         }
     }
 
@@ -136,6 +144,7 @@ impl ShortcutAction {
                 | ShortcutAction::SwitchToTab7
                 | ShortcutAction::SwitchToTab8
                 | ShortcutAction::SwitchToTab9
+                | ShortcutAction::SwitchToLastTab
         )
     }
 
@@ -244,6 +253,7 @@ impl ShortcutConfig {
             "SwitchToTab7" => Some(ShortcutAction::SwitchToTab7),
             "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
             "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
+            "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
             _ => None,
         }
     }

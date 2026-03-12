@@ -109,4 +109,5 @@ pub const SHORTCUT_SWITCH_TO_TAB_6: &str = "shortcut_switch_to_tab_6";
 pub const SHORTCUT_SWITCH_TO_TAB_7: &str = "shortcut_switch_to_tab_7";
 pub const SHORTCUT_SWITCH_TO_TAB_8: &str = "shortcut_switch_to_tab_8";
 pub const SHORTCUT_SWITCH_TO_TAB_9: &str = "shortcut_switch_to_tab_9";
+pub const SHORTCUT_SWITCH_TO_LAST_TAB: &str = "shortcut_switch_to_last_tab";
 pub const SHORTCUT_NON_EDITABLE: &str = "shortcut_non_editable";
