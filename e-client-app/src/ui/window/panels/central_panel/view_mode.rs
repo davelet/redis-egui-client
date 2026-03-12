@@ -2,6 +2,7 @@ use crate::core::ValueData;
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
+use e_client_config::translations::emoji;
 use e_client_config::translations::{keys, tr, tr_fmt};
 
 use super::utils::{format_ttl, truncate_key, value_to_copy_text};
@@ -114,7 +115,7 @@ fn render_ttl_controls(
     current_lang: Language,
 ) {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        if ui.button("🔄").clicked() {
+        if ui.button(emoji::action::REFRESH).clicked() {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_value(key.to_string());

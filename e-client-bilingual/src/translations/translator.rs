@@ -779,6 +779,34 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::ALL_TABS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "All Tabs");
+            m.insert(Language::Chinese, "所有标签");
+            m
+        });
+
+        strings.insert(keys::REMOVE_DUPLICATE_AND_INVALID_TABS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Remove Duplicate & Invalid");
+            m.insert(Language::Chinese, "消除重复和无效标签");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_OPEN_ALL_TABS_DROPDOWN, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Open All Tabs Dropdown");
+            m.insert(Language::Chinese, "打开所有标签下拉框");
+            m
+        });
+
+        strings.insert(keys::SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Remove Duplicate & Invalid Tabs");
+            m.insert(Language::Chinese, "消除重复和无效标签");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");

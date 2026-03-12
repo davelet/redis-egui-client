@@ -8,6 +8,7 @@ use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
@@ -166,6 +167,8 @@ pub struct RedisApp {
     shortcut_conflict_warning: Option<String>, // conflict warning message
     // Track if tab bar should scroll to show active tab
     scroll_to_tab: Option<usize>,
+    // Track if all tabs dropdown should be shown (triggered by shortcut)
+    pub show_all_tabs_dropdown: bool,
 }
 
 impl eframe::App for RedisApp {
@@ -305,6 +308,13 @@ impl eframe::App for RedisApp {
                                         self.scroll_to_tab = Some(self.tabs.len() - 1);
                                     }
                                 }
+                                ShortcutAction::RemoveDuplicateAndInvalidTabs => {
+                                    self.remove_duplicate_and_invalid_tabs(ctx);
+                                }
+                                ShortcutAction::OpenAllTabsDropdown => {
+                                    // This is handled in tab_bar.rs via show_all_tabs_dropdown flag
+                                    self.show_all_tabs_dropdown = true;
+                                }
                             }
                         }
                     }
@@ -434,6 +444,7 @@ impl RedisApp {
             shortcut_input_buffer: String::new(),
             shortcut_conflict_warning: None,
             scroll_to_tab: None,
+            show_all_tabs_dropdown: false,
         }
     }
 
@@ -624,6 +635,39 @@ impl RedisApp {
 
         // Adjust active tab index
         self.active_tab = 0;
+    }
+
+    /// Remove duplicate and invalid tabs, keeping only the first occurrence of each connection
+    pub fn remove_duplicate_and_invalid_tabs(&mut self, ctx: &egui::Context) {
+        if self.tabs.len() <= 1 {
+            return;
+        }
+
+        let mut seen_connections: std::collections::HashSet<Option<usize>> =
+            std::collections::HashSet::new();
+        let mut indices_to_remove: Vec<usize> = Vec::new();
+
+        // First pass: identify tabs to remove
+        for (idx, tab) in self.tabs.iter().enumerate() {
+            if tab.selected_connection.is_none() {
+                // Invalid tab (no connection)
+                indices_to_remove.push(idx);
+            } else {
+                // Check for duplicates
+                let conn_idx = tab.selected_connection;
+                if !seen_connections.insert(conn_idx) {
+                    // Duplicate connection, mark for removal
+                    indices_to_remove.push(idx);
+                }
+            }
+        }
+
+        // Remove in reverse order to avoid index shifting
+        for idx in indices_to_remove.into_iter().rev() {
+            if idx < self.tabs.len() {
+                self.close_tab(idx, ctx);
+            }
+        }
     }
 
     // Helper methods for compatibility with panels

@@ -111,3 +111,8 @@ pub const SHORTCUT_SWITCH_TO_TAB_8: &str = "shortcut_switch_to_tab_8";
 pub const SHORTCUT_SWITCH_TO_TAB_9: &str = "shortcut_switch_to_tab_9";
 pub const SHORTCUT_SWITCH_TO_LAST_TAB: &str = "shortcut_switch_to_last_tab";
 pub const SHORTCUT_NON_EDITABLE: &str = "shortcut_non_editable";
+pub const ALL_TABS: &str = "all_tabs";
+pub const REMOVE_DUPLICATE_AND_INVALID_TABS: &str = "remove_duplicate_and_invalid_tabs";
+pub const SHORTCUT_OPEN_ALL_TABS_DROPDOWN: &str = "shortcut_open_all_tabs_dropdown";
+pub const SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS: &str =
+    "shortcut_remove_duplicate_and_invalid_tabs";

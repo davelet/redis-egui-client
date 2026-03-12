@@ -2,6 +2,7 @@ use crate::ui::window::RedisApp;
 use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::language::Language;
+use e_client_config::translations::emoji;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
 
@@ -59,7 +60,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             ui.horizontal(|ui| {
                 ui.heading(heading_text);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("➕").clicked() {
+                    if ui.button(emoji::action::ADD).clicked() {
                         app.new_key_dialog.reset();
                         app.new_key_dialog.show = true;
                     }
@@ -97,7 +98,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
 
                 // Refresh keys button
-                if ui.button("🔄").clicked() {
+                if ui.button(emoji::action::REFRESH).clicked() {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
             });

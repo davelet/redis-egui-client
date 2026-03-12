@@ -3,6 +3,7 @@ use e_client_basics::constants::WILD_KEY_FILTER;
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
+use e_client_config::translations::emoji;
 use e_client_config::translations::keys;
 use e_client_config::translations::{tr, tr_fmt};
 
@@ -86,6 +87,8 @@ fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
         "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
         "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
+        "OpenAllTabsDropdown" => Some(ShortcutAction::OpenAllTabsDropdown),
+        "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
         _ => None,
     }
 }
@@ -276,7 +279,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 // "Open in New Tab" button
                 if let Some(idx) = selected_connection {
                     if ui
-                        .button(format!("📑 {}", tr(keys::OPEN_IN_NEW_TAB, current_lang)))
+                        .button(format!(
+                            "{} {}",
+                            emoji::navigation::NEW_TAB,
+                            tr(keys::OPEN_IN_NEW_TAB, current_lang)
+                        ))
                         .clicked()
                     {
                         if let Some(conn) = app.config.connections.get(idx) {
@@ -293,7 +300,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 // Add edit connection button
                 if let Some(selected_idx) = selected_connection {
                     if ui
-                        .button(format!("✏ {}", tr(keys::EDIT_CONNECTION, current_lang)))
+                        .button(format!(
+                            "{} {}",
+                            emoji::action::EDIT,
+                            tr(keys::EDIT_CONNECTION, current_lang)
+                        ))
                         .clicked()
                     {
                         if let Some(conn) = app.config.connections.get(selected_idx) {
@@ -312,7 +323,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
             // Right side - Settings button
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("⚙").clicked() {
+                if ui.button(emoji::action::SETTINGS).clicked() {
                     app.show_settings = true;
                 }
             });
@@ -461,7 +472,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                 // Show conflict warning if any
                 if let Some(ref warning) = app.shortcut_conflict_warning {
-                    ui.colored_label(ui.visuals().error_fg_color, format!("⚠️ {}", warning));
+                    ui.colored_label(
+                        ui.visuals().error_fg_color,
+                        format!("{} {}", emoji::action::WARNING, warning),
+                    );
                     ui.add_space(8.0);
                 }
 
@@ -622,8 +636,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                                             ui.visuals_mut().override_text_color =
                                                 Some(ui.visuals().selection.bg_fill);
-                                            let save_text =
-                                                format!("💾 {}", tr(keys::SAVE, current_lang));
+                                            let save_text = format!(
+                                                "{} {}",
+                                                emoji::action::SAVE,
+                                                tr(keys::SAVE, current_lang)
+                                            );
                                             if ui
                                                 .add_enabled(can_save, egui::Button::new(save_text))
                                                 .clicked()
@@ -638,16 +655,22 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                 app.shortcut_conflict_warning = None;
                                             }
                                             ui.visuals_mut().override_text_color = None;
-                                            let cancel_text =
-                                                format!("❌ {}", tr(keys::CANCEL, current_lang));
+                                            let cancel_text = format!(
+                                                "{} {}",
+                                                emoji::action::CANCEL,
+                                                tr(keys::CANCEL, current_lang)
+                                            );
                                             if ui.button(cancel_text).clicked() {
                                                 app.editing_shortcut = None;
                                                 app.shortcut_input_buffer.clear();
                                                 app.shortcut_conflict_warning = None;
                                             }
                                         } else {
-                                            let edit_text =
-                                                format!("✏ {}", tr(keys::EDIT, current_lang));
+                                            let edit_text = format!(
+                                                "{} {}",
+                                                emoji::action::EDIT,
+                                                tr(keys::EDIT, current_lang)
+                                            );
                                             if ui.button(edit_text).clicked() {
                                                 app.editing_shortcut = Some(action_key);
                                                 // Initialize with current binding
@@ -667,8 +690,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                 ui.add_space(12.0);
                 ui.horizontal(|ui| {
-                    let reset_text =
-                        format!("🔄 {}", tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang));
+                    let reset_text = format!(
+                        "{} {}",
+                        emoji::action::REFRESH,
+                        tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
+                    );
                     if ui.button(reset_text).clicked() {
                         app.config.settings.shortcuts.reset_to_default();
                         app.config.mark_settings_dirty();
