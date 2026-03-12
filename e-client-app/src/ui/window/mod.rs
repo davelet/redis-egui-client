@@ -111,6 +111,8 @@ pub struct CommandLinePanel {
     pub input: String,
     pub history: Vec<(String, String)>, // (command, result)
     pub scroll_to_bottom: bool,
+    pub history_index: Option<usize>,
+    pub saved_input: String,
 }
 
 impl Default for CommandLinePanel {
@@ -120,6 +122,8 @@ impl Default for CommandLinePanel {
             input: String::new(),
             history: Vec::new(),
             scroll_to_bottom: false,
+            history_index: None,
+            saved_input: String::new(),
         }
     }
 }

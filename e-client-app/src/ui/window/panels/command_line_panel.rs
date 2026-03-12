@@ -94,6 +94,63 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         response.request_focus();
                     }
 
+                    // Handle Up/Down keys for history
+                    if response.has_focus() {
+                        let mut history_changed = false;
+                        if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
+                            let panel = &mut app.tabs[active_tab_idx].command_line_panel;
+                            if !panel.history.is_empty() {
+                                if panel.history_index.is_none() {
+                                    panel.saved_input = panel.input.clone();
+                                    panel.history_index = Some(panel.history.len() - 1);
+                                    history_changed = true;
+                                } else if let Some(idx) = panel.history_index {
+                                    if idx > 0 {
+                                        panel.history_index = Some(idx - 1);
+                                        history_changed = true;
+                                    }
+                                }
+                                if history_changed {
+                                    if let Some(idx) = panel.history_index {
+                                        panel.input = panel.history[idx].0.clone();
+                                    }
+                                }
+                            }
+                        } else if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
+                            let panel = &mut app.tabs[active_tab_idx].command_line_panel;
+                            if let Some(idx) = panel.history_index {
+                                if idx + 1 < panel.history.len() {
+                                    panel.history_index = Some(idx + 1);
+                                    panel.input = panel.history[idx + 1].0.clone();
+                                    history_changed = true;
+                                } else {
+                                    panel.history_index = None;
+                                    panel.input = panel.saved_input.clone();
+                                    history_changed = true;
+                                }
+                            }
+                        }
+
+                        if history_changed {
+                            // Move cursor to end
+                            if let Some(mut state) =
+                                egui::TextEdit::load_state(ui.ctx(), response.id)
+                            {
+                                let ccursor = egui::text::CCursor::new(
+                                    app.tabs[active_tab_idx]
+                                        .command_line_panel
+                                        .input
+                                        .chars()
+                                        .count(),
+                                );
+                                state.cursor.set_char_range(Some(
+                                    egui::text_selection::CCursorRange::one(ccursor),
+                                ));
+                                state.store(ui.ctx(), response.id);
+                            }
+                        }
+                    }
+
                     // Handle Enter key to execute command
                     if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                         let command = app.tabs[active_tab_idx]
@@ -105,6 +162,11 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             execute_command(app, active_tab_idx, command);
                             app.tabs[active_tab_idx].command_line_panel.input.clear();
                             app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = true;
+                            app.tabs[active_tab_idx].command_line_panel.history_index = None;
+                            app.tabs[active_tab_idx]
+                                .command_line_panel
+                                .saved_input
+                                .clear();
                         }
                         response.request_focus();
                     }

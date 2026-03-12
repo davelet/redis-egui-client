@@ -1,17 +1,18 @@
 # Changelog
 
-## [0.3.3]
+## [0.3.4] - Unreleased
 
 ### Added
-- Multi-tab support for connecting to multiple Redis instances simultaneously
-- Customizable keyboard shortcuts
-- Hash field filtering functionality
-- Connection color markers for environment differentiation
-- Element-level edit dialogs (List, Hash, Set, ZSet)
-- Automatic window position and size saving
-- Remember last opened connections
+- Command history navigation (up/down arrow keys) for the command line panel
+
+## [0.3.3] - 2026-03-12
+
+### Added
+- Tab switching shortcuts (Ctrl/Cmd + 1-9)
+- Non-editable system shortcuts (CloseSettings)
 
 ### Changed
+- Upgraded egui to 0.33.3
 - Optimized key loading performance for large datasets
 - Improved status bar information display
 - Refactored connection management interface
@@ -24,12 +25,8 @@
 
 ### Added
 - Redis ACL authentication support (username + password)
-- New shortcut system with customizable bindings
-- Settings window for language and shortcut configuration
-- English and Chinese language support
 
 ### Changed
-- Upgraded egui to 0.33.3
 - Optimized connection configuration saving mechanism
 - Improved error message display
 
@@ -60,6 +57,7 @@
 - New key creation dialog
 - Database switching (DB 0-15)
 - Connection configuration management (CRUD)
+- Open connections persistence on exit
 
 ### Changed
 - Refactored application architecture with modular design
@@ -69,6 +67,40 @@
 - Fixed lag issues when loading large datasets
 - Fixed connection timeout handling
 
+## [0.2.0]
+
+### Added
+- Copy feedback functionality
+- Hash column width persistence
+- Hash field filtering
+- Set and ZSet type display
+- Key scan and progressive loading
+- Connection preferences (DB, side panel width)
+- Settings window (language, auto-connect)
+- TTL support with UI enhancements
+- Element editing for List, Hash, Set, ZSet
+- Hash type table display with borders
+- Release workflow & WiX installer
+
+### Changed
+- Improved font system with cross-platform support
+- Refactored panel organization into panels/ subdirectory
+- Improved UI constants and error handling
+
+### Fixed
+- Side panel state sharing between tabs
+- Binary key handling
+- Tab name and color display on connection
+
+## [0.1.0]
+
+### Added
+- Basic Redis connection management
+- Multi-tab support
+- Connection color indicators
+- Basic i18n support (English, Chinese)
+- Color picker for connections
+- Key-value viewer for basic types
 
 ## Version Guidelines
 
