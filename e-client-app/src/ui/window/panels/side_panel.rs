@@ -5,6 +5,39 @@ use e_client_config::language::Language;
 use e_client_config::translations::emoji;
 use e_client_config::translations::keys;
 use e_client_config::translations::tr;
+use std::collections::BTreeMap;
+
+/// Represents a node in the key tree structure
+#[derive(Debug, Default)]
+struct KeyTreeNode {
+    /// Full key name if this node represents a complete key
+    full_key: Option<String>,
+    /// Child nodes keyed by their segment name
+    children: BTreeMap<String, KeyTreeNode>,
+}
+
+impl KeyTreeNode {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    /// Insert a key into the tree
+    fn insert(&mut self, key: &str) {
+        let parts: Vec<&str> = key.split(':').collect();
+        self.insert_parts(&parts, key);
+    }
+
+    fn insert_parts(&mut self, parts: &[&str], full_key: &str) {
+        if parts.is_empty() {
+            self.full_key = Some(full_key.to_string());
+            return;
+        }
+
+        let first = parts[0].to_string();
+        let child = self.children.entry(first).or_default();
+        child.insert_parts(&parts[1..], full_key);
+    }
+}
 
 pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     if app.get_active_tab().is_none() {
@@ -138,6 +171,9 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
             ui.separator();
 
+            // Check if we should group keys by colon
+            let group_by_colon = app.config.settings.group_keys_by_colon;
+
             // Fill remaining space with scroll area - optimized with limit for large key lists
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
@@ -145,55 +181,24 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .show(ui, |ui| {
                     // Limit rendering to improve performance with large datasets
                     // Only show first MAX_LOADED_KEYS keys or all keys if less than that
-                    let keys_to_show = if keys.len() > MAX_LOADED_KEYS {
-                        &keys[0..MAX_LOADED_KEYS]
+                    let keys_to_show: Vec<String> = if keys.len() > MAX_LOADED_KEYS {
+                        keys[0..MAX_LOADED_KEYS].to_vec()
                     } else {
-                        &keys[..]
+                        keys.clone()
                     };
 
-                    for key in keys_to_show {
-                        let is_selected = selected_key.as_ref() == Some(key);
-                        // Use allocate_ui_with_layout to make the entire row clickable
-                        let (rect, response) = ui.allocate_exact_size(
-                            egui::vec2(ui.available_width(), ui.spacing().interact_size.y),
-                            egui::Sense::click(),
-                        );
-
-                        if response.clicked() {
-                            let tab = &mut app.tabs[active_tab_idx];
-                            *tab.state.selected_key.blocking_write() = Some(key.clone());
-                            tab.state.spawn_load_value(key.clone());
+                    if group_by_colon {
+                        // Build and render key tree
+                        let mut root = KeyTreeNode::new();
+                        for key in &keys_to_show {
+                            root.insert(key);
                         }
-
-                        // Draw the background for selected item
-                        if is_selected {
-                            ui.painter().rect_filled(
-                                rect,
-                                egui::CornerRadius::same(2),
-                                ui.visuals().selection.bg_fill,
-                            );
-                        } else if response.hovered() {
-                            ui.painter().rect_filled(
-                                rect,
-                                egui::CornerRadius::same(2),
-                                ui.visuals().widgets.hovered.bg_fill,
-                            );
+                        render_key_tree(ui, &root, &selected_key, active_tab_idx, app, "root");
+                    } else {
+                        // Render flat list
+                        for key in &keys_to_show {
+                            render_key_item(ui, key, key, &selected_key, active_tab_idx, app);
                         }
-
-                        // Draw the text
-                        let text_color = if is_selected {
-                            ui.visuals().selection.stroke.color
-                        } else {
-                            ui.visuals().text_color()
-                        };
-
-                        ui.painter().text(
-                            rect.left_center() + egui::vec2(ui.spacing().item_spacing.x, 0.0),
-                            egui::Align2::LEFT_CENTER,
-                            key,
-                            egui::FontId::default(),
-                            text_color,
-                        );
                     }
                 });
         });
@@ -330,5 +335,109 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
 
     if !open {
         app.new_key_dialog.show = false;
+    }
+}
+
+/// Render a single key item
+fn render_key_item(
+    ui: &mut egui::Ui,
+    full_key: &str,
+    display_name: &str,
+    selected_key: &Option<String>,
+    active_tab_idx: usize,
+    app: &mut RedisApp,
+) {
+    let is_selected = selected_key.as_ref().map(|s| s.as_str()) == Some(full_key);
+
+    // Use allocate_ui_with_layout to make the entire row clickable
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(ui.available_width(), ui.spacing().interact_size.y),
+        egui::Sense::click(),
+    );
+
+    if response.clicked() {
+        let tab = &mut app.tabs[active_tab_idx];
+        *tab.state.selected_key.blocking_write() = Some(full_key.to_string());
+        tab.state.spawn_load_value(full_key.to_string());
+    }
+
+    // Draw the background for selected item
+    if is_selected {
+        ui.painter().rect_filled(
+            rect,
+            egui::CornerRadius::same(2),
+            ui.visuals().selection.bg_fill,
+        );
+    } else if response.hovered() {
+        ui.painter().rect_filled(
+            rect,
+            egui::CornerRadius::same(2),
+            ui.visuals().widgets.hovered.bg_fill,
+        );
+    }
+
+    // Draw the text
+    let text_color = if is_selected {
+        ui.visuals().selection.stroke.color
+    } else {
+        ui.visuals().text_color()
+    };
+
+    ui.painter().text(
+        rect.left_center() + egui::vec2(ui.spacing().item_spacing.x, 0.0),
+        egui::Align2::LEFT_CENTER,
+        display_name,
+        egui::FontId::default(),
+        text_color,
+    );
+}
+
+/// Recursively render the key tree
+fn render_key_tree(
+    ui: &mut egui::Ui,
+    node: &KeyTreeNode,
+    selected_key: &Option<String>,
+    active_tab_idx: usize,
+    app: &mut RedisApp,
+    path: &str,
+) {
+    // Then render children as collapsible sections
+    for (name, child) in &node.children {
+        let has_children = !child.children.is_empty();
+        let has_key = child.full_key.is_some();
+
+        if has_children {
+            // This is a folder/group
+            let header_id = ui.make_persistent_id(format!("key_group_{}_{}", path, name));
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                header_id,
+                false, // Default to closed to avoid lag with many keys
+            )
+            .show_header(ui, |ui| {
+                if has_key {
+                    let full_key = child.full_key.as_ref().unwrap();
+                    let is_selected =
+                        selected_key.as_ref().map(|s| s.as_str()) == Some(full_key.as_str());
+
+                    if ui.selectable_label(is_selected, name).clicked() {
+                        let tab = &mut app.tabs[active_tab_idx];
+                        *tab.state.selected_key.blocking_write() = Some(full_key.clone());
+                        tab.state.spawn_load_value(full_key.clone());
+                    }
+                } else {
+                    ui.label(name);
+                }
+            })
+            .body(|ui| {
+                let new_path = format!("{}:{}", path, name);
+                render_key_tree(ui, child, selected_key, active_tab_idx, app, &new_path);
+            });
+        } else {
+            // This is a leaf node
+            if let Some(ref full_key) = child.full_key {
+                render_key_item(ui, full_key, name, selected_key, active_tab_idx, app);
+            }
+        }
     }
 }

@@ -14,6 +14,8 @@ pub struct ConfigOfUser {
     pub show_unclosed_connections: bool,
     #[serde(default = "default_true")]
     pub allow_duplicate_connections: bool,
+    #[serde(default = "default_true")]
+    pub group_keys_by_colon: bool,
 }
 
 fn default_true() -> bool {
@@ -28,6 +30,7 @@ impl Default for ConfigOfUser {
             shortcuts: ShortcutConfig::default(),
             show_unclosed_connections: true,
             allow_duplicate_connections: true,
+            group_keys_by_colon: true,
         }
     }
 }

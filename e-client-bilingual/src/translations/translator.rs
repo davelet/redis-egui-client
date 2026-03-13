@@ -793,13 +793,6 @@ impl Translator {
             m
         });
 
-        strings.insert(keys::SHORTCUT_OPEN_ALL_TABS_DROPDOWN, {
-            let mut m = HashMap::new();
-            m.insert(Language::English, "Open All Tabs Dropdown");
-            m.insert(Language::Chinese, "打开所有标签下拉框");
-            m
-        });
-
         strings.insert(keys::SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Remove Duplicate & Invalid Tabs");
@@ -818,6 +811,13 @@ impl Translator {
             let mut m = HashMap::new();
             m.insert(Language::English, "Allow Duplicate Connections");
             m.insert(Language::Chinese, "允许打开相同连接");
+            m
+        });
+
+        strings.insert(keys::GROUP_KEYS_BY_COLON, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Group Keys by Colon");
+            m.insert(Language::Chinese, "按冒号组织键");
             m
         });
 

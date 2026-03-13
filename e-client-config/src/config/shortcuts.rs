@@ -39,8 +39,6 @@ pub enum ShortcutAction {
     SwitchToTab9,
     #[serde(rename = "switch_to_last_tab")]
     SwitchToLastTab,
-    #[serde(rename = "open_all_tabs_dropdown")]
-    OpenAllTabsDropdown,
     #[serde(rename = "remove_duplicate_and_invalid_tabs")]
     RemoveDuplicateAndInvalidTabs,
 }
@@ -77,10 +75,6 @@ impl ShortcutAction {
                 "shortcut_switch_to_last_tab",
             ),
             (
-                ShortcutAction::OpenAllTabsDropdown,
-                "shortcut_open_all_tabs_dropdown",
-            ),
-            (
                 ShortcutAction::RemoveDuplicateAndInvalidTabs,
                 "shortcut_remove_duplicate_and_invalid_tabs",
             ),
@@ -113,7 +107,6 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab8 => format!("{}+8", mod_key),
             ShortcutAction::SwitchToTab9 => format!("{}+9", mod_key),
             ShortcutAction::SwitchToLastTab => format!("{}+0", mod_key),
-            ShortcutAction::OpenAllTabsDropdown => format!("{}+Shift+A", mod_key),
             ShortcutAction::RemoveDuplicateAndInvalidTabs => format!("{}+Shift+D", mod_key),
         }
     }
@@ -139,7 +132,6 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab8 => "shortcut_switch_to_tab_8",
             ShortcutAction::SwitchToTab9 => "shortcut_switch_to_tab_9",
             ShortcutAction::SwitchToLastTab => "shortcut_switch_to_last_tab",
-            ShortcutAction::OpenAllTabsDropdown => "shortcut_open_all_tabs_dropdown",
             ShortcutAction::RemoveDuplicateAndInvalidTabs => {
                 "shortcut_remove_duplicate_and_invalid_tabs"
             }
@@ -272,7 +264,6 @@ impl ShortcutConfig {
             "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
             "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
             "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
-            "OpenAllTabsDropdown" => Some(ShortcutAction::OpenAllTabsDropdown),
             "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
             _ => None,
         }

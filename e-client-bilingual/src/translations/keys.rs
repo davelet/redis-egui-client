@@ -113,8 +113,8 @@ pub const SHORTCUT_SWITCH_TO_LAST_TAB: &str = "shortcut_switch_to_last_tab";
 pub const SHORTCUT_NON_EDITABLE: &str = "shortcut_non_editable";
 pub const ALL_TABS: &str = "all_tabs";
 pub const REMOVE_DUPLICATE_AND_INVALID_TABS: &str = "remove_duplicate_and_invalid_tabs";
-pub const SHORTCUT_OPEN_ALL_TABS_DROPDOWN: &str = "shortcut_open_all_tabs_dropdown";
 pub const SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS: &str =
     "shortcut_remove_duplicate_and_invalid_tabs";
 pub const SHOW_UNCLOSED_CONNECTIONS: &str = "show_unclosed_connections";
 pub const ALLOW_DUPLICATE_CONNECTIONS: &str = "allow_duplicate_connections";
+pub const GROUP_KEYS_BY_COLON: &str = "group_keys_by_colon";

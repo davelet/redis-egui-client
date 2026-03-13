@@ -23,6 +23,7 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
 - **Smart JSON Handling** - Auto-format JSON data for friendly editing, intelligent compression on save
 - **Lazy Loading** - Smooth browsing with large datasets, load keys and values on demand
 - **Real-time Filtering** - Key list supports real-time search and filtering
+- **Group Keys by Colon** - Organize keys in a tree structure based on colon separator (e.g., `user:123:profile`)
 
 ### Efficient Operations
 - **Keyboard-First** - Shortcut support reduces mouse usage and improves efficiency
@@ -96,7 +97,11 @@ cargo install cargo-bundle
 | `Cmd/Ctrl + W` | Close current Tab |
 | `Cmd/Ctrl + R` | Refresh current Key |
 | `Cmd/Ctrl + F` | Focus to Key filter box |
-| `Enter` | Execute command |
+| `Cmd/Ctrl + 1-9` | Switch to Tab 1-9 |
+| `Cmd/Ctrl + 0` | Switch to the rightmost Tab |
+| `Cmd/Ctrl + E` | Toggle Command Line Panel |
+| `Up/Down Arrow` | Navigate command history (in command line) |
+| `Cmd/Ctrl + Shift + D` | Delete duplicate Tabs and unconnected Tabs |
 
 ## Configuration
 

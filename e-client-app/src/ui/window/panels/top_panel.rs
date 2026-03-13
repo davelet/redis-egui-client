@@ -87,7 +87,6 @@ fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
         "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
         "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
-        "OpenAllTabsDropdown" => Some(ShortcutAction::OpenAllTabsDropdown),
         "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
         _ => None,
     }
@@ -475,6 +474,19 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 app.config.settings.allow_duplicate_connections;
                             if ui.checkbox(&mut allow_duplicate, "").changed() {
                                 app.config.settings.allow_duplicate_connections = allow_duplicate;
+                                app.config.mark_settings_dirty();
+                            }
+                        });
+                        ui.end_row();
+
+                        // Group keys by colon setting
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(tr(keys::GROUP_KEYS_BY_COLON, current_lang));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let mut group_keys = app.config.settings.group_keys_by_colon;
+                            if ui.checkbox(&mut group_keys, "").changed() {
+                                app.config.settings.group_keys_by_colon = group_keys;
                                 app.config.mark_settings_dirty();
                             }
                         });

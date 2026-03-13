@@ -1,9 +1,15 @@
 # Changelog
 
-## [0.3.4] - Unreleased
+## [0.3.5] - Unreleased
 
 ### Added
+- Group keys by colon - Organize keys in a tree structure based on colon separator
 - Command history navigation (up/down arrow keys) for the command line panel
+
+## [0.3.4]
+
+### Added
+- Tab switching shortcuts (Ctrl/Cmd + 1-9) for quick tab navigation
 
 ## [0.3.3] - 2026-03-12
 

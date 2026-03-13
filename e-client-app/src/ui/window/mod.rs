@@ -311,10 +311,6 @@ impl eframe::App for RedisApp {
                                 ShortcutAction::RemoveDuplicateAndInvalidTabs => {
                                     self.remove_duplicate_and_invalid_tabs(ctx);
                                 }
-                                ShortcutAction::OpenAllTabsDropdown => {
-                                    // This is handled in tab_bar.rs via show_all_tabs_dropdown flag
-                                    self.show_all_tabs_dropdown = true;
-                                }
                             }
                         }
                     }
