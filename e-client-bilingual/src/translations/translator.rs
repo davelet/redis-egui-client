@@ -807,6 +807,20 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::SHOW_UNCLOSED_CONNECTIONS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Show Unclosed Connections on Welcome");
+            m.insert(Language::Chinese, "欢迎页显示未关闭的连接");
+            m
+        });
+
+        strings.insert(keys::ALLOW_DUPLICATE_CONNECTIONS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Allow Duplicate Connections");
+            m.insert(Language::Chinese, "允许打开相同连接");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");

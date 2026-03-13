@@ -83,7 +83,16 @@ fn render_saved_connections(
     }
 
     // Connection table
-    render_connection_table(app, ui, current_lang, &connections, &open_conn_names);
+    // Only mark connections as "open" (blue) if show_unclosed_connections setting is enabled
+    let should_highlight_open = app.config.settings.show_unclosed_connections;
+    render_connection_table(
+        app,
+        ui,
+        current_lang,
+        &connections,
+        &open_conn_names,
+        should_highlight_open,
+    );
 }
 
 /// Render open connections prompt
@@ -127,6 +136,7 @@ fn render_connection_table(
     current_lang: Language,
     connections: &[e_client_config::connection::RedisConnectionConfig],
     open_conn_names: &[String],
+    should_highlight_open: bool,
 ) {
     let available_width = ui.available_width();
     let table_width = available_width.min(600.0).max(400.0);
@@ -146,7 +156,8 @@ fn render_connection_table(
 
         // Table rows
         for (idx, conn) in connections.iter().enumerate() {
-            let is_open = open_conn_names.contains(&conn.name);
+            // Only mark as "open" if the setting is enabled and connection is in open list
+            let is_open = should_highlight_open && open_conn_names.contains(&conn.name);
             render_connection_row(app, ui, current_lang, idx, conn, is_open, table_width);
 
             if idx < connections.len() - 1 {
@@ -210,11 +221,24 @@ fn render_connection_name(
 }
 
 /// Connect to Redis in the current tab
+/// If the connection already exists in another tab and duplicate connections are not allowed,
+/// switch to that tab instead.
 fn connect_in_current_tab(
     app: &mut RedisApp,
     idx: usize,
     conn: &e_client_config::connection::RedisConnectionConfig,
 ) {
+    // Check if duplicate connections are allowed
+    if !app.config.settings.allow_duplicate_connections {
+        // Check if this connection is already open in another tab
+        if let Some(existing_tab_idx) = app.find_tab_with_connection(idx) {
+            // Switch to the existing tab
+            app.switch_to_tab(existing_tab_idx);
+            app.show_open_connections_prompt = false;
+            return;
+        }
+    }
+
     if let Some(tab) = app.get_active_tab_mut() {
         let conn_clone = conn.clone();
         *tab.state.connection_param.blocking_write() = Some(conn_clone.clone());

@@ -116,3 +116,5 @@ pub const REMOVE_DUPLICATE_AND_INVALID_TABS: &str = "remove_duplicate_and_invali
 pub const SHORTCUT_OPEN_ALL_TABS_DROPDOWN: &str = "shortcut_open_all_tabs_dropdown";
 pub const SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS: &str =
     "shortcut_remove_duplicate_and_invalid_tabs";
+pub const SHOW_UNCLOSED_CONNECTIONS: &str = "show_unclosed_connections";
+pub const ALLOW_DUPLICATE_CONNECTIONS: &str = "allow_duplicate_connections";

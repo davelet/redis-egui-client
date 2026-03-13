@@ -64,7 +64,7 @@ pub const SUPPORTED_KEYS: [egui::Key; 51] = [
 
 /// Settings window dimensions
 const SETTINGS_WINDOW_WIDTH: f32 = 450.0;
-const SETTINGS_WINDOW_HEIGHT: f32 = 300.0;
+const SETTINGS_WINDOW_HEIGHT: f32 = 200.0;
 
 /// Parse action key string to ShortcutAction enum
 fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
@@ -397,9 +397,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
         egui::Window::new(tr(keys::SETTINGS, current_lang))
             .collapsible(false)
-            .resizable(false)
+            .resizable(true)
             .default_pos(top_right)
-            .fixed_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
+            .min_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
+            .default_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
             .show(ctx, |ui| {
                 egui::Grid::new("settings_grid")
                     .num_columns(2)
@@ -451,202 +452,79 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             }
                         });
                         ui.end_row();
+
+                        // Show unclosed connections setting
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(tr(keys::SHOW_UNCLOSED_CONNECTIONS, current_lang));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let mut show_unclosed = app.config.settings.show_unclosed_connections;
+                            if ui.checkbox(&mut show_unclosed, "").changed() {
+                                app.config.settings.show_unclosed_connections = show_unclosed;
+                                app.config.mark_settings_dirty();
+                            }
+                        });
+                        ui.end_row();
+
+                        // Allow duplicate connections setting
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(tr(keys::ALLOW_DUPLICATE_CONNECTIONS, current_lang));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let mut allow_duplicate =
+                                app.config.settings.allow_duplicate_connections;
+                            if ui.checkbox(&mut allow_duplicate, "").changed() {
+                                app.config.settings.allow_duplicate_connections = allow_duplicate;
+                                app.config.mark_settings_dirty();
+                            }
+                        });
+                        ui.end_row();
                     });
 
                 ui.separator();
 
-                // Keyboard shortcuts section
-                ui.heading(tr(keys::KEYBOARD_SHORTCUTS, current_lang));
-                ui.add_space(12.0);
-
-                // Check if we're currently capturing a shortcut
-                let is_capturing = app.editing_shortcut.is_some();
-
-                if is_capturing {
-                    ui.colored_label(
-                        ui.visuals().warn_fg_color,
-                        tr(keys::SHORTCUT_PRESS_KEYS, current_lang),
-                    );
-                    ui.add_space(8.0);
-                }
-
-                // Show conflict warning if any
-                if let Some(ref warning) = app.shortcut_conflict_warning {
-                    ui.colored_label(
-                        ui.visuals().error_fg_color,
-                        format!("{} {}", emoji::action::WARNING, warning),
-                    );
-                    ui.add_space(8.0);
-                }
-
-                // Capture shortcut input if in editing mode
-                if is_capturing {
-                    ctx.input(|i| {
-                        // Check for Enter key to save
-                        if i.key_pressed(egui::Key::Enter) {
-                            let has_conflict = app.shortcut_conflict_warning.is_some();
-                            let can_save = !app.shortcut_input_buffer.is_empty() && !has_conflict;
-                            if can_save {
-                                if let Some(current_action_str) = &app.editing_shortcut {
-                                    if let Some(current_action) =
-                                        parse_action_from_key(current_action_str)
-                                    {
-                                        app.config.settings.shortcuts.set_binding(
-                                            &current_action,
-                                            app.shortcut_input_buffer.clone(),
-                                        );
-                                        app.config.mark_settings_dirty();
-                                        app.editing_shortcut = None;
-                                        app.shortcut_input_buffer.clear();
-                                        app.shortcut_conflict_warning = None;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Check for Escape key to cancel
-                        if i.key_pressed(egui::Key::Escape) {
-                            app.editing_shortcut = None;
-                            app.shortcut_input_buffer.clear();
-                            app.shortcut_conflict_warning = None;
-                        }
-
-                        let modifiers = i.modifiers;
-                        for key in SUPPORTED_KEYS {
-                            if i.key_pressed(key) {
-                                let mut parts = Vec::new();
-                                // Platform-specific modifier key handling:
-                                // - macOS: "Cmd" for Command key, "Ctrl" for Control key
-                                // - Other: "Ctrl" for both Ctrl and Command (they're unified)
-                                if cfg!(target_os = "macos") {
-                                    if modifiers.command {
-                                        parts.push("Cmd".to_string());
-                                    }
-                                    if modifiers.ctrl {
-                                        parts.push("Ctrl".to_string());
-                                    }
-                                } else {
-                                    if modifiers.ctrl || modifiers.command {
-                                        parts.push("Ctrl".to_string());
-                                    }
-                                }
-                                if modifiers.alt {
-                                    parts.push("Alt".to_string());
-                                }
-                                if modifiers.shift {
-                                    parts.push("Shift".to_string());
-                                }
-                                parts.push(format!("{:?}", key));
-                                app.shortcut_input_buffer = parts.join("+");
-
-                                // Check for conflicts
-                                if let Some(current_action_str) = &app.editing_shortcut {
-                                    if let Some(current_action) =
-                                        parse_action_from_key(current_action_str)
-                                    {
-                                        if let Some(conflict_action) =
-                                            app.config.settings.shortcuts.check_conflict(
-                                                &app.shortcut_input_buffer,
-                                                &current_action,
-                                            )
-                                        {
-                                            let conflict_name =
-                                                tr(conflict_action.translation_key(), current_lang);
-                                            app.shortcut_conflict_warning = Some(tr_fmt(
-                                                keys::SHORTCUT_CONFLICTS_WITH,
-                                                current_lang,
-                                                &[conflict_name],
-                                            ));
-                                        } else {
-                                            app.shortcut_conflict_warning = None;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-
-                egui::Frame::group(ui.style())
-                    .fill(ui.visuals().faint_bg_color)
+                // Keyboard shortcuts section (collapsible)
+                let shortcuts_header_text = tr(keys::KEYBOARD_SHORTCUTS, current_lang);
+                egui::CollapsingHeader::new(shortcuts_header_text)
+                    .id_salt("settings_shortcuts_collapsible")
                     .show(ui, |ui| {
-                        ui.set_min_width(480.0);
-                        egui::Grid::new("shortcuts_grid")
-                            .num_columns(3)
-                            .spacing([30.0, 10.0])
-                            .min_col_width(150.0)
-                            .show(ui, |ui| {
-                                for (action, trans_key) in ShortcutAction::all_actions() {
-                                    let action_key = format!("{:?}", action);
-                                    let is_editing =
-                                        app.editing_shortcut.as_ref() == Some(&action_key);
+                        ui.add_space(8.0);
 
-                                    // Check if this shortcut is non-editable
-                                    let is_non_editable = action.is_non_editable();
+                        // Check if we're currently capturing a shortcut
+                        let is_capturing = app.editing_shortcut.is_some();
 
-                                    // Action name with bold font (translated)
-                                    ui.horizontal(|ui| {
-                                        ui.label(
-                                            egui::RichText::new(tr(trans_key, current_lang))
-                                                .strong(),
-                                        );
-                                    });
+                        if is_capturing {
+                            ui.colored_label(
+                                ui.visuals().warn_fg_color,
+                                tr(keys::SHORTCUT_PRESS_KEYS, current_lang),
+                            );
+                            ui.add_space(8.0);
+                        }
 
-                                    // Current shortcut display or input
-                                    if is_editing {
-                                        let display_text = app.shortcut_input_buffer.clone();
-                                        let response = ui.add(
-                                            egui::TextEdit::singleline(&mut display_text.clone())
-                                                .desired_width(150.0)
-                                                .interactive(false)
-                                                .font(egui::TextStyle::Monospace),
-                                        );
-                                        // Highlight the editing field
-                                        ui.painter().rect_stroke(
-                                            response.rect.expand(2.0),
-                                            4.0,
-                                            ui.visuals().selection.stroke,
-                                            egui::StrokeKind::Inside,
-                                        );
-                                    } else {
-                                        let binding =
-                                            app.config.settings.shortcuts.get_binding(&action);
-                                        ui.monospace(&binding);
-                                    }
+                        // Show conflict warning if any
+                        if let Some(ref warning) = app.shortcut_conflict_warning {
+                            ui.colored_label(
+                                ui.visuals().error_fg_color,
+                                format!("{} {}", emoji::action::WARNING, warning),
+                            );
+                            ui.add_space(8.0);
+                        }
 
-                                    // Edit/Save/Cancel buttons or "Not customizable" text
-                                    ui.horizontal(|ui| {
-                                        if is_non_editable {
-                                            // Show "Not customizable" text for non-editable shortcuts
-                                            ui.label(
-                                                egui::RichText::new(tr(
-                                                    keys::SHORTCUT_NON_EDITABLE,
-                                                    current_lang,
-                                                ))
-                                                .color(ui.visuals().weak_text_color())
-                                                .italics()
-                                                .size(12.0),
-                                            );
-                                        } else if is_editing {
-                                            // Check if there's a conflict before allowing save
-                                            let has_conflict =
-                                                app.shortcut_conflict_warning.is_some();
-                                            let can_save = !app.shortcut_input_buffer.is_empty()
-                                                && !has_conflict;
-
-                                            ui.visuals_mut().override_text_color =
-                                                Some(ui.visuals().selection.bg_fill);
-                                            let save_text = format!(
-                                                "{} {}",
-                                                emoji::action::SAVE,
-                                                tr(keys::SAVE, current_lang)
-                                            );
-                                            if ui
-                                                .add_enabled(can_save, egui::Button::new(save_text))
-                                                .clicked()
+                        // Capture shortcut input if in editing mode
+                        if is_capturing {
+                            ctx.input(|i| {
+                                // Check for Enter key to save
+                                if i.key_pressed(egui::Key::Enter) {
+                                    let has_conflict = app.shortcut_conflict_warning.is_some();
+                                    let can_save =
+                                        !app.shortcut_input_buffer.is_empty() && !has_conflict;
+                                    if can_save {
+                                        if let Some(current_action_str) = &app.editing_shortcut {
+                                            if let Some(current_action) =
+                                                parse_action_from_key(current_action_str)
                                             {
                                                 app.config.settings.shortcuts.set_binding(
-                                                    &action,
+                                                    &current_action,
                                                     app.shortcut_input_buffer.clone(),
                                                 );
                                                 app.config.mark_settings_dirty();
@@ -654,56 +532,226 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                 app.shortcut_input_buffer.clear();
                                                 app.shortcut_conflict_warning = None;
                                             }
-                                            ui.visuals_mut().override_text_color = None;
-                                            let cancel_text = format!(
-                                                "{} {}",
-                                                emoji::action::CANCEL,
-                                                tr(keys::CANCEL, current_lang)
-                                            );
-                                            if ui.button(cancel_text).clicked() {
-                                                app.editing_shortcut = None;
-                                                app.shortcut_input_buffer.clear();
-                                                app.shortcut_conflict_warning = None;
+                                        }
+                                    }
+                                }
+
+                                // Check for Escape key to cancel
+                                if i.key_pressed(egui::Key::Escape) {
+                                    app.editing_shortcut = None;
+                                    app.shortcut_input_buffer.clear();
+                                    app.shortcut_conflict_warning = None;
+                                }
+
+                                let modifiers = i.modifiers;
+                                for key in SUPPORTED_KEYS {
+                                    if i.key_pressed(key) {
+                                        let mut parts = Vec::new();
+                                        // Platform-specific modifier key handling:
+                                        // - macOS: "Cmd" for Command key, "Ctrl" for Control key
+                                        // - Other: "Ctrl" for both Ctrl and Command (they're unified)
+                                        if cfg!(target_os = "macos") {
+                                            if modifiers.command {
+                                                parts.push("Cmd".to_string());
+                                            }
+                                            if modifiers.ctrl {
+                                                parts.push("Ctrl".to_string());
                                             }
                                         } else {
-                                            let edit_text = format!(
-                                                "{} {}",
-                                                emoji::action::EDIT,
-                                                tr(keys::EDIT, current_lang)
-                                            );
-                                            if ui.button(edit_text).clicked() {
-                                                app.editing_shortcut = Some(action_key);
-                                                // Initialize with current binding
-                                                app.shortcut_input_buffer = app
+                                            if modifiers.ctrl || modifiers.command {
+                                                parts.push("Ctrl".to_string());
+                                            }
+                                        }
+                                        if modifiers.alt {
+                                            parts.push("Alt".to_string());
+                                        }
+                                        if modifiers.shift {
+                                            parts.push("Shift".to_string());
+                                        }
+                                        parts.push(format!("{:?}", key));
+                                        app.shortcut_input_buffer = parts.join("+");
+
+                                        // Check for conflicts
+                                        if let Some(current_action_str) = &app.editing_shortcut {
+                                            if let Some(current_action) =
+                                                parse_action_from_key(current_action_str)
+                                            {
+                                                if let Some(conflict_action) =
+                                                    app.config.settings.shortcuts.check_conflict(
+                                                        &app.shortcut_input_buffer,
+                                                        &current_action,
+                                                    )
+                                                {
+                                                    let conflict_name = tr(
+                                                        conflict_action.translation_key(),
+                                                        current_lang,
+                                                    );
+                                                    app.shortcut_conflict_warning = Some(tr_fmt(
+                                                        keys::SHORTCUT_CONFLICTS_WITH,
+                                                        current_lang,
+                                                        &[conflict_name],
+                                                    ));
+                                                } else {
+                                                    app.shortcut_conflict_warning = None;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        egui::Frame::group(ui.style())
+                            .fill(ui.visuals().faint_bg_color)
+                            .show(ui, |ui| {
+                                ui.set_min_width(400.0);
+                                egui::Grid::new("shortcuts_grid")
+                                    .num_columns(3)
+                                    .spacing([20.0, 8.0])
+                                    .min_col_width(120.0)
+                                    .show(ui, |ui| {
+                                        for (action, trans_key) in ShortcutAction::all_actions() {
+                                            let action_key = format!("{:?}", action);
+                                            let is_editing =
+                                                app.editing_shortcut.as_ref() == Some(&action_key);
+
+                                            // Check if this shortcut is non-editable
+                                            let is_non_editable = action.is_non_editable();
+
+                                            // Action name with bold font (translated)
+                                            ui.horizontal(|ui| {
+                                                ui.label(
+                                                    egui::RichText::new(tr(
+                                                        trans_key,
+                                                        current_lang,
+                                                    ))
+                                                    .strong(),
+                                                );
+                                            });
+
+                                            // Current shortcut display or input
+                                            if is_editing {
+                                                let display_text =
+                                                    app.shortcut_input_buffer.clone();
+                                                let response = ui.add(
+                                                    egui::TextEdit::singleline(
+                                                        &mut display_text.clone(),
+                                                    )
+                                                    .desired_width(120.0)
+                                                    .interactive(false)
+                                                    .font(egui::TextStyle::Monospace),
+                                                );
+                                                // Highlight the editing field
+                                                ui.painter().rect_stroke(
+                                                    response.rect.expand(2.0),
+                                                    4.0,
+                                                    ui.visuals().selection.stroke,
+                                                    egui::StrokeKind::Inside,
+                                                );
+                                            } else {
+                                                let binding = app
                                                     .config
                                                     .settings
                                                     .shortcuts
                                                     .get_binding(&action);
-                                                app.shortcut_conflict_warning = None;
+                                                ui.monospace(&binding);
                                             }
+
+                                            // Edit/Save/Cancel buttons or "Not customizable" text
+                                            ui.horizontal(|ui| {
+                                                if is_non_editable {
+                                                    // Show "Not customizable" text for non-editable shortcuts
+                                                    ui.label(
+                                                        egui::RichText::new(tr(
+                                                            keys::SHORTCUT_NON_EDITABLE,
+                                                            current_lang,
+                                                        ))
+                                                        .color(ui.visuals().weak_text_color())
+                                                        .italics()
+                                                        .size(12.0),
+                                                    );
+                                                } else if is_editing {
+                                                    // Check if there's a conflict before allowing save
+                                                    let has_conflict =
+                                                        app.shortcut_conflict_warning.is_some();
+                                                    let can_save =
+                                                        !app.shortcut_input_buffer.is_empty()
+                                                            && !has_conflict;
+
+                                                    ui.visuals_mut().override_text_color =
+                                                        Some(ui.visuals().selection.bg_fill);
+                                                    let save_text = format!(
+                                                        "{} {}",
+                                                        emoji::action::SAVE,
+                                                        tr(keys::SAVE, current_lang)
+                                                    );
+                                                    if ui
+                                                        .add_enabled(
+                                                            can_save,
+                                                            egui::Button::new(save_text),
+                                                        )
+                                                        .clicked()
+                                                    {
+                                                        app.config.settings.shortcuts.set_binding(
+                                                            &action,
+                                                            app.shortcut_input_buffer.clone(),
+                                                        );
+                                                        app.config.mark_settings_dirty();
+                                                        app.editing_shortcut = None;
+                                                        app.shortcut_input_buffer.clear();
+                                                        app.shortcut_conflict_warning = None;
+                                                    }
+                                                    ui.visuals_mut().override_text_color = None;
+                                                    let cancel_text = format!(
+                                                        "{} {}",
+                                                        emoji::action::CANCEL,
+                                                        tr(keys::CANCEL, current_lang)
+                                                    );
+                                                    if ui.button(cancel_text).clicked() {
+                                                        app.editing_shortcut = None;
+                                                        app.shortcut_input_buffer.clear();
+                                                        app.shortcut_conflict_warning = None;
+                                                    }
+                                                } else {
+                                                    let edit_text = format!(
+                                                        "{} {}",
+                                                        emoji::action::EDIT,
+                                                        tr(keys::EDIT, current_lang)
+                                                    );
+                                                    if ui.button(edit_text).clicked() {
+                                                        app.editing_shortcut = Some(action_key);
+                                                        // Initialize with current binding
+                                                        app.shortcut_input_buffer = app
+                                                            .config
+                                                            .settings
+                                                            .shortcuts
+                                                            .get_binding(&action);
+                                                        app.shortcut_conflict_warning = None;
+                                                    }
+                                                }
+                                            });
+                                            ui.end_row();
                                         }
                                     });
-                                    ui.end_row();
-                                }
                             });
-                    });
 
-                ui.add_space(12.0);
-                ui.horizontal(|ui| {
-                    let reset_text = format!(
-                        "{} {}",
-                        emoji::action::REFRESH,
-                        tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
-                    );
-                    if ui.button(reset_text).clicked() {
-                        app.config.settings.shortcuts.reset_to_default();
-                        app.config.mark_settings_dirty();
-                        // Clear editing state to refresh the display
-                        app.editing_shortcut = None;
-                        app.shortcut_input_buffer.clear();
-                        app.shortcut_conflict_warning = None;
-                    }
-                });
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            let reset_text = format!(
+                                "{} {}",
+                                emoji::action::REFRESH,
+                                tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
+                            );
+                            if ui.button(reset_text).clicked() {
+                                app.config.settings.shortcuts.reset_to_default();
+                                app.config.mark_settings_dirty();
+                                // Clear editing state to refresh the display
+                                app.editing_shortcut = None;
+                                app.shortcut_input_buffer.clear();
+                                app.shortcut_conflict_warning = None;
+                            }
+                        });
+                    });
 
                 ui.separator();
 

@@ -421,7 +421,9 @@ impl RedisApp {
         };
 
         // Check if there are open connections before moving config
-        let has_open_connections = !config.window.open_connections.is_empty();
+        // Only show open connections prompt if the setting is enabled
+        let has_open_connections =
+            !config.window.open_connections.is_empty() && config.settings.show_unclosed_connections;
 
         // Create initial tab
         let initial_tab = RedisTab::new(0, global_language);
@@ -546,6 +548,16 @@ impl RedisApp {
     }
 
     pub fn create_tab_with_connection(&mut self, conn_idx: usize, conn: RedisConnectionConfig) {
+        // Check if duplicate connections are allowed
+        if !self.config.settings.allow_duplicate_connections {
+            // Check if this connection is already open in another tab
+            if let Some(existing_tab_idx) = self.find_tab_with_connection(conn_idx) {
+                // Switch to the existing tab instead of creating a new one
+                self.switch_to_tab(existing_tab_idx);
+                return;
+            }
+        }
+
         let new_tab =
             RedisTab::with_connection(self.next_tab_id, conn_idx, conn, self.global_language);
         let new_tab_idx = self.tabs.len();
@@ -608,6 +620,14 @@ impl RedisApp {
             self.active_tab = index;
             self.scroll_to_tab = Some(index);
         }
+    }
+
+    /// Find a tab that is already connected to the given connection index
+    /// Returns the tab index if found, None otherwise
+    pub fn find_tab_with_connection(&self, conn_idx: usize) -> Option<usize> {
+        self.tabs.iter().position(|tab| {
+            tab.selected_connection == Some(conn_idx) && *tab.state.connected.blocking_read()
+        })
     }
 
     pub fn close_other_tabs(&mut self, keep_index: usize) {

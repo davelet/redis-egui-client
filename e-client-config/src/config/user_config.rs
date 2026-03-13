@@ -10,6 +10,14 @@ pub struct ConfigOfUser {
     pub auto_connect: bool,
     #[serde(default)]
     pub shortcuts: ShortcutConfig,
+    #[serde(default = "default_true")]
+    pub show_unclosed_connections: bool,
+    #[serde(default = "default_true")]
+    pub allow_duplicate_connections: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for ConfigOfUser {
@@ -18,6 +26,8 @@ impl Default for ConfigOfUser {
             language: Language::default().to_file_string(),
             auto_connect: false,
             shortcuts: ShortcutConfig::default(),
+            show_unclosed_connections: true,
+            allow_duplicate_connections: true,
         }
     }
 }
