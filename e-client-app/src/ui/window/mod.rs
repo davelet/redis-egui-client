@@ -4,6 +4,7 @@ use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_basics::constants::{
     DEFAULT_SIDE_PANEL_WIDTH, MAX_SIDE_PANEL_WIDTH, MIN_SIDE_PANEL_WIDTH, UI_REPAINT_INTERVAL_MS,
 };
+use e_client_config::config::ai_config::AiModel;
 use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
@@ -143,6 +144,70 @@ impl Default for ElementEditDialog {
     }
 }
 
+/// AI Model Editor state - manages the UI for adding/editing AI models
+pub struct AiModelEditor {
+    pub show: bool,
+    pub editing_model_id: Option<String>,
+    // Editable fields
+    pub name: String,
+    pub api_key: String,
+    pub url: String,
+    pub model_id: String,
+    pub temperature: f32,
+    /// Whether the models list section is collapsed
+    pub models_collapsed: bool,
+}
+
+impl Default for AiModelEditor {
+    fn default() -> Self {
+        Self {
+            show: false,
+            editing_model_id: None,
+            name: String::new(),
+            api_key: String::new(),
+            url: String::new(),
+            model_id: String::new(),
+            temperature: 0.7,
+            models_collapsed: true,
+        }
+    }
+}
+
+impl AiModelEditor {
+    /// Open editor for creating a new model
+    pub fn open_for_new(&mut self) {
+        self.show = true;
+        self.editing_model_id = None;
+        self.name.clear();
+        self.api_key.clear();
+        self.url.clear();
+        self.model_id.clear();
+        self.temperature = 0.7;
+    }
+
+    /// Open editor for editing an existing model
+    pub fn open_for_edit(&mut self, model: &AiModel) {
+        self.show = true;
+        self.editing_model_id = Some(model.id.clone());
+        self.name = model.name.clone();
+        self.api_key = model.api_key.clone().unwrap_or_default();
+        self.url = model.url.clone();
+        self.model_id = model.model_id.clone();
+        self.temperature = model.temperature;
+    }
+
+    /// Close the editor
+    pub fn close(&mut self) {
+        self.show = false;
+        self.editing_model_id = None;
+    }
+
+    /// Check if currently editing an existing model
+    pub fn is_editing(&self) -> bool {
+        self.editing_model_id.is_some()
+    }
+}
+
 pub struct RedisApp {
     tabs: Vec<RedisTab>,
     active_tab: usize,
@@ -169,6 +234,8 @@ pub struct RedisApp {
     scroll_to_tab: Option<usize>,
     // Track if all tabs dropdown should be shown (triggered by shortcut)
     pub show_all_tabs_dropdown: bool,
+    // AI model editor
+    pub ai_model_editor: AiModelEditor,
 }
 
 impl eframe::App for RedisApp {
@@ -443,6 +510,7 @@ impl RedisApp {
             shortcut_conflict_warning: None,
             scroll_to_tab: None,
             show_all_tabs_dropdown: false,
+            ai_model_editor: AiModelEditor::default(),
         }
     }
 

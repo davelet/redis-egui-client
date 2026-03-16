@@ -1,3 +1,4 @@
+pub mod ai_config;
 mod app_window;
 mod connected_preference;
 mod connections;
@@ -5,6 +6,7 @@ mod open_connections;
 pub mod shortcuts;
 mod user_config;
 
+use crate::config::ai_config::AiConfig;
 use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
 use crate::connection::RedisConnectionConfig;
 use crate::error::ConfigError;
@@ -21,10 +23,12 @@ pub struct Config {
     pub settings: ConfigOfUser,
     pub connections: ConfigOnConnections,
     pub connected_preferences: ConnectedPreferences,
+    pub ai_config: AiConfig,
     // Dirty flags for delayed saving
     dirty_window: bool,
     dirty_settings: bool,
     dirty_preferences: bool,
+    dirty_ai_config: bool,
 }
 
 impl Default for Config {
@@ -34,9 +38,11 @@ impl Default for Config {
             settings: ConfigOfUser::default(),
             connections: ConfigOnConnections::default(),
             connected_preferences: ConnectedPreferences::default(),
+            ai_config: AiConfig::default(),
             dirty_window: false,
             dirty_settings: false,
             dirty_preferences: false,
+            dirty_ai_config: false,
         }
     }
 }
@@ -67,10 +73,13 @@ impl Config {
         Ok(Self::config_path()?.join("open_connections.toml"))
     }
 
+    pub fn ai_config_file_path() -> Result<PathBuf, ConfigError> {
+        Ok(Self::config_path()?.join("ai_config.toml"))
+    }
+
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_path()?;
         if !path.exists() {
-            // If the config file doesn't exist, create a default configuration
             let default_config = Config::default();
             default_config.init()?;
             return Ok(default_config);
@@ -80,15 +89,18 @@ impl Config {
         let connections = Self::load_connections()?;
         let window = Self::load_window_params()?;
         let connected_preferences = Self::load_connected_preferences()?;
+        let ai_config = Self::load_ai_config()?;
 
         let config: Config = Config {
             window,
             settings,
             connections,
             connected_preferences,
+            ai_config,
             dirty_window: false,
             dirty_settings: false,
             dirty_preferences: false,
+            dirty_ai_config: false,
         };
         Ok(config)
     }
@@ -102,6 +114,7 @@ impl Config {
         self.save_connections()?;
         self.save_window_config()?;
         self.save_connected_preferences()?;
+        self.save_ai_config()?;
 
         Ok(())
     }
@@ -390,6 +403,10 @@ impl Config {
             self.save_connected_preferences()?;
             self.dirty_preferences = false;
         }
+        if self.dirty_ai_config {
+            self.save_ai_config()?;
+            self.dirty_ai_config = false;
+        }
         Ok(())
     }
 
@@ -405,5 +422,49 @@ impl Config {
     pub fn reset_user_settings() -> Result<(), ConfigError> {
         let c = Config::default();
         c.save_user_settings()
+    }
+}
+
+// fn for AI config
+impl Config {
+    pub fn load_ai_config() -> Result<AiConfig, ConfigError> {
+        let path = Self::ai_config_file_path()?;
+
+        if !path.exists() {
+            return Ok(AiConfig::default());
+        }
+
+        let content =
+            fs::read_to_string(&path).map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
+        toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
+    }
+
+    pub fn save_ai_config(&self) -> Result<(), ConfigError> {
+        let toml = toml::to_string_pretty(&self.ai_config)
+            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        fs::write(Self::ai_config_file_path()?, toml)
+            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub fn update_ai_config(&mut self, config: AiConfig) {
+        self.ai_config = config;
+        self.dirty_ai_config = true;
+    }
+
+    pub fn add_ai_model(&mut self, model: crate::config::ai_config::AiModel) {
+        self.ai_config.add_model(model);
+        self.dirty_ai_config = true;
+    }
+
+    pub fn remove_ai_model(&mut self, id: &str) {
+        self.ai_config.remove_model(id);
+        self.dirty_ai_config = true;
+    }
+
+    pub fn set_active_ai_model(&mut self, id: &str) {
+        self.ai_config.set_active_model(id);
+        self.dirty_ai_config = true;
     }
 }

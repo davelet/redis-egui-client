@@ -13,7 +13,7 @@ pub mod action {
     /// Cancel / Cross (❌)
     pub const CANCEL: &str = "\u{274C}";
     /// Delete / Trash (🗑)
-    pub const DELETE: &str = "\u{1F4D1}";
+    pub const DELETE: &str = "\u{1F5D1}";
     /// Settings / Gear (⚙)
     pub const SETTINGS: &str = "\u{2699}";
     /// Warning (⚠️)

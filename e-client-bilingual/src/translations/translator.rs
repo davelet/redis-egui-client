@@ -821,6 +821,125 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::AI_SETTINGS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "AI Settings");
+            m.insert(Language::Chinese, "AI 设置");
+            m
+        });
+
+        strings.insert(keys::AI_MODELS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "AI Models");
+            m.insert(Language::Chinese, "AI 模型");
+            m
+        });
+
+        strings.insert(keys::AI_ADD_MODEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Add Model");
+            m.insert(Language::Chinese, "添加模型");
+            m
+        });
+
+        strings.insert(keys::AI_EDIT_MODEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Edit Model");
+            m.insert(Language::Chinese, "编辑模型");
+            m
+        });
+
+        strings.insert(keys::AI_DELETE_MODEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Delete Model");
+            m.insert(Language::Chinese, "删除模型");
+            m
+        });
+
+        strings.insert(keys::AI_MODEL_NAME, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Model Name");
+            m.insert(Language::Chinese, "模型名称");
+            m
+        });
+
+        strings.insert(keys::AI_MODEL_ID, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Model ID");
+            m.insert(Language::Chinese, "模型 ID");
+            m
+        });
+
+        strings.insert(keys::AI_API_KEY, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "API Key");
+            m.insert(Language::Chinese, "API Key");
+            m
+        });
+
+        strings.insert(keys::AI_URL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "API URL");
+            m.insert(Language::Chinese, "API 地址");
+            m
+        });
+
+        strings.insert(keys::AI_TEMPERATURE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Temperature");
+            m.insert(Language::Chinese, "Temperature");
+            m
+        });
+
+        strings.insert(keys::AI_ACTIVE_MODEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Active Model");
+            m.insert(Language::Chinese, "当前使用");
+            m
+        });
+
+        strings.insert(keys::AI_CONFIRM_BEFORE_EXECUTE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Confirm before execute");
+            m.insert(Language::Chinese, "执行前确认");
+            m
+        });
+
+        strings.insert(keys::AI_SHOW_THINKING, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Show AI thinking process");
+            m.insert(Language::Chinese, "显示 AI 思考过程");
+            m
+        });
+
+        strings.insert(keys::AI_DISABLE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Disable AI features");
+            m.insert(Language::Chinese, "禁用 AI 功能");
+            m
+        });
+
+        strings.insert(keys::AI_ENABLE, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Enable AI features");
+            m.insert(Language::Chinese, "启用 AI 功能");
+            m
+        });
+
+        strings.insert(keys::AI_SELECT_MODEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Select a model");
+            m.insert(Language::Chinese, "选择模型");
+            m
+        });
+
+        strings.insert(keys::AI_MODEL_REQUIRED_FIELDS, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Name, URL and Model ID are required");
+            m.insert(Language::Chinese, "名称、URL 和模型 ID 为必填项");
+            m
+        });
+
         strings.insert(keys::COPY_KEY, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Copy Key");

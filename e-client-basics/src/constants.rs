@@ -21,6 +21,12 @@ pub const CONNECTION_NAME_LIMIT: usize = 100;
 pub const CONNECTION_URL_LIMIT: usize = 1000;
 pub const CONNECTION_AUTH_LIMIT: usize = 1024;
 
+/// AI model configuration limits
+pub const AI_MODEL_NAME_LIMIT: usize = 50;
+pub const AI_MODEL_URL_LIMIT: usize = 500;
+pub const AI_MODEL_ID_LIMIT: usize = 100;
+pub const AI_API_KEY_LIMIT: usize = 500;
+
 /// Key scan configuration
 pub const SCAN_COUNT: usize = 200;
 pub const MAX_INITIAL_KEYS: usize = 2000;

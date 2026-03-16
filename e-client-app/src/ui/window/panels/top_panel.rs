@@ -1,5 +1,7 @@
 use crate::ui::window::RedisApp;
-use e_client_basics::constants::WILD_KEY_FILTER;
+use e_client_basics::constants::{
+    AI_API_KEY_LIMIT, AI_MODEL_ID_LIMIT, AI_MODEL_NAME_LIMIT, AI_MODEL_URL_LIMIT, WILD_KEY_FILTER,
+};
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
@@ -64,7 +66,7 @@ pub const SUPPORTED_KEYS: [egui::Key; 51] = [
 
 /// Settings window dimensions
 const SETTINGS_WINDOW_WIDTH: f32 = 450.0;
-const SETTINGS_WINDOW_HEIGHT: f32 = 200.0;
+const SETTINGS_WINDOW_HEIGHT: f32 = 600.0;
 
 /// Parse action key string to ShortcutAction enum
 fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
@@ -401,311 +403,195 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             .min_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
             .default_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
             .show(ctx, |ui| {
-                egui::Grid::new("settings_grid")
-                    .num_columns(2)
-                    .spacing([40.0, 12.0])
-                    .min_col_width(120.0)
+                egui::ScrollArea::vertical()
+                    .id_salt("settings_scroll")
                     .show(ui, |ui| {
-                        // Language setting
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(tr(keys::LANGUAGE, current_lang));
-                        });
-                        let lang = current_lang;
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            egui::ComboBox::from_id_salt("settings_lang_select")
-                                .selected_text(match lang {
-                                    Language::English => ENGLISH,
-                                    Language::Chinese => CHINESE,
-                                })
-                                .show_ui(ui, |ui| {
-                                    if ui
-                                        .selectable_label(
-                                            matches!(lang, Language::English),
-                                            ENGLISH,
-                                        )
-                                        .clicked()
-                                    {
-                                        app.update_language(Language::English);
-                                    }
-                                    if ui
-                                        .selectable_label(
-                                            matches!(lang, Language::Chinese),
-                                            CHINESE,
-                                        )
-                                        .clicked()
-                                    {
-                                        app.update_language(Language::Chinese);
-                                    }
-                                });
-                        });
-                        ui.end_row();
-
-                        // Auto connect setting
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(tr(keys::AUTO_CONNECT, current_lang));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let mut auto_connect = app.config.settings.auto_connect;
-                            if ui.checkbox(&mut auto_connect, "").changed() {
-                                app.config.update_auto_connect(auto_connect);
-                            }
-                        });
-                        ui.end_row();
-
-                        // Show unclosed connections setting
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(tr(keys::SHOW_UNCLOSED_CONNECTIONS, current_lang));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let mut show_unclosed = app.config.settings.show_unclosed_connections;
-                            if ui.checkbox(&mut show_unclosed, "").changed() {
-                                app.config.settings.show_unclosed_connections = show_unclosed;
-                                app.config.mark_settings_dirty();
-                            }
-                        });
-                        ui.end_row();
-
-                        // Allow duplicate connections setting
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(tr(keys::ALLOW_DUPLICATE_CONNECTIONS, current_lang));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let mut allow_duplicate =
-                                app.config.settings.allow_duplicate_connections;
-                            if ui.checkbox(&mut allow_duplicate, "").changed() {
-                                app.config.settings.allow_duplicate_connections = allow_duplicate;
-                                app.config.mark_settings_dirty();
-                            }
-                        });
-                        ui.end_row();
-
-                        // Group keys by colon setting
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(tr(keys::GROUP_KEYS_BY_COLON, current_lang));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let mut group_keys = app.config.settings.group_keys_by_colon;
-                            if ui.checkbox(&mut group_keys, "").changed() {
-                                app.config.settings.group_keys_by_colon = group_keys;
-                                app.config.mark_settings_dirty();
-                            }
-                        });
-                        ui.end_row();
-                    });
-
-                ui.separator();
-
-                // Keyboard shortcuts section (collapsible)
-                let shortcuts_header_text = tr(keys::KEYBOARD_SHORTCUTS, current_lang);
-                egui::CollapsingHeader::new(shortcuts_header_text)
-                    .id_salt("settings_shortcuts_collapsible")
-                    .show(ui, |ui| {
-                        ui.add_space(8.0);
-
-                        // Check if we're currently capturing a shortcut
-                        let is_capturing = app.editing_shortcut.is_some();
-
-                        if is_capturing {
-                            ui.colored_label(
-                                ui.visuals().warn_fg_color,
-                                tr(keys::SHORTCUT_PRESS_KEYS, current_lang),
-                            );
-                            ui.add_space(8.0);
-                        }
-
-                        // Show conflict warning if any
-                        if let Some(ref warning) = app.shortcut_conflict_warning {
-                            ui.colored_label(
-                                ui.visuals().error_fg_color,
-                                format!("{} {}", emoji::action::WARNING, warning),
-                            );
-                            ui.add_space(8.0);
-                        }
-
-                        // Capture shortcut input if in editing mode
-                        if is_capturing {
-                            ctx.input(|i| {
-                                // Check for Enter key to save
-                                if i.key_pressed(egui::Key::Enter) {
-                                    let has_conflict = app.shortcut_conflict_warning.is_some();
-                                    let can_save =
-                                        !app.shortcut_input_buffer.is_empty() && !has_conflict;
-                                    if can_save {
-                                        if let Some(current_action_str) = &app.editing_shortcut {
-                                            if let Some(current_action) =
-                                                parse_action_from_key(current_action_str)
-                                            {
-                                                app.config.settings.shortcuts.set_binding(
-                                                    &current_action,
-                                                    app.shortcut_input_buffer.clone(),
-                                                );
-                                                app.config.mark_settings_dirty();
-                                                app.editing_shortcut = None;
-                                                app.shortcut_input_buffer.clear();
-                                                app.shortcut_conflict_warning = None;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Check for Escape key to cancel
-                                if i.key_pressed(egui::Key::Escape) {
-                                    app.editing_shortcut = None;
-                                    app.shortcut_input_buffer.clear();
-                                    app.shortcut_conflict_warning = None;
-                                }
-
-                                let modifiers = i.modifiers;
-                                for key in SUPPORTED_KEYS {
-                                    if i.key_pressed(key) {
-                                        let mut parts = Vec::new();
-                                        // Platform-specific modifier key handling:
-                                        // - macOS: "Cmd" for Command key, "Ctrl" for Control key
-                                        // - Other: "Ctrl" for both Ctrl and Command (they're unified)
-                                        if cfg!(target_os = "macos") {
-                                            if modifiers.command {
-                                                parts.push("Cmd".to_string());
-                                            }
-                                            if modifiers.ctrl {
-                                                parts.push("Ctrl".to_string());
-                                            }
-                                        } else {
-                                            if modifiers.ctrl || modifiers.command {
-                                                parts.push("Ctrl".to_string());
-                                            }
-                                        }
-                                        if modifiers.alt {
-                                            parts.push("Alt".to_string());
-                                        }
-                                        if modifiers.shift {
-                                            parts.push("Shift".to_string());
-                                        }
-                                        parts.push(format!("{:?}", key));
-                                        app.shortcut_input_buffer = parts.join("+");
-
-                                        // Check for conflicts
-                                        if let Some(current_action_str) = &app.editing_shortcut {
-                                            if let Some(current_action) =
-                                                parse_action_from_key(current_action_str)
-                                            {
-                                                if let Some(conflict_action) =
-                                                    app.config.settings.shortcuts.check_conflict(
-                                                        &app.shortcut_input_buffer,
-                                                        &current_action,
-                                                    )
-                                                {
-                                                    let conflict_name = tr(
-                                                        conflict_action.translation_key(),
-                                                        current_lang,
-                                                    );
-                                                    app.shortcut_conflict_warning = Some(tr_fmt(
-                                                        keys::SHORTCUT_CONFLICTS_WITH,
-                                                        current_lang,
-                                                        &[conflict_name],
-                                                    ));
-                                                } else {
-                                                    app.shortcut_conflict_warning = None;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-
-                        egui::Frame::group(ui.style())
-                            .fill(ui.visuals().faint_bg_color)
+                        egui::Grid::new("settings_grid")
+                            .num_columns(2)
+                            .spacing([40.0, 12.0])
+                            .min_col_width(120.0)
                             .show(ui, |ui| {
-                                ui.set_min_width(400.0);
-                                egui::Grid::new("shortcuts_grid")
-                                    .num_columns(3)
-                                    .spacing([20.0, 8.0])
-                                    .min_col_width(120.0)
-                                    .show(ui, |ui| {
-                                        for (action, trans_key) in ShortcutAction::all_actions() {
-                                            let action_key = format!("{:?}", action);
-                                            let is_editing =
-                                                app.editing_shortcut.as_ref() == Some(&action_key);
-
-                                            // Check if this shortcut is non-editable
-                                            let is_non_editable = action.is_non_editable();
-
-                                            // Action name with bold font (translated)
-                                            ui.horizontal(|ui| {
-                                                ui.label(
-                                                    egui::RichText::new(tr(
-                                                        trans_key,
-                                                        current_lang,
-                                                    ))
-                                                    .strong(),
-                                                );
-                                            });
-
-                                            // Current shortcut display or input
-                                            if is_editing {
-                                                let display_text =
-                                                    app.shortcut_input_buffer.clone();
-                                                let response = ui.add(
-                                                    egui::TextEdit::singleline(
-                                                        &mut display_text.clone(),
+                                // Language setting
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(tr(keys::LANGUAGE, current_lang));
+                                    },
+                                );
+                                let lang = current_lang;
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        egui::ComboBox::from_id_salt("settings_lang_select")
+                                            .selected_text(match lang {
+                                                Language::English => ENGLISH,
+                                                Language::Chinese => CHINESE,
+                                            })
+                                            .show_ui(ui, |ui| {
+                                                if ui
+                                                    .selectable_label(
+                                                        matches!(lang, Language::English),
+                                                        ENGLISH,
                                                     )
-                                                    .desired_width(120.0)
-                                                    .interactive(false)
-                                                    .font(egui::TextStyle::Monospace),
-                                                );
-                                                // Highlight the editing field
-                                                ui.painter().rect_stroke(
-                                                    response.rect.expand(2.0),
-                                                    4.0,
-                                                    ui.visuals().selection.stroke,
-                                                    egui::StrokeKind::Inside,
-                                                );
-                                            } else {
-                                                let binding = app
-                                                    .config
-                                                    .settings
-                                                    .shortcuts
-                                                    .get_binding(&action);
-                                                ui.monospace(&binding);
-                                            }
+                                                    .clicked()
+                                                {
+                                                    app.update_language(Language::English);
+                                                }
+                                                if ui
+                                                    .selectable_label(
+                                                        matches!(lang, Language::Chinese),
+                                                        CHINESE,
+                                                    )
+                                                    .clicked()
+                                                {
+                                                    app.update_language(Language::Chinese);
+                                                }
+                                            });
+                                    },
+                                );
+                                ui.end_row();
 
-                                            // Edit/Save/Cancel buttons or "Not customizable" text
-                                            ui.horizontal(|ui| {
-                                                if is_non_editable {
-                                                    // Show "Not customizable" text for non-editable shortcuts
-                                                    ui.label(
-                                                        egui::RichText::new(tr(
-                                                            keys::SHORTCUT_NON_EDITABLE,
-                                                            current_lang,
-                                                        ))
-                                                        .color(ui.visuals().weak_text_color())
-                                                        .italics()
-                                                        .size(12.0),
-                                                    );
-                                                } else if is_editing {
-                                                    // Check if there's a conflict before allowing save
-                                                    let has_conflict =
-                                                        app.shortcut_conflict_warning.is_some();
-                                                    let can_save =
-                                                        !app.shortcut_input_buffer.is_empty()
-                                                            && !has_conflict;
+                                // Auto connect setting
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(tr(keys::AUTO_CONNECT, current_lang));
+                                    },
+                                );
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let mut auto_connect = app.config.settings.auto_connect;
+                                        if ui.checkbox(&mut auto_connect, "").changed() {
+                                            app.config.update_auto_connect(auto_connect);
+                                        }
+                                    },
+                                );
+                                ui.end_row();
 
-                                                    ui.visuals_mut().override_text_color =
-                                                        Some(ui.visuals().selection.bg_fill);
-                                                    let save_text = format!(
-                                                        "{} {}",
-                                                        emoji::action::SAVE,
-                                                        tr(keys::SAVE, current_lang)
-                                                    );
-                                                    if ui
-                                                        .add_enabled(
-                                                            can_save,
-                                                            egui::Button::new(save_text),
-                                                        )
-                                                        .clicked()
+                                // Show unclosed connections setting
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(tr(keys::SHOW_UNCLOSED_CONNECTIONS, current_lang));
+                                    },
+                                );
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let mut show_unclosed =
+                                            app.config.settings.show_unclosed_connections;
+                                        if ui.checkbox(&mut show_unclosed, "").changed() {
+                                            app.config.settings.show_unclosed_connections =
+                                                show_unclosed;
+                                            app.config.mark_settings_dirty();
+                                        }
+                                    },
+                                );
+                                ui.end_row();
+
+                                // Allow duplicate connections setting
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(tr(
+                                            keys::ALLOW_DUPLICATE_CONNECTIONS,
+                                            current_lang,
+                                        ));
+                                    },
+                                );
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let mut allow_duplicate =
+                                            app.config.settings.allow_duplicate_connections;
+                                        if ui.checkbox(&mut allow_duplicate, "").changed() {
+                                            app.config.settings.allow_duplicate_connections =
+                                                allow_duplicate;
+                                            app.config.mark_settings_dirty();
+                                        }
+                                    },
+                                );
+                                ui.end_row();
+
+                                // Group keys by colon setting
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(tr(keys::GROUP_KEYS_BY_COLON, current_lang));
+                                    },
+                                );
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let mut group_keys =
+                                            app.config.settings.group_keys_by_colon;
+                                        if ui.checkbox(&mut group_keys, "").changed() {
+                                            app.config.settings.group_keys_by_colon = group_keys;
+                                            app.config.mark_settings_dirty();
+                                        }
+                                    },
+                                );
+                                ui.end_row();
+                            });
+
+                        ui.separator();
+
+                        let ai_header_text = tr(keys::AI_SETTINGS, current_lang);
+                        egui::CollapsingHeader::new(ai_header_text)
+                            .id_salt("settings_ai_collapsible")
+                            .show(ui, |ui| {
+                                ui.add_space(8.0);
+                                render_ai_settings_section(app, ui, ctx, current_lang);
+                            });
+
+                        ui.separator();
+
+                        // Keyboard shortcuts section (collapsible)
+                        let shortcuts_header_text = tr(keys::KEYBOARD_SHORTCUTS, current_lang);
+                        egui::CollapsingHeader::new(shortcuts_header_text)
+                            .id_salt("settings_shortcuts_collapsible")
+                            .show(ui, |ui| {
+                                ui.add_space(8.0);
+
+                                // Check if we're currently capturing a shortcut
+                                let is_capturing = app.editing_shortcut.is_some();
+
+                                if is_capturing {
+                                    ui.colored_label(
+                                        ui.visuals().warn_fg_color,
+                                        tr(keys::SHORTCUT_PRESS_KEYS, current_lang),
+                                    );
+                                    ui.add_space(8.0);
+                                }
+
+                                // Show conflict warning if any
+                                if let Some(ref warning) = app.shortcut_conflict_warning {
+                                    ui.colored_label(
+                                        ui.visuals().error_fg_color,
+                                        format!("{} {}", emoji::action::WARNING, warning),
+                                    );
+                                    ui.add_space(8.0);
+                                }
+
+                                // Capture shortcut input if in editing mode
+                                if is_capturing {
+                                    ctx.input(|i| {
+                                        // Check for Enter key to save
+                                        if i.key_pressed(egui::Key::Enter) {
+                                            let has_conflict =
+                                                app.shortcut_conflict_warning.is_some();
+                                            let can_save = !app.shortcut_input_buffer.is_empty()
+                                                && !has_conflict;
+                                            if can_save {
+                                                if let Some(current_action_str) =
+                                                    &app.editing_shortcut
+                                                {
+                                                    if let Some(current_action) =
+                                                        parse_action_from_key(current_action_str)
                                                     {
                                                         app.config.settings.shortcuts.set_binding(
-                                                            &action,
+                                                            &current_action,
                                                             app.shortcut_input_buffer.clone(),
                                                         );
                                                         app.config.mark_settings_dirty();
@@ -713,67 +599,260 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                         app.shortcut_input_buffer.clear();
                                                         app.shortcut_conflict_warning = None;
                                                     }
-                                                    ui.visuals_mut().override_text_color = None;
-                                                    let cancel_text = format!(
-                                                        "{} {}",
-                                                        emoji::action::CANCEL,
-                                                        tr(keys::CANCEL, current_lang)
-                                                    );
-                                                    if ui.button(cancel_text).clicked() {
-                                                        app.editing_shortcut = None;
-                                                        app.shortcut_input_buffer.clear();
-                                                        app.shortcut_conflict_warning = None;
+                                                }
+                                            }
+                                        }
+
+                                        // Check for Escape key to cancel
+                                        if i.key_pressed(egui::Key::Escape) {
+                                            app.editing_shortcut = None;
+                                            app.shortcut_input_buffer.clear();
+                                            app.shortcut_conflict_warning = None;
+                                        }
+
+                                        let modifiers = i.modifiers;
+                                        for key in SUPPORTED_KEYS {
+                                            if i.key_pressed(key) {
+                                                let mut parts = Vec::new();
+                                                // Platform-specific modifier key handling:
+                                                // - macOS: "Cmd" for Command key, "Ctrl" for Control key
+                                                // - Other: "Ctrl" for both Ctrl and Command (they're unified)
+                                                if cfg!(target_os = "macos") {
+                                                    if modifiers.command {
+                                                        parts.push("Cmd".to_string());
+                                                    }
+                                                    if modifiers.ctrl {
+                                                        parts.push("Ctrl".to_string());
                                                     }
                                                 } else {
-                                                    let edit_text = format!(
-                                                        "{} {}",
-                                                        emoji::action::EDIT,
-                                                        tr(keys::EDIT, current_lang)
-                                                    );
-                                                    if ui.button(edit_text).clicked() {
-                                                        app.editing_shortcut = Some(action_key);
-                                                        // Initialize with current binding
-                                                        app.shortcut_input_buffer = app
+                                                    if modifiers.ctrl || modifiers.command {
+                                                        parts.push("Ctrl".to_string());
+                                                    }
+                                                }
+                                                if modifiers.alt {
+                                                    parts.push("Alt".to_string());
+                                                }
+                                                if modifiers.shift {
+                                                    parts.push("Shift".to_string());
+                                                }
+                                                parts.push(format!("{:?}", key));
+                                                app.shortcut_input_buffer = parts.join("+");
+
+                                                // Check for conflicts
+                                                if let Some(current_action_str) =
+                                                    &app.editing_shortcut
+                                                {
+                                                    if let Some(current_action) =
+                                                        parse_action_from_key(current_action_str)
+                                                    {
+                                                        if let Some(conflict_action) = app
+                                                            .config
+                                                            .settings
+                                                            .shortcuts
+                                                            .check_conflict(
+                                                                &app.shortcut_input_buffer,
+                                                                &current_action,
+                                                            )
+                                                        {
+                                                            let conflict_name = tr(
+                                                                conflict_action.translation_key(),
+                                                                current_lang,
+                                                            );
+                                                            app.shortcut_conflict_warning =
+                                                                Some(tr_fmt(
+                                                                    keys::SHORTCUT_CONFLICTS_WITH,
+                                                                    current_lang,
+                                                                    &[conflict_name],
+                                                                ));
+                                                        } else {
+                                                            app.shortcut_conflict_warning = None;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+
+                                egui::Frame::group(ui.style())
+                                    .fill(ui.visuals().faint_bg_color)
+                                    .show(ui, |ui| {
+                                        ui.set_min_width(400.0);
+                                        egui::Grid::new("shortcuts_grid")
+                                            .num_columns(3)
+                                            .spacing([20.0, 8.0])
+                                            .min_col_width(120.0)
+                                            .show(ui, |ui| {
+                                                for (action, trans_key) in
+                                                    ShortcutAction::all_actions()
+                                                {
+                                                    let action_key = format!("{:?}", action);
+                                                    let is_editing = app.editing_shortcut.as_ref()
+                                                        == Some(&action_key);
+
+                                                    // Check if this shortcut is non-editable
+                                                    let is_non_editable = action.is_non_editable();
+
+                                                    // Action name with bold font (translated)
+                                                    ui.horizontal(|ui| {
+                                                        ui.label(
+                                                            egui::RichText::new(tr(
+                                                                trans_key,
+                                                                current_lang,
+                                                            ))
+                                                            .strong(),
+                                                        );
+                                                    });
+
+                                                    // Current shortcut display or input
+                                                    if is_editing {
+                                                        let display_text =
+                                                            app.shortcut_input_buffer.clone();
+                                                        let response = ui.add(
+                                                            egui::TextEdit::singleline(
+                                                                &mut display_text.clone(),
+                                                            )
+                                                            .desired_width(120.0)
+                                                            .interactive(false)
+                                                            .font(egui::TextStyle::Monospace),
+                                                        );
+                                                        // Highlight the editing field
+                                                        ui.painter().rect_stroke(
+                                                            response.rect.expand(2.0),
+                                                            4.0,
+                                                            ui.visuals().selection.stroke,
+                                                            egui::StrokeKind::Inside,
+                                                        );
+                                                    } else {
+                                                        let binding = app
                                                             .config
                                                             .settings
                                                             .shortcuts
                                                             .get_binding(&action);
-                                                        app.shortcut_conflict_warning = None;
+                                                        ui.monospace(&binding);
                                                     }
+
+                                                    // Edit/Save/Cancel buttons or "Not customizable" text
+                                                    ui.horizontal(|ui| {
+                                                        if is_non_editable {
+                                                            // Show "Not customizable" text for non-editable shortcuts
+                                                            ui.label(
+                                                                egui::RichText::new(tr(
+                                                                    keys::SHORTCUT_NON_EDITABLE,
+                                                                    current_lang,
+                                                                ))
+                                                                .color(
+                                                                    ui.visuals().weak_text_color(),
+                                                                )
+                                                                .italics()
+                                                                .size(12.0),
+                                                            );
+                                                        } else if is_editing {
+                                                            // Check if there's a conflict before allowing save
+                                                            let has_conflict = app
+                                                                .shortcut_conflict_warning
+                                                                .is_some();
+                                                            let can_save = !app
+                                                                .shortcut_input_buffer
+                                                                .is_empty()
+                                                                && !has_conflict;
+
+                                                            ui.visuals_mut().override_text_color =
+                                                                Some(
+                                                                    ui.visuals().selection.bg_fill,
+                                                                );
+                                                            let save_text = format!(
+                                                                "{} {}",
+                                                                emoji::action::SAVE,
+                                                                tr(keys::SAVE, current_lang)
+                                                            );
+                                                            if ui
+                                                                .add_enabled(
+                                                                    can_save,
+                                                                    egui::Button::new(save_text),
+                                                                )
+                                                                .clicked()
+                                                            {
+                                                                app.config
+                                                                    .settings
+                                                                    .shortcuts
+                                                                    .set_binding(
+                                                                        &action,
+                                                                        app.shortcut_input_buffer
+                                                                            .clone(),
+                                                                    );
+                                                                app.config.mark_settings_dirty();
+                                                                app.editing_shortcut = None;
+                                                                app.shortcut_input_buffer.clear();
+                                                                app.shortcut_conflict_warning =
+                                                                    None;
+                                                            }
+                                                            ui.visuals_mut().override_text_color =
+                                                                None;
+                                                            let cancel_text = format!(
+                                                                "{} {}",
+                                                                emoji::action::CANCEL,
+                                                                tr(keys::CANCEL, current_lang)
+                                                            );
+                                                            if ui.button(cancel_text).clicked() {
+                                                                app.editing_shortcut = None;
+                                                                app.shortcut_input_buffer.clear();
+                                                                app.shortcut_conflict_warning =
+                                                                    None;
+                                                            }
+                                                        } else {
+                                                            let edit_text = format!(
+                                                                "{} {}",
+                                                                emoji::action::EDIT,
+                                                                tr(keys::EDIT, current_lang)
+                                                            );
+                                                            if ui.button(edit_text).clicked() {
+                                                                app.editing_shortcut =
+                                                                    Some(action_key);
+                                                                // Initialize with current binding
+                                                                app.shortcut_input_buffer = app
+                                                                    .config
+                                                                    .settings
+                                                                    .shortcuts
+                                                                    .get_binding(&action);
+                                                                app.shortcut_conflict_warning =
+                                                                    None;
+                                                            }
+                                                        }
+                                                    });
+                                                    ui.end_row();
                                                 }
                                             });
-                                            ui.end_row();
-                                        }
                                     });
+
+                                ui.add_space(8.0);
+                                ui.horizontal(|ui| {
+                                    let reset_text = format!(
+                                        "{} {}",
+                                        emoji::action::REFRESH,
+                                        tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
+                                    );
+                                    if ui.button(reset_text).clicked() {
+                                        app.config.settings.shortcuts.reset_to_default();
+                                        app.config.mark_settings_dirty();
+                                        // Clear editing state to refresh the display
+                                        app.editing_shortcut = None;
+                                        app.shortcut_input_buffer.clear();
+                                        app.shortcut_conflict_warning = None;
+                                    }
+                                });
                             });
 
-                        ui.add_space(8.0);
+                        ui.separator();
+
                         ui.horizontal(|ui| {
-                            let reset_text = format!(
-                                "{} {}",
-                                emoji::action::REFRESH,
-                                tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
-                            );
-                            if ui.button(reset_text).clicked() {
-                                app.config.settings.shortcuts.reset_to_default();
-                                app.config.mark_settings_dirty();
-                                // Clear editing state to refresh the display
+                            if ui.button(tr(keys::CLOSE, current_lang)).clicked() {
+                                app.show_settings = false;
                                 app.editing_shortcut = None;
                                 app.shortcut_input_buffer.clear();
-                                app.shortcut_conflict_warning = None;
                             }
                         });
                     });
-
-                ui.separator();
-
-                ui.horizontal(|ui| {
-                    if ui.button(tr(keys::CLOSE, current_lang)).clicked() {
-                        app.show_settings = false;
-                        app.editing_shortcut = None;
-                        app.shortcut_input_buffer.clear();
-                    }
-                });
             });
     }
 
@@ -803,6 +882,322 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 }
 
 /// Parse hex color string (#RRGGBB) to egui Color32
+fn render_ai_settings_section(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    ctx: &egui::Context,
+    current_lang: Language,
+) {
+    egui::ScrollArea::vertical()
+        .id_salt("ai_settings_scroll")
+        .max_height(300.0)
+        .show(ui, |ui| {
+            ui.vertical(|ui| {
+                // AI enabled checkbox
+                ui.horizontal(|ui| {
+                    ui.checkbox(
+                        &mut app.config.ai_config.enabled,
+                        tr(keys::AI_ENABLE, current_lang),
+                    );
+                });
+
+                ui.add_space(8.0);
+
+                // Active model selector and add button in one row
+                ui.horizontal(|ui| {
+                    ui.label(tr(keys::AI_ACTIVE_MODEL, current_lang));
+                    ui.add_space(5.0);
+                    let active_model_name = app
+                        .config
+                        .ai_config
+                        .get_active_model()
+                        .map(|m| m.name.as_str())
+                        .unwrap_or(tr(keys::AI_SELECT_MODEL, current_lang));
+                    egui::ComboBox::from_id_salt("ai_active_model")
+                        .selected_text(active_model_name)
+                        .show_ui(ui, |ui| {
+                            let mut new_active_id: Option<String> = None;
+                            for model in &app.config.ai_config.models {
+                                let is_selected = app.config.ai_config.active_model_id.as_deref()
+                                    == Some(&model.id);
+                                ui.selectable_label(is_selected, &model.name)
+                                    .clicked()
+                                    .then(|| {
+                                        new_active_id = Some(model.id.clone());
+                                    });
+                            }
+                            if let Some(id) = new_active_id {
+                                app.config.set_active_ai_model(&id);
+                                if let Err(e) = app.config.save_ai_config() {
+                                    eprintln!(
+                                        "Failed to save AI config: {}",
+                                        e.to_message(current_lang)
+                                    );
+                                }
+                            }
+                        });
+
+                    ui.add_space(10.0);
+
+                    if ui
+                        .button(format!("+ {}", tr(keys::AI_ADD_MODEL, current_lang)))
+                        .clicked()
+                    {
+                        app.ai_model_editor.open_for_new();
+                    }
+                });
+
+                ui.add_space(8.0);
+
+                // Confirm before execute checkbox
+                ui.horizontal(|ui| {
+                    if ui
+                        .checkbox(
+                            &mut app.config.ai_config.confirm_before_execute,
+                            tr(keys::AI_CONFIRM_BEFORE_EXECUTE, current_lang),
+                        )
+                        .changed()
+                    {
+                        if let Err(e) = app.config.save_ai_config() {
+                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                        }
+                    }
+                });
+
+                // Show AI thinking checkbox
+                ui.horizontal(|ui| {
+                    if ui
+                        .checkbox(
+                            &mut app.config.ai_config.show_ai_thinking,
+                            tr(keys::AI_SHOW_THINKING, current_lang),
+                        )
+                        .changed()
+                    {
+                        if let Err(e) = app.config.save_ai_config() {
+                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                        }
+                    }
+                });
+
+                // Models list - collapsible with background
+                if !app.config.ai_config.models.is_empty() {
+                    ui.add_space(12.0);
+
+                    egui::CollapsingHeader::new(tr(keys::AI_MODELS, current_lang))
+                        .id_salt("ai_models_collapsible")
+                        .default_open(!app.ai_model_editor.models_collapsed)
+                        .show(ui, |ui| {
+                            // Add background color using a frame
+                            let bg_color = ui.visuals().code_bg_color;
+                            egui::Frame::group(ui.style())
+                                .fill(bg_color)
+                                .show(ui, |ui| {
+                                    egui::ScrollArea::horizontal().max_height(120.0).show(
+                                        ui,
+                                        |ui| {
+                                            egui::Grid::new("ai_models_grid")
+                                                .num_columns(5)
+                                                .spacing([8.0, 4.0])
+                                                .striped(true)
+                                                .show(ui, |ui| {
+                                                    ui.label(tr(keys::AI_MODEL_NAME, current_lang));
+                                                    ui.label(tr(keys::AI_URL, current_lang));
+                                                    ui.label(tr(keys::AI_MODEL_ID, current_lang));
+                                                    ui.label(tr(keys::EDIT, current_lang));
+                                                    ui.label(tr(keys::DELETE, current_lang));
+                                                    ui.end_row();
+
+                                                    let mut model_ids_to_delete: Vec<String> =
+                                                        Vec::new();
+                                                    for model in &app.config.ai_config.models {
+                                                        let model_id = model.id.clone();
+                                                        ui.label(&model.name);
+                                                        ui.label(&model.url);
+                                                        ui.label(&model.model_id);
+                                                        if ui.button(emoji::action::EDIT).clicked()
+                                                        {
+                                                            app.ai_model_editor
+                                                                .open_for_edit(model);
+                                                        }
+                                                        if ui
+                                                            .button(emoji::action::DELETE)
+                                                            .clicked()
+                                                        {
+                                                            model_ids_to_delete.push(model_id);
+                                                        }
+                                                        ui.end_row();
+                                                    }
+                                                    for id in model_ids_to_delete.iter() {
+                                                        app.config.remove_ai_model(id);
+                                                    }
+                                                    if !model_ids_to_delete.is_empty() {
+                                                        if let Err(e) = app.config.save_ai_config()
+                                                        {
+                                                            eprintln!(
+                                                                "Failed to save AI config: {}",
+                                                                e.to_message(current_lang)
+                                                            );
+                                                        }
+                                                    }
+                                                });
+                                        },
+                                    );
+                                });
+                        });
+
+                    // Update collapsed state
+                    app.ai_model_editor.models_collapsed = false;
+                }
+            });
+        });
+
+    // Render AI model editor window
+    if app.ai_model_editor.show {
+        render_ai_model_editor(app, ctx, current_lang);
+    }
+}
+
+fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    use e_client_config::config::ai_config::AiModel;
+
+    let window_title = if app.ai_model_editor.is_editing() {
+        tr(keys::AI_EDIT_MODEL, current_lang)
+    } else {
+        tr(keys::AI_ADD_MODEL, current_lang)
+    };
+
+    let screen_rect = ctx
+        .input(|i| i.viewport().outer_rect)
+        .unwrap_or(egui::Rect::ZERO);
+    let top_right = egui::pos2(screen_rect.max.x - 120.0, screen_rect.min.y + 40.0);
+    egui::Window::new(window_title)
+        .id(egui::Id::new("ai_model_window"))
+        .resizable(false)
+        .collapsible(false)
+        .default_pos(top_right)
+        .movable(true)
+        .show(ctx, |ui| {
+            egui::Grid::new("ai_model_editor_grid")
+                .num_columns(3)
+                .spacing([10.0, 8.0])
+                .show(ui, |ui| {
+                    ui.label(tr(keys::AI_MODEL_NAME, current_lang));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.ai_model_editor.name)
+                            .char_limit(AI_MODEL_NAME_LIMIT),
+                    );
+                    ui.label(format!(
+                        "{}/{}",
+                        app.ai_model_editor.name.len(),
+                        AI_MODEL_NAME_LIMIT
+                    ));
+                    ui.end_row();
+
+                    ui.label(tr(keys::AI_URL, current_lang));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.ai_model_editor.url)
+                            .char_limit(AI_MODEL_URL_LIMIT),
+                    );
+                    ui.label(format!(
+                        "{}/{}",
+                        app.ai_model_editor.url.len(),
+                        AI_MODEL_URL_LIMIT
+                    ));
+                    ui.end_row();
+
+                    ui.label(tr(keys::AI_MODEL_ID, current_lang));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.ai_model_editor.model_id)
+                            .char_limit(AI_MODEL_ID_LIMIT),
+                    );
+                    ui.label(format!(
+                        "{}/{}",
+                        app.ai_model_editor.model_id.len(),
+                        AI_MODEL_ID_LIMIT
+                    ));
+                    ui.end_row();
+
+                    ui.label(tr(keys::AI_API_KEY, current_lang));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.ai_model_editor.api_key)
+                            .char_limit(AI_API_KEY_LIMIT),
+                    );
+                    ui.label(format!(
+                        "{}/{}",
+                        app.ai_model_editor.api_key.len(),
+                        AI_API_KEY_LIMIT
+                    ));
+                    ui.end_row();
+
+                    ui.label(tr(keys::AI_TEMPERATURE, current_lang));
+                    ui.add(egui::Slider::new(
+                        &mut app.ai_model_editor.temperature,
+                        0.0..=1.0,
+                    ));
+                    ui.label("");
+                    ui.end_row();
+                });
+
+            // Validation message
+            ui.add_space(8.0);
+            let is_valid = !app.ai_model_editor.name.is_empty()
+                && !app.ai_model_editor.url.is_empty()
+                && !app.ai_model_editor.model_id.is_empty();
+
+            if !is_valid {
+                ui.colored_label(
+                    ui.visuals().error_fg_color,
+                    tr(keys::AI_MODEL_REQUIRED_FIELDS, current_lang),
+                );
+            }
+
+            ui.horizontal(|ui| {
+                let save_btn =
+                    ui.add_enabled(is_valid, egui::Button::new(tr(keys::SAVE, current_lang)));
+                if save_btn.clicked() && is_valid {
+                    let api_key = if app.ai_model_editor.api_key.is_empty() {
+                        None
+                    } else {
+                        Some(app.ai_model_editor.api_key.clone())
+                    };
+
+                    let model = AiModel {
+                        id: app
+                            .ai_model_editor
+                            .editing_model_id
+                            .clone()
+                            .unwrap_or_else(AiModel::generate_id),
+                        name: app.ai_model_editor.name.clone(),
+                        url: app.ai_model_editor.url.clone(),
+                        model_id: app.ai_model_editor.model_id.clone(),
+                        api_key,
+                        temperature: app.ai_model_editor.temperature,
+                    };
+
+                    if app.ai_model_editor.is_editing() {
+                        app.config.ai_config.update_model(model.clone());
+                    } else {
+                        app.config.add_ai_model(model.clone());
+                    }
+
+                    // Set as active model
+                    app.config.set_active_ai_model(&model.id);
+
+                    // Save immediately
+                    if let Err(e) = app.config.save_ai_config() {
+                        eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                    }
+
+                    app.ai_model_editor.close();
+                }
+
+                if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                    app.ai_model_editor.close();
+                }
+            });
+        });
+}
+
 fn parse_color_hex(hex: &str) -> Option<egui::Color32> {
     let hex = hex.trim_start_matches('#');
     if hex.len() != 6 {
