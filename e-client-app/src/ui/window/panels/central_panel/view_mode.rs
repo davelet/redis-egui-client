@@ -135,11 +135,14 @@ fn render_ttl_controls(
             .state
             .ttl_edit_value
             .blocking_write();
+        let mut ttl_edit_key = app.tabs[active_tab_idx].state.ttl_edit_key.blocking_write();
 
+        // Check if key changed while in edit mode - if so, update the value
         if *ttl_edit_mode {
-            // Show TTL input field
-            if ttl_edit_value.is_empty() {
+            let key_changed = ttl_edit_key.as_ref().map_or(true, |k| k != key);
+            if key_changed {
                 *ttl_edit_value = ttl.to_string();
+                *ttl_edit_key = Some(key.to_string());
             }
             if ui
                 .add(egui::TextEdit::singleline(&mut *ttl_edit_value).desired_width(80.0))
@@ -156,17 +159,21 @@ fn render_ttl_controls(
                 }
                 *ttl_edit_value = String::new();
                 *ttl_edit_mode = false;
+                *ttl_edit_key = None;
             }
             if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
                 *ttl_edit_value = String::new();
                 *ttl_edit_mode = false;
+                *ttl_edit_key = None;
             }
         } else {
             if ui.button(tr(keys::EDIT_TTL, current_lang)).clicked() {
                 *ttl_edit_value = ttl.to_string();
                 *ttl_edit_mode = true;
+                *ttl_edit_key = Some(key.to_string());
             }
         }
+        drop(ttl_edit_key);
         drop(ttl_edit_value);
         drop(ttl_edit_mode);
     });

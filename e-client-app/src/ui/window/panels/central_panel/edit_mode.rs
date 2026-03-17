@@ -9,7 +9,6 @@ use Language::*;
 pub fn render_edit_mode(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
     active_tab_idx: usize,
     original_key: &str,
     _value: &Option<crate::core::ValueData>,
@@ -22,7 +21,7 @@ pub fn render_edit_mode(
         .blocking_write()
         .clone();
 
-    render_header(
+    let key_changed = render_header(
         app,
         ui,
         active_tab_idx,
@@ -34,15 +33,16 @@ pub fn render_edit_mode(
     ui.separator();
 
     let editable = !edit.saving;
-    let changed = render_value_edit(ui, &mut edit.edited_value, editable, current_lang);
+    let value_changed = render_value_edit(ui, &mut edit.edited_value, editable, current_lang);
 
     // Write back edit state if anything changed
-    if changed {
+    if key_changed || value_changed {
         *app.tabs[active_tab_idx].state.edit_state.blocking_write() = edit;
     }
 }
 
 /// Render edit header with key editing
+/// Returns true if the key was modified
 fn render_header(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
@@ -50,14 +50,19 @@ fn render_header(
     original_key: &str,
     edit: &mut crate::core::EditState,
     current_lang: Language,
-) {
+) -> bool {
+    let mut key_changed = false;
+
     // Header row with key editing
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new("Key:").strong());
-        ui.add_enabled(
+        let response = ui.add_enabled(
             !edit.saving,
             egui::TextEdit::singleline(&mut edit.edited_key).desired_width(300.0),
         );
+        if response.changed() {
+            key_changed = true;
+        }
 
         // Save button - disabled when saving
         ui.add_enabled_ui(!edit.saving, |ui| {
@@ -111,6 +116,8 @@ fn render_header(
     if !edit.save_message.is_empty() {
         ui.colored_label(egui::Color32::RED, &edit.save_message);
     }
+
+    key_changed
 }
 
 /// Render value editing based on type

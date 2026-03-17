@@ -436,10 +436,20 @@ impl Config {
 
         let content =
             fs::read_to_string(&path).map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
-        toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))
+        let mut ai_config: AiConfig =
+            toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))?;
+
+        // Load API keys from system keyring
+        ai_config.load_api_keys_from_keyring();
+
+        Ok(ai_config)
     }
 
     pub fn save_ai_config(&self) -> Result<(), ConfigError> {
+        // Save API keys to system keyring first
+        self.ai_config.save_api_keys_to_keyring();
+
+        // Save config to file (without API keys - they are marked with #[serde(skip)])
         let toml = toml::to_string_pretty(&self.ai_config)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
         fs::write(Self::ai_config_file_path()?, toml)

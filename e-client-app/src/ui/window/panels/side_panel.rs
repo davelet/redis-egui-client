@@ -219,7 +219,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .default_pos(ctx.screen_rect().center())
+        .default_pos(ctx.content_rect().center())
         .show(ctx, |ui| {
             egui::Grid::new("new_key_grid")
                 .num_columns(2)
@@ -227,7 +227,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                 .min_col_width(80.0)
                 .show(ui, |ui| {
                     // Key name
-                    ui.label("Key:");
+                    ui.label(tr(keys::KEY_NAME_LABEL, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.new_key_dialog.key_name)
                             .desired_width(250.0)
@@ -236,7 +236,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     ui.end_row();
 
                     // Type selector
-                    ui.label("Type:");
+                    ui.label(tr(keys::TYPE_LABEL, current_lang));
                     egui::ComboBox::from_id_salt("new_key_type")
                         .selected_text(&app.new_key_dialog.key_type)
                         .width(250.0)
@@ -270,11 +270,11 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     ui.end_row();
 
                     // TTL
-                    ui.label("TTL:");
+                    ui.label(tr(keys::TTL_LABEL, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.new_key_dialog.ttl)
                             .desired_width(250.0)
-                            .hint_text("-1 (no expiration)"),
+                            .hint_text(tr(keys::TTL_NO_EXPIRATION_HINT, current_lang)),
                     );
                     ui.end_row();
                 });
@@ -283,14 +283,18 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
 
             // Value input with hint based on type
             let hint = match app.new_key_dialog.key_type.as_str() {
-                "string" => "Enter value",
-                "list" => "One item per line",
-                "set" => "One member per line",
-                "hash" => "field:value per line",
-                "zset" => "score:member per line",
-                _ => "Enter value",
+                "string" => tr(keys::VALUE_HINT_STRING, current_lang),
+                "list" => tr(keys::VALUE_HINT_LIST, current_lang),
+                "set" => tr(keys::VALUE_HINT_SET, current_lang),
+                "hash" => tr(keys::VALUE_HINT_HASH, current_lang),
+                "zset" => tr(keys::VALUE_HINT_ZSET, current_lang),
+                _ => tr(keys::VALUE_HINT_STRING, current_lang),
             };
-            ui.label(format!("Value ({})", hint));
+            ui.label(format!(
+                "{} ({})",
+                tr(keys::VALUE_LABEL, current_lang),
+                hint
+            ));
             ui.add_sized(
                 [ui.available_width(), 120.0],
                 egui::TextEdit::multiline(&mut app.new_key_dialog.value).hint_text(hint),
@@ -314,7 +318,8 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                 {
                     let key_name = app.new_key_dialog.key_name.trim().to_string();
                     if key_name.is_empty() {
-                        app.new_key_dialog.error_message = "Key name cannot be empty".to_string();
+                        app.new_key_dialog.error_message =
+                            tr(keys::KEY_NAME_EMPTY_ERROR, current_lang).to_string();
                     } else {
                         let key_type = app.new_key_dialog.key_type.clone();
                         let value = app.new_key_dialog.value.clone();

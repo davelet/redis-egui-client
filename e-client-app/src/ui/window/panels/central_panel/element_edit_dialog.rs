@@ -19,8 +19,8 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
         app.element_edit_dialog.just_opened = false;
 
         // Center on screen
-        let screen_rect = ctx.screen_rect();
-        let dialog_pos = screen_rect.center() - dialog_size * 0.5;
+        let content_rect = ctx.content_rect();
+        let dialog_pos = content_rect.center() - dialog_size * 0.5;
 
         egui::Window::new(tr(keys::EDIT_ELEMENT, current_lang))
             .open(&mut open)
@@ -132,6 +132,7 @@ fn render_action_buttons(
                 app.element_edit_dialog.key_type.clone(),
                 app.element_edit_dialog.field.clone(),
                 app.element_edit_dialog.value.clone(),
+                app.element_edit_dialog.original_value.clone(),
             );
             app.element_edit_dialog.show = false;
         }

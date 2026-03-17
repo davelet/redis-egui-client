@@ -19,7 +19,7 @@ pub fn render_value_view(
     match val {
         ValueData::String(s) => render_string_value(ui, s),
         ValueData::List { len, items } => {
-            render_list_value(app, ui, ctx, active_tab_idx, key, len, items, current_lang)
+            render_list_value(app, ui, active_tab_idx, key, len, items, current_lang)
         }
         ValueData::Hash {
             len,
@@ -79,7 +79,6 @@ fn render_string_value(ui: &mut egui::Ui, s: &str) {
 fn render_list_value(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
     len: &usize,

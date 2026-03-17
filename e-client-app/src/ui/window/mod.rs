@@ -279,7 +279,7 @@ impl eframe::App for RedisApp {
         // Handle keyboard shortcuts using custom configuration
         // Only process shortcuts when settings window is not open
         if !self.show_settings {
-            use crate::ui::window::panels::top_panel::SUPPORTED_KEYS;
+            use crate::ui::window::panels::settings_panel::SUPPORTED_KEYS;
             use e_client_config::config::shortcuts::{ParsedShortcut, ShortcutAction};
 
             // Collect current input state

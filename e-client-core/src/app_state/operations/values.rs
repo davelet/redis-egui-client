@@ -1,5 +1,6 @@
 use super::super::AppState;
 use super::super::{EditedValue, JsonValue, compact_json_if_single_line};
+use e_client_bilingual::translations::{keys, tr};
 
 /// Spawn save element operation
 pub fn spawn_save_element(
@@ -8,11 +9,12 @@ pub fn spawn_save_element(
     key_type: String,
     field: String,
     value: String,
+    original_value: String,
 ) {
     let state = state.clone();
     tokio::spawn(async move {
         // Compact JSON if original was single-line
-        let value_to_save = compact_json_if_single_line(&value);
+        let value_to_save = compact_json_if_single_line(&value, &original_value);
 
         let result = match key_type.as_str() {
             "hash" => state.redis_client.hset(&key, &field, &value_to_save).await,
@@ -79,6 +81,15 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         let new_key = edit.edited_key.trim().to_string();
         let mut current_key = original_key.clone();
 
+        // Check if original key still exists (may have expired during editing)
+        let key_exists = state.redis_client.key_exists(&original_key).await.unwrap_or(false);
+        if !key_exists && new_key == original_key {
+            let lang = *state.language.read().await;
+            state.edit_state.write().await.save_message = tr(keys::KEY_EXPIRED, lang).to_string();
+            state.edit_state.write().await.saving = false;
+            return;
+        }
+
         // 1. Rename key if changed
         if new_key != original_key && !new_key.is_empty() {
             match state
@@ -101,15 +112,7 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
             }
         }
 
-        // 2. Update TTL
-        if let Ok(ttl) = edit.edited_ttl.trim().parse::<i64>() {
-            if let Err(e) = state.redis_client.set_ttl(&current_key, ttl).await {
-                state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
-                return;
-            }
-        }
-
-        // 3. Save value by type
+        // 2. Save value by type (must be done before setting TTL, since we delete and recreate the key)
         let save_result = match &edit.edited_value {
             EditedValue::String(s) => {
                 // Use JsonValue.to_save() to handle JSON compression
@@ -189,6 +192,40 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
             }
             EditedValue::None => Ok(()),
         };
+
+        // 3. Update TTL after saving value (important: Hash/List/Set/ZSet delete and recreate the key)
+        if save_result.is_ok() {
+            // Get current actual TTL from Redis (may have decreased during editing)
+            let current_ttl = state.redis_client.get_ttl(&current_key).await.unwrap_or(-1);
+            
+            // Parse user's edited TTL
+            let edited_ttl_str = edit.edited_ttl.trim();
+            
+            // Determine which TTL to use
+            let ttl_to_set = if edited_ttl_str.is_empty() || edited_ttl_str == "-1" {
+                // User wants no expiration (or left empty)
+                -1i64
+            } else if let Ok(edited_ttl) = edited_ttl_str.parse::<i64>() {
+                // Compare with original TTL at edit start
+                // If edited_ttl is close to original_ttl, user probably didn't change it
+                let ttl_diff_from_original = (edited_ttl - edit.original_ttl).abs();
+                
+                // If current TTL is positive and user didn't modify TTL (within 5s tolerance),
+                // use actual remaining TTL to preserve relative expiration time
+                if current_ttl > 0 && ttl_diff_from_original <= 5 {
+                    current_ttl // Use actual remaining time (preserves relative expiration)
+                } else {
+                    edited_ttl // User explicitly changed TTL, use their value
+                }
+            } else {
+                current_ttl // Fallback to current TTL if parse fails
+            };
+            
+            if let Err(e) = state.redis_client.set_ttl(&current_key, ttl_to_set).await {
+                state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
+                // Continue to reload even if TTL update fails
+            }
+        }
 
         match save_result {
             Ok(_) => {

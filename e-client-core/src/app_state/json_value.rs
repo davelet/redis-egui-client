@@ -14,13 +14,13 @@ pub fn format_json_for_edit(value: &str) -> String {
 }
 
 /// Compacts JSON value if it was originally single-line (no newlines).
-/// If the value is valid JSON and contains no newlines, returns compact JSON.
-/// Otherwise, returns the original value unchanged.
-pub fn compact_json_if_single_line(value: &str) -> String {
+/// If the value is valid JSON and the original contains no newlines, returns compact JSON.
+/// Otherwise, returns the current value unchanged.
+pub fn compact_json_if_single_line(value: &str, original_value: &str) -> String {
     if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(value) {
         // Check if original string has newlines
-        let has_newlines = value.contains('\n');
-        if !has_newlines {
+        let original_has_newlines = original_value.contains('\n');
+        if !original_has_newlines {
             // Original was compact, save as compact JSON
             serde_json::to_string(&json_value).unwrap_or(value.to_string())
         } else {

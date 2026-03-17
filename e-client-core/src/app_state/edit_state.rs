@@ -5,6 +5,7 @@ pub struct EditState {
     pub editing: bool,
     pub edited_key: String,
     pub edited_ttl: String,
+    pub original_ttl: i64, // TTL at edit start time
     pub edited_value: super::EditedValue,
     pub save_message: String,
     pub saving: bool,
@@ -16,6 +17,7 @@ impl Default for EditState {
             editing: false,
             edited_key: String::new(),
             edited_ttl: String::new(),
+            original_ttl: -1,
             edited_value: super::EditedValue::None,
             save_message: String::new(),
             saving: false,
@@ -36,6 +38,7 @@ impl EditState {
 
         self.editing = true;
         self.edited_key = key.to_string();
+        self.original_ttl = ttl; // Store original TTL at edit start
         self.edited_ttl = if ttl == -1 {
             "-1".to_string()
         } else if ttl >= 0 {

@@ -2,6 +2,7 @@
 
 pub mod central_panel;
 pub mod command_line_panel;
+pub mod settings_panel;
 pub mod side_panel;
 pub mod status_bar;
 pub mod tab_bar;

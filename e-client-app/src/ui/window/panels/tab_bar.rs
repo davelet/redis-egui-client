@@ -154,7 +154,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 if show_dropdown_via_shortcut {
                     // Force the menu to open when triggered by shortcut
                     let dropdown_id = egui::Id::new("all_tabs_dropdown");
-                    ctx.memory_mut(|mem| mem.open_popup(dropdown_id));
+                    egui::Popup::open_id(&ctx, dropdown_id);
                 }
 
                 ui.menu_button("▼", |ui| {

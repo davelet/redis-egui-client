@@ -16,7 +16,6 @@ pub use welcome_page::render_welcome_page;
 
 use crate::core::ValueData;
 use crate::ui::window::RedisApp;
-use e_client_config::language::Language;
 
 /// Main entry point for central panel rendering
 pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
@@ -42,16 +41,7 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
         if let Some(key) = selected_key {
             if edit_state.editing {
-                render_edit_mode(
-                    app,
-                    ui,
-                    ctx,
-                    active_tab_idx,
-                    &key,
-                    &value,
-                    ttl,
-                    current_lang,
-                );
+                render_edit_mode(app, ui, active_tab_idx, &key, &value, ttl, current_lang);
             } else {
                 render_view_mode(
                     app,

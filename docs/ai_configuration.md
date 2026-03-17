@@ -4,11 +4,26 @@ This document explains how to configure AI models in Redis Client. All AI provid
 
 ## Table of Contents
 
+- [Security Note](#security-note)
 - [OpenAI](#openai)
 - [Anthropic (Claude)](#anthropic-claude)
 - [Ollama (Local)](#ollama-local)
 - [OpenRouter](#openrouter)
 - [Other Compatible APIs](#other-compatible-apis)
+
+---
+
+## Security Note
+
+**API Key Storage**: Your API keys are securely stored in your operating system's native credential store:
+
+| Platform | Credential Store |
+|----------|-----------------|
+| macOS | Keychain |
+| Windows | Credential Manager |
+| Linux | Secret Service (libsecret) |
+
+API keys are **never** stored in plain text configuration files. This ensures your credentials remain secure even if the configuration file is accessed by other applications or accidentally shared.
 
 ---
 
@@ -199,10 +214,24 @@ Some proxy services provide OpenAI-compatible access to Gemini.
 
 1. **Temperature**: Controls randomness (0.0 = deterministic, 2.0 = very creative). Recommended: 0.7 for general use.
 
-2. **API Key Security**: Store API keys securely. The client saves them to a local config file.
+2. **API Key Security**: API keys are securely stored in your operating system's native credential store (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). They are never saved to plain text configuration files.
 
 3. **Testing**: After configuring, test with a simple prompt to verify the connection works.
 
 4. **Rate Limits**: Be aware of API rate limits for each provider.
 
 5. **Costs**: Monitor your API usage to avoid unexpected charges.
+
+## Troubleshooting
+
+### API Key Not Found
+If you encounter "API key not found" errors after configuring a model:
+- Ensure your system's credential store is accessible
+- On Linux, you may need to install `libsecret` and a compatible secret service (like GNOME Keyring or KWallet)
+- Try re-entering the API key in the model configuration
+
+### Migrating from Old Versions
+If you previously had API keys stored in the configuration file:
+1. Re-enter your API keys in the model configuration UI
+2. The new keys will be automatically migrated to the secure credential store
+3. Old keys in the configuration file will be ignored

@@ -1,4 +1,23 @@
 use crate::ui::window::RedisApp;
+use e_client_basics::constants::REDIS_COMMANDS;
+use e_client_core::AiClient;
+
+/// Check if the input is a Redis command
+fn is_redis_command(input: &str) -> bool {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    // Get the first word (command)
+    let first_word = trimmed
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_uppercase();
+
+    REDIS_COMMANDS.contains(&first_word.as_str())
+}
 
 pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let active_tab_idx = app.active_tab;
@@ -85,7 +104,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             &mut app.tabs[active_tab_idx].command_line_panel.input,
                         )
                         .font(egui::TextStyle::Monospace)
-                        .hint_text("Enter Redis command...")
+                        .hint_text("Enter Redis command or ask AI...")
                         .id(egui::Id::new("command_line_input")),
                     );
 
@@ -180,22 +199,79 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         });
 }
 
-fn execute_command(app: &mut RedisApp, tab_idx: usize, command: String) {
-    // Execute the command using the redis client
-    let client = app.tabs[tab_idx].state.redis_client.clone();
-    let result = client.execute_raw_command_sync(&command);
-    match result {
-        Ok(output) => {
-            app.tabs[tab_idx]
-                .command_line_panel
-                .history
-                .push((command, output));
+fn execute_command(app: &mut RedisApp, tab_idx: usize, input: String) {
+    let trimmed_input = input.trim();
+
+    // Check if input is a Redis command
+    if is_redis_command(trimmed_input) {
+        // Execute as Redis command
+        let client = app.tabs[tab_idx].state.redis_client.clone();
+        let result = client.execute_raw_command_sync(trimmed_input);
+        match result {
+            Ok(output) => {
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .history
+                    .push((input, output));
+            }
+            Err(e) => {
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .history
+                    .push((input, format!("ERR: {}", e)));
+            }
+        }
+    } else {
+        // Send to AI for inference
+        execute_ai_command(app, tab_idx, trimmed_input.to_string());
+    }
+}
+
+fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String) {
+    // Check if AI is enabled and has an active model
+    let ai_config = &app.config.ai_config;
+
+    if !ai_config.enabled {
+        app.tabs[tab_idx].command_line_panel.history.push((
+            trimmed_input,
+            "ERR: AI is disabled. Enable it in settings.".to_string(),
+        ));
+        return;
+    }
+
+    let active_model = ai_config.get_active_model();
+    if active_model.is_none() {
+        app.tabs[tab_idx].command_line_panel.history.push((
+            trimmed_input,
+            "ERR: No AI model configured. Please configure an AI model in settings.".to_string(),
+        ));
+        return;
+    }
+
+    let model = active_model.unwrap();
+
+    // Show thinking indicator
+    app.tabs[tab_idx]
+        .command_line_panel
+        .history
+        .push((trimmed_input.clone(), "Thinking...".to_string()));
+
+    // Get the history index of the thinking message
+    let thinking_idx = app.tabs[tab_idx].command_line_panel.history.len() - 1;
+
+    // Clone model for the async operation
+    let model = model.clone();
+
+    // Execute AI chat synchronously
+    match AiClient::chat_sync(&model, &trimmed_input) {
+        Ok(response) => {
+            // Update the thinking message with the actual response
+            app.tabs[tab_idx].command_line_panel.history[thinking_idx] = (trimmed_input, response);
         }
         Err(e) => {
-            app.tabs[tab_idx]
-                .command_line_panel
-                .history
-                .push((command, format!("ERR: {}", e)));
+            // Update the thinking message with the error
+            app.tabs[tab_idx].command_line_panel.history[thinking_idx] =
+                (trimmed_input, format!("ERR: AI request failed - {}", e));
         }
     }
 }

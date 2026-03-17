@@ -334,6 +334,93 @@ impl Translator {
             m
         });
 
+        strings.insert(keys::KEY_EXPIRED, {
+            let mut m = HashMap::new();
+            m.insert(
+                Language::English,
+                "Key has expired. Please refresh and try again.",
+            );
+            m.insert(Language::Chinese, "Key 已过期。请刷新后重试。");
+            m
+        });
+
+        strings.insert(keys::KEY_NAME_LABEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Key:");
+            m.insert(Language::Chinese, "Key:");
+            m
+        });
+
+        strings.insert(keys::TYPE_LABEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Type:");
+            m.insert(Language::Chinese, "类型:");
+            m
+        });
+
+        strings.insert(keys::TTL_LABEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "TTL:");
+            m.insert(Language::Chinese, "TTL:");
+            m
+        });
+
+        strings.insert(keys::TTL_NO_EXPIRATION_HINT, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "-1 (no expiration)");
+            m.insert(Language::Chinese, "-1 (永不过期)");
+            m
+        });
+
+        strings.insert(keys::VALUE_LABEL, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Value");
+            m.insert(Language::Chinese, "值");
+            m
+        });
+
+        strings.insert(keys::VALUE_HINT_STRING, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Enter value");
+            m.insert(Language::Chinese, "输入值");
+            m
+        });
+
+        strings.insert(keys::VALUE_HINT_LIST, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "One item per line");
+            m.insert(Language::Chinese, "每行一个元素");
+            m
+        });
+
+        strings.insert(keys::VALUE_HINT_SET, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "One member per line");
+            m.insert(Language::Chinese, "每行一个成员");
+            m
+        });
+
+        strings.insert(keys::VALUE_HINT_HASH, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "field:value per line");
+            m.insert(Language::Chinese, "每行 field:value");
+            m
+        });
+
+        strings.insert(keys::VALUE_HINT_ZSET, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "score:member per line");
+            m.insert(Language::Chinese, "每行 score:member");
+            m
+        });
+
+        strings.insert(keys::KEY_NAME_EMPTY_ERROR, {
+            let mut m = HashMap::new();
+            m.insert(Language::English, "Key name cannot be empty");
+            m.insert(Language::Chinese, "Key 名称不能为空");
+            m
+        });
+
         strings.insert(keys::KEY_HEADING, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Key: {}");
@@ -887,7 +974,7 @@ impl Translator {
         strings.insert(keys::AI_TEMPERATURE, {
             let mut m = HashMap::new();
             m.insert(Language::English, "Temperature");
-            m.insert(Language::Chinese, "Temperature");
+            m.insert(Language::Chinese, "温度");
             m
         });
 

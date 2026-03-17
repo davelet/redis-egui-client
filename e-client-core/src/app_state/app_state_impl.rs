@@ -30,6 +30,7 @@ pub struct AppState {
     pub loading_progress_text: Arc<RwLock<String>>,
     pub ttl_edit_mode: Arc<RwLock<bool>>,
     pub ttl_edit_value: Arc<RwLock<String>>,
+    pub ttl_edit_key: Arc<RwLock<Option<String>>>,
 }
 
 impl Default for AppState {
@@ -57,6 +58,7 @@ impl Default for AppState {
             loading_progress_text: Arc::new(RwLock::new(String::new())),
             ttl_edit_mode: Arc::new(RwLock::new(false)),
             ttl_edit_value: Arc::new(RwLock::new(String::new())),
+            ttl_edit_key: Arc::new(RwLock::new(None)),
         }
     }
 }
@@ -106,8 +108,22 @@ impl AppState {
     }
 
     // Delegate value operations
-    pub fn spawn_save_element(&self, key: String, key_type: String, field: String, value: String) {
-        super::operations::values::spawn_save_element(self, key, key_type, field, value);
+    pub fn spawn_save_element(
+        &self,
+        key: String,
+        key_type: String,
+        field: String,
+        value: String,
+        original_value: String,
+    ) {
+        super::operations::values::spawn_save_element(
+            self,
+            key,
+            key_type,
+            field,
+            value,
+            original_value,
+        );
     }
 
     pub fn spawn_update_ttl(&self, key: String, ttl: i64) {

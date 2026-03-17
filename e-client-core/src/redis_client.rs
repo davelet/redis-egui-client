@@ -393,6 +393,16 @@ impl RedisClient {
         }
     }
 
+    pub async fn key_exists(&self, key: &str) -> Result<bool, RedisError> {
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            let exists: i32 = redis::cmd("EXISTS").arg(key).query_async(conn).await?;
+            Ok(exists > 0)
+        } else {
+            Ok(false)
+        }
+    }
+
     pub async fn set_string(&self, key: &str, value: &str) -> Result<(), RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
