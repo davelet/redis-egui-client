@@ -31,6 +31,14 @@ pub struct AppState {
     pub ttl_edit_mode: Arc<RwLock<bool>>,
     pub ttl_edit_value: Arc<RwLock<String>>,
     pub ttl_edit_key: Arc<RwLock<Option<String>>>,
+    /// Last time TTL was auto-refreshed (for timer-based TTL refresh)
+    pub ttl_last_refresh: Arc<RwLock<Option<std::time::Instant>>>,
+    /// Flag indicating we're loading hash fields to prepare for editing
+    pub loading_fields_for_edit: Arc<RwLock<bool>>,
+    /// Flag indicating we should enter edit mode after loading fields
+    pub pending_edit_after_load: Arc<RwLock<bool>>,
+    /// Stored TTL for pending edit after load
+    pub pending_edit_ttl: Arc<RwLock<i64>>,
 }
 
 impl Default for AppState {
@@ -59,6 +67,10 @@ impl Default for AppState {
             ttl_edit_mode: Arc::new(RwLock::new(false)),
             ttl_edit_value: Arc::new(RwLock::new(String::new())),
             ttl_edit_key: Arc::new(RwLock::new(None)),
+            ttl_last_refresh: Arc::new(RwLock::new(None)),
+            loading_fields_for_edit: Arc::new(RwLock::new(false)),
+            pending_edit_after_load: Arc::new(RwLock::new(false)),
+            pending_edit_ttl: Arc::new(RwLock::new(-1)),
         }
     }
 }
@@ -95,8 +107,12 @@ impl AppState {
         super::operations::keys::spawn_load_more_keys(self, load_all);
     }
 
-    pub fn spawn_load_value(&self, key: String) {
-        super::operations::keys::spawn_load_value(self, key);
+    pub fn spawn_load_value(&self, key: String, reload_hash: bool) {
+        super::operations::keys::spawn_load_value(self, key, reload_hash);
+    }
+
+    pub fn spawn_refresh_ttl_only(&self, key: String) {
+        super::operations::keys::spawn_refresh_ttl_only(self, key);
     }
 
     pub fn spawn_create_new_key(&self, key: String, key_type: String, value: String, ttl: i64) {
@@ -143,8 +159,16 @@ impl AppState {
         operations::lazy_load::spawn_load_hash_fields(self, key);
     }
 
+    pub fn spawn_load_hash_fields_preserve_values(&self, key: String) {
+        operations::lazy_load::spawn_load_hash_fields_preserve_values(self, key);
+    }
+
     pub fn spawn_load_hash_field_value(&self, key: String, field: String) {
         operations::lazy_load::spawn_load_hash_field_value(self, key, field);
+    }
+
+    pub fn spawn_load_all_hash_field_values(&self, key: String) {
+        operations::lazy_load::spawn_load_all_hash_field_values(self, key);
     }
 
     pub fn spawn_load_set_members(&self, key: String) {

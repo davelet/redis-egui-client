@@ -256,7 +256,13 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
 }
 
 /// Spawn load value operation
-pub fn spawn_load_value(state: &AppState, key: String) {
+/// 
+/// # Arguments
+/// * `state` - The app state
+/// * `key` - The key to load
+/// * `reload_hash` - If true, reload hash fields and clear loaded values.
+///                   If false, preserve existing loaded hash values.
+pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
     let state = state.clone();
     tokio::spawn(async move {
         *state.loading.write().await = true;
@@ -268,7 +274,30 @@ pub fn spawn_load_value(state: &AppState, key: String) {
         match state.redis_client.get_value(&key).await {
             Ok(value) => {
                 *state.selected_key.write().await = Some(key.clone());
-                *state.key_value.write().await = Some(value);
+                
+                // For Hash type, preserve fields and loaded_values if not reloading
+                // When reload_hash is false, we only update the len and preserve everything else
+                // When reload_hash is true, we replace the entire value and reload fields
+                let is_hash = matches!(&value, ValueData::Hash { .. });
+                if !reload_hash && is_hash {
+                    // Get the new len from the fetched value
+                    let new_len = if let ValueData::Hash { len, .. } = &value {
+                        *len
+                    } else {
+                        0
+                    };
+                    
+                    // Update only the len in the existing value, preserve fields and loaded_values
+                    let mut existing_value = state.key_value.write().await;
+                    if let Some(ValueData::Hash { len, .. }) = existing_value.as_mut() {
+                        *len = new_len;
+                    } else {
+                        // If no existing value, use the new one (but fields will be empty)
+                        *existing_value = Some(value);
+                    }
+                } else {
+                    *state.key_value.write().await = Some(value);
+                }
 
                 // Get TTL for key
                 match state.redis_client.get_ttl(&key).await {
@@ -280,8 +309,10 @@ pub fn spawn_load_value(state: &AppState, key: String) {
                     }
                 }
 
-                // For Hash type, automatically load all field names
-                if let Some(ValueData::Hash { .. }) = &*state.key_value.read().await {
+                // For Hash type, load field names
+                // If reload_hash is true, clear all loaded values and reload fields
+                // If reload_hash is false, fields are already preserved above, just ensure values are fresh
+                if is_hash && reload_hash {
                     state.spawn_load_hash_fields(key);
                 }
             }
@@ -291,6 +322,23 @@ pub fn spawn_load_value(state: &AppState, key: String) {
         }
 
         *state.loading.write().await = false;
+    });
+}
+
+/// Spawn refresh TTL only (lightweight, for auto-refresh timer)
+pub fn spawn_refresh_ttl_only(state: &AppState, key: String) {
+    let state = state.clone();
+    tokio::spawn(async move {
+        match state.redis_client.get_ttl(&key).await {
+            Ok(ttl) => {
+                *state.key_ttl.write().await = ttl;
+            }
+            Err(_) => {
+                *state.key_ttl.write().await = -2;
+            }
+        }
+        // Update last refresh time
+        *state.ttl_last_refresh.write().await = Some(std::time::Instant::now());
     });
 }
 
@@ -378,7 +426,7 @@ pub fn spawn_create_new_key(
                 // Select new key and load its value
                 *state.selected_key.write().await = Some(key.clone());
                 state.edit_state.write().await.cancel_edit();
-                state.spawn_load_value(key);
+                state.spawn_load_value(key, true);
                 state.spawn_load_keys();
             }
             Err(e) => {

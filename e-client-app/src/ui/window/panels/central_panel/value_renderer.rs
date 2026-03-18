@@ -112,11 +112,26 @@ fn render_hash_value(
     ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
-    len: &usize,
-    fields: &[String],
-    loaded_values: &std::collections::HashMap<String, String>,
+    _len: &usize,
+    _fields: &[String],
+    _loaded_values: &std::collections::HashMap<String, String>,
     current_lang: Language,
 ) {
+    // Get fresh values from app_state to ensure we have the latest data
+    let (len, fields, loaded_values) = {
+        let value = app.tabs[active_tab_idx].state.key_value.blocking_read();
+        if let Some(ValueData::Hash {
+            len,
+            fields,
+            loaded_values,
+        }) = value.as_ref()
+        {
+            (*len, fields.clone(), loaded_values.clone())
+        } else {
+            (0, vec![], std::collections::HashMap::new())
+        }
+    };
+
     ui.label(tr_fmt(keys::TYPE_HASH, current_lang, &[&len.to_string()]));
 
     // Field filter input
@@ -129,7 +144,7 @@ fn render_hash_value(
     });
 
     if fields.is_empty() {
-        if *len > 0 {
+        if len > 0 {
             if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
                 app.tabs[active_tab_idx]
                     .state

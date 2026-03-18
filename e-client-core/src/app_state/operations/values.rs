@@ -1,5 +1,6 @@
 use super::super::AppState;
 use super::super::{EditedValue, JsonValue, compact_json_if_single_line};
+use crate::redis_client::ValueData;
 use e_client_bilingual::translations::{keys, tr};
 
 /// Spawn save element operation
@@ -45,8 +46,21 @@ pub fn spawn_save_element(
 
         match result {
             Ok(_) => {
-                // Reload value
-                state.spawn_load_value(key);
+                // Update the saved field's value in loaded_values for Hash type
+                if key_type == "hash" {
+                    let mut key_value = state.key_value.write().await;
+                    if let Some(ValueData::Hash { fields, loaded_values, .. }) = key_value.as_mut() {
+                        loaded_values.insert(field.clone(), value_to_save);
+                        // Ensure field is in fields list (for newly added fields)
+                        if !fields.contains(&field) {
+                            fields.push(field);
+                        }
+                    }
+                }
+                // Refresh TTL only, preserve all loaded values
+                if let Ok(ttl) = state.redis_client.get_ttl(&key).await {
+                    *state.key_ttl.write().await = ttl;
+                }
             }
             Err(e) => {
                 *state.error_message.write().await = format!("Save element failed: {}", e);
@@ -63,8 +77,8 @@ pub fn spawn_update_ttl(state: &AppState, key: String, ttl: i64) {
             state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
         } else {
             state.edit_state.write().await.save_message = "TTL updated successfully".to_string();
-            // Refresh TTL display
-            state.spawn_load_value(key);
+            // Refresh TTL display without clearing hash fields
+            state.spawn_load_value(key, false);
         }
     });
 }
@@ -230,9 +244,32 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         match save_result {
             Ok(_) => {
                 state.edit_state.write().await.cancel_edit();
-                // Reload value and keys
+                // For Hash type, preserve all edited values in loaded_values to avoid showing "Load" buttons
+                if let EditedValue::Hash(fields) = &edit.edited_value {
+                    let mut key_value = state.key_value.write().await;
+                    if let Some(ValueData::Hash { fields: existing_fields, loaded_values, .. }) = key_value.as_mut() {
+                        // Update fields list
+                        existing_fields.clear();
+                        for (field, _) in fields {
+                            if !field.is_empty() {
+                                existing_fields.push(field.clone());
+                            }
+                        }
+                        // Update loaded values
+                        loaded_values.clear();
+                        for (field, value) in fields {
+                            if !field.is_empty() {
+                                loaded_values.insert(field.clone(), value.to_save());
+                            }
+                        }
+                    }
+                }
+                // Refresh TTL only, preserve hash values we just set
+                if let Ok(ttl) = state.redis_client.get_ttl(&current_key).await {
+                    *state.key_ttl.write().await = ttl;
+                }
+                // Reload keys list
                 *state.selected_key.write().await = Some(current_key.clone());
-                state.spawn_load_value(current_key);
                 state.spawn_load_keys();
             }
             Err(e) => {

@@ -363,7 +363,7 @@ fn render_key_item(
     if response.clicked() {
         let tab = &mut app.tabs[active_tab_idx];
         *tab.state.selected_key.blocking_write() = Some(full_key.to_string());
-        tab.state.spawn_load_value(full_key.to_string());
+        tab.state.spawn_load_value(full_key.to_string(), true);
     }
 
     // Draw the background for selected item
@@ -428,7 +428,7 @@ fn render_key_tree(
                     if ui.selectable_label(is_selected, name).clicked() {
                         let tab = &mut app.tabs[active_tab_idx];
                         *tab.state.selected_key.blocking_write() = Some(full_key.clone());
-                        tab.state.spawn_load_value(full_key.clone());
+                        tab.state.spawn_load_value(full_key.clone(), true);
                     }
                 } else {
                     ui.label(name);

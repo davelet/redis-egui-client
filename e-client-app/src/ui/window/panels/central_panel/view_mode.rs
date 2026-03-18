@@ -18,6 +18,28 @@ pub fn render_view_mode(
     ttl: i64,
     current_lang: Language,
 ) {
+    // Auto-refresh TTL every second (only when TTL > 0, meaning key has expiration)
+    if ttl > 0 {
+        let should_refresh = {
+            let last_refresh = app.tabs[active_tab_idx]
+                .state
+                .ttl_last_refresh
+                .blocking_read();
+            match *last_refresh {
+                None => true,
+                Some(instant) => instant.elapsed().as_secs() >= 1,
+            }
+        };
+
+        if should_refresh {
+            app.tabs[active_tab_idx]
+                .state
+                .spawn_refresh_ttl_only(key.to_string());
+        }
+        // Request repaint every second to keep TTL updated
+        ctx.request_repaint_after(std::time::Duration::from_secs(1));
+    }
+
     render_header(app, ui, ctx, active_tab_idx, key, value, ttl, current_lang);
 
     // Value display
@@ -81,12 +103,56 @@ fn render_header(
         }
 
         // Edit button
-        if ui.button(tr(keys::EDIT, current_lang)).clicked() {
-            app.tabs[active_tab_idx]
-                .state
-                .edit_state
-                .blocking_write()
-                .enter_edit(key, ttl, value);
+        let loading_for_edit = *app.tabs[active_tab_idx]
+            .state
+            .loading_fields_for_edit
+            .blocking_read();
+
+        // Check if hash has unloaded fields
+        let has_unloaded_fields = if let Some(ValueData::Hash {
+            fields,
+            loaded_values,
+            ..
+        }) = value
+        {
+            fields.iter().any(|f| !loaded_values.contains_key(f))
+        } else {
+            false
+        };
+
+        let edit_button_text = if loading_for_edit {
+            "Loading..."
+        } else {
+            tr(keys::EDIT, current_lang)
+        };
+
+        let edit_button_enabled = !loading_for_edit;
+
+        if ui
+            .add_enabled(edit_button_enabled, egui::Button::new(edit_button_text))
+            .clicked()
+        {
+            if has_unloaded_fields && !loading_for_edit {
+                // Load all field values first, then auto-enter edit mode when done
+                *app.tabs[active_tab_idx]
+                    .state
+                    .pending_edit_after_load
+                    .blocking_write() = true;
+                *app.tabs[active_tab_idx]
+                    .state
+                    .pending_edit_ttl
+                    .blocking_write() = ttl;
+                app.tabs[active_tab_idx]
+                    .state
+                    .spawn_load_all_hash_field_values(key.to_string());
+            } else {
+                // All fields loaded, enter edit mode
+                app.tabs[active_tab_idx]
+                    .state
+                    .edit_state
+                    .blocking_write()
+                    .enter_edit(key, ttl, value);
+            }
         }
 
         // Delete button (always visible)
@@ -118,7 +184,7 @@ fn render_ttl_controls(
         if ui.button(emoji::action::REFRESH).clicked() {
             app.tabs[active_tab_idx]
                 .state
-                .spawn_load_value(key.to_string());
+                .spawn_load_value(key.to_string(), true);
         }
 
         let ttl_text = format_ttl(ttl);

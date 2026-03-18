@@ -316,7 +316,7 @@ impl eframe::App for RedisApp {
                                         if let Some(key) =
                                             tab.state.selected_key.blocking_read().clone()
                                         {
-                                            tab.state.spawn_load_value(key);
+                                            tab.state.spawn_load_value(key, true);
                                         }
                                     }
                                 }
