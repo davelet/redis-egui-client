@@ -1,8 +1,8 @@
 use super::super::AppState;
 use crate::redis_client::ValueData;
 use e_client_basics::constants::{
-    ITEMS_PER_LOAD, LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS, SCAN_COUNT,
-    SCAN_SLEEP_INTERVAL_MS, SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES, WILD_KEY_FILTER,
+    LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS, SCAN_COUNT, SCAN_SLEEP_INTERVAL_MS,
+    SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES, WILD_KEY_FILTER,
 };
 
 /// Spawn load keys operation
@@ -256,7 +256,7 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
 }
 
 /// Spawn load value operation
-/// 
+///
 /// # Arguments
 /// * `state` - The app state
 /// * `key` - The key to load
@@ -274,7 +274,7 @@ pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
         match state.redis_client.get_value(&key).await {
             Ok(value) => {
                 *state.selected_key.write().await = Some(key.clone());
-                
+
                 // For Hash type, preserve fields and loaded_values if not reloading
                 // When reload_hash is false, we only update the len and preserve everything else
                 // When reload_hash is true, we replace the entire value and reload fields
@@ -286,7 +286,7 @@ pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
                     } else {
                         0
                     };
-                    
+
                     // Update only the len in the existing value, preserve fields and loaded_values
                     let mut existing_value = state.key_value.write().await;
                     if let Some(ValueData::Hash { len, .. }) = existing_value.as_mut() {

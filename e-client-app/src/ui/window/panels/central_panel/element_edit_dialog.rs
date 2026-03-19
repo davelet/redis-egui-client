@@ -64,7 +64,7 @@ fn render_dialog_content(
     current_lang: Language,
     key_type: &str,
 ) {
-    render_context_info(app, ui, key_type);
+    render_context_info(app, ui, current_lang, key_type);
     ui.separator();
     render_value_editor(app, ui);
     ui.separator();
@@ -72,9 +72,14 @@ fn render_dialog_content(
 }
 
 /// Render context information (key, field/index)
-fn render_context_info(app: &mut RedisApp, ui: &mut egui::Ui, key_type: &str) {
+fn render_context_info(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    key_type: &str,
+) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("Key:").strong());
+        ui.label(egui::RichText::new(tr(keys::KEY_LABEL, current_lang)).strong());
         egui::ScrollArea::horizontal()
             .max_height(20.0)
             .show(ui, |ui| {

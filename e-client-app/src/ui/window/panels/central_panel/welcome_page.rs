@@ -1,5 +1,4 @@
 use crate::ui::window::RedisApp;
-use e_client_config::config::Config;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 
@@ -188,6 +187,40 @@ fn render_connection_row(
 
         // Action buttons
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // Check if this row is in confirm delete state
+            let is_confirming = app
+                .delete_connection_confirm
+                .as_ref()
+                .map(|(i, _)| *i == idx)
+                .unwrap_or(false);
+
+            // Delete / Confirm Delete button
+            if is_confirming {
+                if ui
+                    .button(
+                        egui::RichText::new(tr(keys::CONFIRM_DELETE, current_lang))
+                            .color(egui::Color32::RED),
+                    )
+                    .clicked()
+                {
+                    let _ = app.config.remove_connection(&conn.name);
+                    app.delete_connection_confirm = None;
+                }
+            } else {
+                if ui
+                    .button(
+                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                            .color(egui::Color32::RED),
+                    )
+                    .clicked()
+                {
+                    app.delete_connection_confirm = Some((idx, conn.name.clone()));
+                }
+            }
+
+            ui.add_space(10.0);
+
+            // Connect button
             if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
                 connect_in_current_tab(app, idx, conn);
             }

@@ -55,7 +55,7 @@ fn render_header(
 
     // Header row with key editing
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("Key:").strong());
+        ui.label(egui::RichText::new(tr(keys::KEY_LABEL, current_lang)).strong());
         let response = ui.add_enabled(
             !edit.saving,
             egui::TextEdit::singleline(&mut edit.edited_key).desired_width(300.0),
@@ -146,7 +146,7 @@ fn render_value_edit(
             changed |= render_zset_edit(ui, items, editable, current_lang);
         }
         EditedValue::None => {
-            ui.label("No value to edit");
+            ui.label(tr(keys::NO_VALUE_TO_EDIT, current_lang));
         }
     }
 
@@ -234,14 +234,14 @@ fn render_hash_edit(
                     if ui.add(field_edit).changed() {
                         changed = true;
                     }
-                    ui.label(":");
+                    ui.label(tr(keys::COLON_SEPARATOR, current_lang));
 
                     let available_for_value =
                         ui.ctx().available_rect().width() - delete_button_width;
 
                     let mut value_edit = egui::TextEdit::singleline(&mut value.value)
                         .desired_width(available_for_value)
-                        .hint_text("value");
+                        .hint_text(tr(keys::VALUE_PLACEHOLDER, current_lang));
                     if !editable {
                         value_edit = value_edit.interactive(false);
                     }
@@ -394,7 +394,7 @@ fn render_set_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button("+ Add Member").clicked() {
+                if ui.button(tr(keys::ADD_MEMBER, current_lang)).clicked() {
                     items.push(crate::core::JsonValue::new(""));
                     changed = true;
                 }
@@ -449,7 +449,7 @@ fn render_zset_edit(
                     });
 
                     ui.label(format!("{}.", idx));
-                    ui.label("score:");
+                    ui.label(tr(keys::SCORE_LABEL, current_lang));
                     let mut score_edit = egui::TextEdit::singleline(score)
                         .desired_width(80.0)
                         .hint_text("0.0");
@@ -459,7 +459,7 @@ fn render_zset_edit(
                     if ui.add(score_edit).changed() {
                         changed = true;
                     }
-                    ui.label("member:");
+                    ui.label(tr(keys::MEMBER_LABEL, current_lang));
 
                     let available_for_value =
                         ui.ctx().available_rect().width() - delete_button_width;
@@ -476,7 +476,7 @@ fn render_zset_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button("+ Add Member").clicked() {
+                if ui.button(tr(keys::ADD_MEMBER, current_lang)).clicked() {
                     items.push((crate::core::JsonValue::new(""), "0".to_string()));
                     changed = true;
                 }

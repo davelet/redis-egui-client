@@ -1,5 +1,5 @@
 use super::super::AppState;
-use super::super::{EditedValue, JsonValue, compact_json_if_single_line};
+use super::super::{EditedValue, compact_json_if_single_line};
 use crate::redis_client::ValueData;
 use e_client_bilingual::translations::{keys, tr};
 
@@ -49,7 +49,12 @@ pub fn spawn_save_element(
                 // Update the saved field's value in loaded_values for Hash type
                 if key_type == "hash" {
                     let mut key_value = state.key_value.write().await;
-                    if let Some(ValueData::Hash { fields, loaded_values, .. }) = key_value.as_mut() {
+                    if let Some(ValueData::Hash {
+                        fields,
+                        loaded_values,
+                        ..
+                    }) = key_value.as_mut()
+                    {
                         loaded_values.insert(field.clone(), value_to_save);
                         // Ensure field is in fields list (for newly added fields)
                         if !fields.contains(&field) {
@@ -96,7 +101,11 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         let mut current_key = original_key.clone();
 
         // Check if original key still exists (may have expired during editing)
-        let key_exists = state.redis_client.key_exists(&original_key).await.unwrap_or(false);
+        let key_exists = state
+            .redis_client
+            .key_exists(&original_key)
+            .await
+            .unwrap_or(false);
         if !key_exists && new_key == original_key {
             let lang = *state.language.read().await;
             state.edit_state.write().await.save_message = tr(keys::KEY_EXPIRED, lang).to_string();
@@ -211,10 +220,10 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
         if save_result.is_ok() {
             // Get current actual TTL from Redis (may have decreased during editing)
             let current_ttl = state.redis_client.get_ttl(&current_key).await.unwrap_or(-1);
-            
+
             // Parse user's edited TTL
             let edited_ttl_str = edit.edited_ttl.trim();
-            
+
             // Determine which TTL to use
             let ttl_to_set = if edited_ttl_str.is_empty() || edited_ttl_str == "-1" {
                 // User wants no expiration (or left empty)
@@ -223,7 +232,7 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                 // Compare with original TTL at edit start
                 // If edited_ttl is close to original_ttl, user probably didn't change it
                 let ttl_diff_from_original = (edited_ttl - edit.original_ttl).abs();
-                
+
                 // If current TTL is positive and user didn't modify TTL (within 5s tolerance),
                 // use actual remaining TTL to preserve relative expiration time
                 if current_ttl > 0 && ttl_diff_from_original <= 5 {
@@ -234,7 +243,7 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
             } else {
                 current_ttl // Fallback to current TTL if parse fails
             };
-            
+
             if let Err(e) = state.redis_client.set_ttl(&current_key, ttl_to_set).await {
                 state.edit_state.write().await.save_message = format!("TTL update failed: {}", e);
                 // Continue to reload even if TTL update fails
@@ -247,7 +256,12 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
                 // For Hash type, preserve all edited values in loaded_values to avoid showing "Load" buttons
                 if let EditedValue::Hash(fields) = &edit.edited_value {
                     let mut key_value = state.key_value.write().await;
-                    if let Some(ValueData::Hash { fields: existing_fields, loaded_values, .. }) = key_value.as_mut() {
+                    if let Some(ValueData::Hash {
+                        fields: existing_fields,
+                        loaded_values,
+                        ..
+                    }) = key_value.as_mut()
+                    {
                         // Update fields list
                         existing_fields.clear();
                         for (field, _) in fields {

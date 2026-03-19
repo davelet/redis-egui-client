@@ -1,6 +1,5 @@
 use crate::core::ValueData;
 use crate::ui::window::RedisApp;
-use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
 use e_client_config::translations::emoji;
 use e_client_config::translations::{keys, tr, tr_fmt};

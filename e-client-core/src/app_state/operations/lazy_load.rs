@@ -101,11 +101,16 @@ pub fn spawn_load_all_hash_field_values(state: &AppState, key: String) {
     tokio::spawn(async move {
         // Set flag indicating we're loading fields for edit
         *state.loading_fields_for_edit.write().await = true;
-        
+
         // Get the list of fields that need to be loaded
         let fields_to_load: Vec<String> = {
             let value = state.key_value.read().await;
-            if let Some(ValueData::Hash { fields, loaded_values, .. }) = value.as_ref() {
+            if let Some(ValueData::Hash {
+                fields,
+                loaded_values,
+                ..
+            }) = value.as_ref()
+            {
                 fields
                     .iter()
                     .filter(|f| !loaded_values.contains_key(*f))
@@ -115,30 +120,31 @@ pub fn spawn_load_all_hash_field_values(state: &AppState, key: String) {
                 vec![]
             }
         };
-        
+
         // Load each field value
         for field in fields_to_load {
-            if let Ok(Some(value_str)) = state.redis_client.get_hash_field_value(&key, &field).await {
+            if let Ok(Some(value_str)) = state.redis_client.get_hash_field_value(&key, &field).await
+            {
                 let mut value = state.key_value.write().await;
                 if let Some(ValueData::Hash { loaded_values, .. }) = value.as_mut() {
                     loaded_values.insert(field, value_str);
                 }
             }
         }
-        
+
         // Clear the flag when done
         *state.loading_fields_for_edit.write().await = false;
-        
+
         // Check if we should auto-enter edit mode after loading
         let should_enter_edit = *state.pending_edit_after_load.read().await;
         if should_enter_edit {
             // Get current value and TTL for edit
             let value = state.key_value.read().await.clone();
             let ttl = *state.pending_edit_ttl.read().await;
-            
+
             // Enter edit mode
             state.edit_state.write().await.enter_edit(&key, ttl, &value);
-            
+
             // Clear the pending flag
             *state.pending_edit_after_load.write().await = false;
         }

@@ -17,7 +17,7 @@ pub fn render_value_view(
     current_lang: Language,
 ) {
     match val {
-        ValueData::String(s) => render_string_value(ui, s),
+        ValueData::String(s) => render_string_value(ui, s, current_lang),
         ValueData::List { len, items } => {
             render_list_value(app, ui, active_tab_idx, key, len, items, current_lang)
         }
@@ -49,16 +49,8 @@ pub fn render_value_view(
 }
 
 /// Render string value
-fn render_string_value(ui: &mut egui::Ui, s: &str) {
-    ui.label(tr(
-        keys::TYPE_STRING,
-        ui.ctx()
-            .style()
-            .text_styles
-            .values()
-            .next()
-            .map_or(Language::English, |_| Language::English),
-    ));
+fn render_string_value(ui: &mut egui::Ui, s: &str, current_lang: Language) {
+    ui.label(tr(keys::TYPE_STRING, current_lang));
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -183,10 +175,10 @@ fn render_hash_value(
                     .min_scrolled_height(0.0)
                     .header(24.0, |mut header| {
                         header.col(|ui| {
-                            ui.strong("Field");
+                            ui.strong(tr(keys::HASH_FIELD, current_lang));
                         });
                         header.col(|ui| {
-                            ui.strong("Value");
+                            ui.strong(tr(keys::HASH_VALUE, current_lang));
                         });
                         header.col(|_ui| {});
                     })

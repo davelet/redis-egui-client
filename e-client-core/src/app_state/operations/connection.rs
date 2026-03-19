@@ -1,7 +1,6 @@
 use super::super::AppState;
-use e_client_basics::constants::{SCAN_COUNT, SORT_INTERVAL_KEYS, WILD_KEY_FILTER};
-use std::time::Duration;
-use tokio::time::sleep;
+use e_client_basics::constants::WILD_KEY_FILTER;
+use e_client_bilingual::translations::{keys, tr_fmt};
 
 /// Spawn connection with optional initial database
 pub fn spawn_connect_with_db(state: &AppState, initial_db: Option<i64>) {
@@ -41,7 +40,9 @@ pub fn spawn_connect_with_db(state: &AppState, initial_db: Option<i64>) {
                 Err(e) => {
                     *state.connected.write().await = false;
                     *state.loading.write().await = false;
-                    *state.error_message.write().await = format!("Connection failed: {}", e);
+                    let lang = *state.language.read().await;
+                    *state.error_message.write().await =
+                        tr_fmt(keys::CONNECTION_FAILED_MSG, lang, &[&e.to_string()]);
                 }
             }
         } else {

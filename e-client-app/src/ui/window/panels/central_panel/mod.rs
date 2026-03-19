@@ -10,11 +10,9 @@ pub mod welcome_page;
 pub use edit_mode::render_edit_mode;
 pub use element_edit_dialog::render_element_edit_dialog;
 pub use error_panel::render_error_panel;
-pub use value_renderer::render_value_view;
 pub use view_mode::render_view_mode;
 pub use welcome_page::render_welcome_page;
 
-use crate::core::ValueData;
 use crate::ui::window::RedisApp;
 
 /// Main entry point for central panel rendering

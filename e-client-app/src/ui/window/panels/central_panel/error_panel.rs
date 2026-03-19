@@ -2,10 +2,12 @@ use e_client_config::config::Config;
 use e_client_config::constants::{APP_NAME, LOAD_ERROR_TITLE};
 use e_client_config::error::ConfigError;
 use e_client_config::language::Language;
+use e_client_config::translations::{keys, tr};
 
 /// Render error panel when configuration fails to load
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
-    let err = err.to_message(Language::default());
+    let lang = Language::default();
+    let err = err.to_message(lang);
     let options = eframe::NativeOptions::default();
     eframe::run_simple_native(APP_NAME, options, move |ctx, _frame| {
         use std::cell::Cell;
@@ -19,20 +21,20 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
             });
             ui.separator();
 
-            if ui.button("click to reset problematic file").clicked() {
+            if ui.button(tr(keys::RESET_CONFIG_FILE, lang)).clicked() {
                 reset_config_files();
                 SHOW_POPUP.set(true);
             }
         });
         SHOW_POPUP.with(|popup| {
             if popup.get() {
-                egui::Window::new("Well Done!")
+                egui::Window::new(tr(keys::WELL_DONE, lang))
                     .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
                     .collapsible(false)
                     .resizable(false)
                     .show(ctx, |ui| {
-                        ui.label("Now restart your app.");
-                        if ui.button("OK").clicked() {
+                        ui.label(tr(keys::RESTART_APP, lang));
+                        if ui.button(tr(keys::OK, lang)).clicked() {
                             std::process::exit(0);
                         }
                     });

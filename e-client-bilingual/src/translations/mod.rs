@@ -1,3 +1,4 @@
+pub mod data;
 pub mod emoji;
 pub mod keys;
 pub mod translator;

@@ -3,74 +3,85 @@ use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::{compact_json_if_single_line, format_json_for_edit, operations, EditState};
+use super::{operations, EditState};
+
+/// Type alias for the common Arc<RwLock<T>> pattern
+pub type Shared<T> = Arc<RwLock<T>>;
+
+/// Helper function to create a new Shared<T>
+fn shared<T>(value: T) -> Shared<T> {
+    Arc::new(RwLock::new(value))
+}
 
 /// Main application state for a Redis connection tab
 #[derive(Clone)]
 pub struct AppState {
     pub redis_client: crate::redis_client::RedisClient,
-    pub connection_param: Arc<RwLock<Option<e_client_config::connection::RedisConnectionConfig>>>,
-    pub connected: Arc<RwLock<bool>>,
-    pub current_db: Arc<RwLock<u32>>,
-    pub databases: Arc<RwLock<Vec<u32>>>,
-    pub keys: Arc<RwLock<Vec<String>>>,
-    pub selected_key: Arc<RwLock<Option<String>>>,
-    pub key_value: Arc<RwLock<Option<ValueData>>>,
-    pub key_ttl: Arc<RwLock<i64>>,
-    pub edit_state: Arc<RwLock<EditState>>,
-    pub key_filter: Arc<RwLock<String>>,
-    pub hash_field_filter: Arc<RwLock<String>>,
-    pub loading: Arc<RwLock<bool>>,
-    pub error_message: Arc<RwLock<String>>,
-    pub language: Arc<RwLock<Language>>,
-    pub scan_cursor: Arc<RwLock<u64>>,
-    pub scan_has_more: Arc<RwLock<bool>>,
-    pub total_keys: Arc<RwLock<usize>>,
-    pub loaded_keys_count: Arc<RwLock<usize>>,
-    pub loading_progress_text: Arc<RwLock<String>>,
-    pub ttl_edit_mode: Arc<RwLock<bool>>,
-    pub ttl_edit_value: Arc<RwLock<String>>,
-    pub ttl_edit_key: Arc<RwLock<Option<String>>>,
-    /// Last time TTL was auto-refreshed (for timer-based TTL refresh)
-    pub ttl_last_refresh: Arc<RwLock<Option<std::time::Instant>>>,
-    /// Flag indicating we're loading hash fields to prepare for editing
-    pub loading_fields_for_edit: Arc<RwLock<bool>>,
-    /// Flag indicating we should enter edit mode after loading fields
-    pub pending_edit_after_load: Arc<RwLock<bool>>,
-    /// Stored TTL for pending edit after load
-    pub pending_edit_ttl: Arc<RwLock<i64>>,
+    // Connection state
+    pub connection_param: Shared<Option<e_client_config::connection::RedisConnectionConfig>>,
+    pub connected: Shared<bool>,
+    pub current_db: Shared<u32>,
+    pub databases: Shared<Vec<u32>>,
+    // Key state
+    pub keys: Shared<Vec<String>>,
+    pub selected_key: Shared<Option<String>>,
+    pub key_value: Shared<Option<ValueData>>,
+    pub key_ttl: Shared<i64>,
+    pub key_filter: Shared<String>,
+    pub hash_field_filter: Shared<String>,
+    // Scan/pagination state
+    pub scan_cursor: Shared<u64>,
+    pub scan_has_more: Shared<bool>,
+    pub total_keys: Shared<usize>,
+    pub loaded_keys_count: Shared<usize>,
+    pub loading_progress_text: Shared<String>,
+    // Edit state
+    pub edit_state: Shared<EditState>,
+    // TTL edit state
+    pub ttl_edit_mode: Shared<bool>,
+    pub ttl_edit_value: Shared<String>,
+    pub ttl_edit_key: Shared<Option<String>>,
+    pub ttl_last_refresh: Shared<Option<std::time::Instant>>,
+    // Pending edit state
+    pub loading_fields_for_edit: Shared<bool>,
+    pub pending_edit_after_load: Shared<bool>,
+    pub pending_edit_ttl: Shared<i64>,
+    // Global state
+    pub loading: Shared<bool>,
+    pub error_message: Shared<String>,
+    pub language: Shared<Language>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
             redis_client: crate::redis_client::RedisClient::new(),
-            connection_param: Arc::new(RwLock::new(None)),
-            connected: Arc::new(RwLock::new(false)),
-            current_db: Arc::new(RwLock::new(0)),
-            databases: Arc::new(RwLock::new(vec![])),
-            keys: Arc::new(RwLock::new(vec![])),
-            selected_key: Arc::new(RwLock::new(None)),
-            key_value: Arc::new(RwLock::new(None)),
-            key_ttl: Arc::new(RwLock::new(-2)),
-            edit_state: Arc::new(RwLock::new(EditState::default())),
-            key_filter: Arc::new(RwLock::new(String::new())),
-            hash_field_filter: Arc::new(RwLock::new(String::new())),
-            loading: Arc::new(RwLock::new(false)),
-            error_message: Arc::new(RwLock::new(String::new())),
-            language: Arc::new(RwLock::new(Language::English)),
-            scan_cursor: Arc::new(RwLock::new(0)),
-            scan_has_more: Arc::new(RwLock::new(true)),
-            total_keys: Arc::new(RwLock::new(0)),
-            loaded_keys_count: Arc::new(RwLock::new(0)),
-            loading_progress_text: Arc::new(RwLock::new(String::new())),
-            ttl_edit_mode: Arc::new(RwLock::new(false)),
-            ttl_edit_value: Arc::new(RwLock::new(String::new())),
-            ttl_edit_key: Arc::new(RwLock::new(None)),
-            ttl_last_refresh: Arc::new(RwLock::new(None)),
-            loading_fields_for_edit: Arc::new(RwLock::new(false)),
-            pending_edit_after_load: Arc::new(RwLock::new(false)),
-            pending_edit_ttl: Arc::new(RwLock::new(-1)),
+            connection_param: shared(None),
+            connected: shared(false),
+            current_db: shared(0),
+            databases: shared(vec![]),
+            keys: shared(vec![]),
+            selected_key: shared(None),
+            key_value: shared(None),
+            key_ttl: shared(-2),
+            edit_state: shared(EditState::default()),
+            key_filter: shared(String::new()),
+            hash_field_filter: shared(String::new()),
+            loading: shared(false),
+            error_message: shared(String::new()),
+            language: shared(Language::English),
+            scan_cursor: shared(0),
+            scan_has_more: shared(true),
+            total_keys: shared(0),
+            loaded_keys_count: shared(0),
+            loading_progress_text: shared(String::new()),
+            ttl_edit_mode: shared(false),
+            ttl_edit_value: shared(String::new()),
+            ttl_edit_key: shared(None),
+            ttl_last_refresh: shared(None),
+            loading_fields_for_edit: shared(false),
+            pending_edit_after_load: shared(false),
+            pending_edit_ttl: shared(-1),
         }
     }
 }
@@ -80,7 +91,7 @@ impl AppState {
         Self::default()
     }
 
-    // Delegate connection operations
+    // === Connection Operations ===
     pub fn spawn_connect(&self) {
         self.spawn_connect_with_db(None);
     }
@@ -93,12 +104,12 @@ impl AppState {
         super::operations::connection::spawn_disconnect(self);
     }
 
-    // Delegate database operations
+    // === Database Operations ===
     pub fn spawn_select_db(&self, db: u32) {
         super::operations::database::spawn_select_db(self, db);
     }
 
-    // Delegate key operations
+    // === Key Operations ===
     pub fn spawn_load_keys(&self) {
         super::operations::keys::spawn_load_keys(self);
     }
@@ -123,7 +134,7 @@ impl AppState {
         super::operations::keys::spawn_delete_key(self, key);
     }
 
-    // Delegate value operations
+    // === Value Operations ===
     pub fn spawn_save_element(
         &self,
         key: String,
@@ -150,7 +161,7 @@ impl AppState {
         super::operations::values::spawn_save_edits(self, original_key);
     }
 
-    // Delegate lazy loading operations
+    // === Lazy Loading Operations ===
     pub fn spawn_load_list_range(&self, key: String, start: isize, stop: isize) {
         operations::lazy_load::spawn_load_list_range(self, key, start, stop);
     }
