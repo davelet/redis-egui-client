@@ -34,7 +34,7 @@ struct ResponseMessage {
 }
 
 /// Detect the API provider type based on URL
-fn detect_api_provider(url: &str) -> ApiProvider {
+pub fn detect_api_provider(url: &str) -> ApiProvider {
     let url_lower = url.to_lowercase();
     if url_lower.contains("anthropic.com") || url_lower.contains("api.anthropic.com") {
         ApiProvider::Anthropic
@@ -47,16 +47,26 @@ fn detect_api_provider(url: &str) -> ApiProvider {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum ApiProvider {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApiProvider {
     OpenAI,
     Anthropic,
     OpenRouter,
     Ollama,
 }
 
+impl ApiProvider {
+    /// Get the expected header name for API key authentication
+    pub fn api_key_header(&self) -> &'static str {
+        match self {
+            ApiProvider::Anthropic => "x-api-key",
+            _ => "Authorization",
+        }
+    }
+}
+
 /// User-friendly error messages for common API errors
-fn parse_api_error(status: reqwest::StatusCode, body: &str) -> String {
+pub fn parse_api_error(status: reqwest::StatusCode, body: &str) -> String {
     let body_lower = body.to_lowercase();
 
     // Rate limit errors
@@ -79,9 +89,7 @@ fn parse_api_error(status: reqwest::StatusCode, body: &str) -> String {
     // Bad request
     if status.as_u16() == 400 {
         if body_lower.contains("model") && body_lower.contains("not found") {
-            return format!(
-                "Model not found. Please check the model ID in your settings."
-            );
+            return "Model not found. Please check the model ID in your settings.".to_string();
         }
         return format!("Invalid request: {}", body);
     }
@@ -278,5 +286,231 @@ impl AiClient {
                 rt.block_on(async { Self::test_connection(model).await })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== API Provider Detection Tests ====================
+
+    #[test]
+    fn test_detect_api_provider_openai() {
+        let urls = vec![
+            "https://api.openai.com/v1",
+            "https://api.openai.com/v1/",
+            "https://openai.com/api",
+            "https://api.azure.com/openai",
+        ];
+        for url in urls {
+            assert_eq!(
+                detect_api_provider(url),
+                ApiProvider::OpenAI,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_detect_api_provider_anthropic() {
+        let urls = vec![
+            "https://api.anthropic.com",
+            "https://api.anthropic.com/v1",
+            "https://anthropic.com/api",
+            "https://console.anthropic.com/api",
+        ];
+        for url in urls {
+            assert_eq!(
+                detect_api_provider(url),
+                ApiProvider::Anthropic,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_detect_api_provider_openrouter() {
+        let urls = vec![
+            "https://openrouter.ai/api",
+            "https://openrouter.ai/api/v1",
+        ];
+        for url in urls {
+            assert_eq!(
+                detect_api_provider(url),
+                ApiProvider::OpenRouter,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_detect_api_provider_ollama() {
+        let urls = vec![
+            "http://localhost:11434",
+            "http://localhost:11434/api",
+            "http://ollama.local:11434",
+        ];
+        for url in urls {
+            assert_eq!(
+                detect_api_provider(url),
+                ApiProvider::Ollama,
+                "Failed for URL: {}",
+                url
+            );
+        }
+
+        // 127.0.0.1 doesn't contain "localhost" so it's not detected as Ollama
+        assert_eq!(
+            detect_api_provider("http://127.0.0.1:11434"),
+            ApiProvider::OpenAI,
+            "127.0.0.1 should be detected as OpenAI (no localhost keyword)"
+        );
+    }
+
+    #[test]
+    fn test_detect_api_provider_case_insensitive() {
+        assert_eq!(detect_api_provider("HTTPS://API.OPENAI.COM/V1"), ApiProvider::OpenAI);
+        assert_eq!(detect_api_provider("HTTPS://API.ANTHROPIC.COM"), ApiProvider::Anthropic);
+        assert_eq!(detect_api_provider("HTTPS://OPENROUTER.AI/API"), ApiProvider::OpenRouter);
+        assert_eq!(detect_api_provider("HTTP://LOCALHOST:11434"), ApiProvider::Ollama);
+    }
+
+    // ==================== API Provider Header Tests ====================
+
+    #[test]
+    fn test_api_provider_header_openai() {
+        assert_eq!(ApiProvider::OpenAI.api_key_header(), "Authorization");
+    }
+
+    #[test]
+    fn test_api_provider_header_anthropic() {
+        assert_eq!(ApiProvider::Anthropic.api_key_header(), "x-api-key");
+    }
+
+    #[test]
+    fn test_api_provider_header_openrouter() {
+        assert_eq!(ApiProvider::OpenRouter.api_key_header(), "Authorization");
+    }
+
+    #[test]
+    fn test_api_provider_header_ollama() {
+        assert_eq!(ApiProvider::Ollama.api_key_header(), "Authorization");
+    }
+
+    // ==================== Error Parsing Tests ====================
+
+    #[test]
+    fn test_parse_api_error_rate_limit_generic() {
+        let result = parse_api_error(
+            reqwest::StatusCode::TOO_MANY_REQUESTS,
+            "Rate limit exceeded",
+        );
+        assert!(result.contains("Rate limit exceeded"));
+    }
+
+    #[test]
+    fn test_parse_api_error_rate_limit_specific() {
+        let result = parse_api_error(
+            reqwest::StatusCode::from_u16(429).unwrap(),
+            "Too many requests, please slow down",
+        );
+        assert!(result.contains("Rate limit exceeded"));
+        assert!(result.contains("wait"));
+    }
+
+    #[test]
+    fn test_parse_api_error_auth_401_invalid() {
+        let result = parse_api_error(
+            reqwest::StatusCode::UNAUTHORIZED,
+            "Invalid API key",
+        );
+        assert!(result.contains("Authentication failed"));
+    }
+
+    #[test]
+    fn test_parse_api_error_auth_401_unauthorized() {
+        let result = parse_api_error(
+            reqwest::StatusCode::from_u16(401).unwrap(),
+            "Unauthorized access",
+        );
+        assert!(result.contains("Authentication failed"));
+    }
+
+    #[test]
+    fn test_parse_api_error_auth_403() {
+        let result = parse_api_error(
+            reqwest::StatusCode::FORBIDDEN,
+            "Access denied",
+        );
+        assert!(result.contains("Access denied"));
+    }
+
+    #[test]
+    fn test_parse_api_error_auth_403_authentication() {
+        let result = parse_api_error(
+            reqwest::StatusCode::from_u16(403).unwrap(),
+            "Authentication required",
+        );
+        assert!(result.contains("Authentication failed"));
+    }
+
+    #[test]
+    fn test_parse_api_error_bad_request_model_not_found() {
+        let result = parse_api_error(
+            reqwest::StatusCode::BAD_REQUEST,
+            "Model not found in the model list",
+        );
+        assert!(result.contains("Model not found"));
+    }
+
+    #[test]
+    fn test_parse_api_error_bad_request_other() {
+        let result = parse_api_error(
+            reqwest::StatusCode::BAD_REQUEST,
+            "Invalid parameter: temperature",
+        );
+        assert!(result.contains("Invalid request"));
+        assert!(result.contains("temperature"));
+    }
+
+    #[test]
+    fn test_parse_api_error_server_error_500() {
+        let result = parse_api_error(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error",
+        );
+        assert!(result.contains("Server error"));
+    }
+
+    #[test]
+    fn test_parse_api_error_server_error_502() {
+        let result = parse_api_error(
+            reqwest::StatusCode::BAD_GATEWAY,
+            "Bad gateway",
+        );
+        assert!(result.contains("Server error"));
+    }
+
+    #[test]
+    fn test_parse_api_error_server_error_503() {
+        let result = parse_api_error(
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "Service unavailable",
+        );
+        assert!(result.contains("Server error"));
+    }
+
+    #[test]
+    fn test_parse_api_error_other_status() {
+        let result = parse_api_error(
+            reqwest::StatusCode::from_u16(418).unwrap(),
+            "I'm a teapot",
+        );
+        assert!(result.contains("HTTP"));
+        assert!(result.contains("418"));
     }
 }

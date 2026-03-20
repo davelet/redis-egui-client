@@ -496,3 +496,133 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== is_redis_command Tests ====================
+
+    #[test]
+    fn test_is_redis_command_valid_commands() {
+        // Common Redis commands
+        let commands = vec![
+            "GET mykey",
+            "SET mykey value",
+            "DEL mykey",
+            "EXISTS mykey",
+            "KEYS *",
+            "INFO",
+            "PING",
+            "DBSIZE",
+            "FLUSHDB",
+            "FLUSHALL",
+            "HGET myhash field",
+            "HSET myhash field value",
+            "LPUSH mylist value",
+            "RPOP mylist",
+            "SADD myset member",
+            "ZADD myzset 1.0 member",
+        ];
+
+        for cmd in commands {
+            assert!(
+                is_redis_command(cmd),
+                "Should recognize '{}' as Redis command",
+                cmd
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_redis_command_case_insensitive() {
+        // Test case insensitivity
+        assert!(is_redis_command("get mykey"));
+        assert!(is_redis_command("Get mykey"));
+        assert!(is_redis_command("GET mykey"));
+        assert!(is_redis_command("GeT mykey"));
+    }
+
+    #[test]
+    fn test_is_redis_command_with_leading_whitespace() {
+        assert!(is_redis_command("  GET mykey"));
+        assert!(is_redis_command("\tSET mykey value"));
+        assert!(is_redis_command("  PING"));
+    }
+
+    #[test]
+    fn test_is_redis_command_with_trailing_whitespace() {
+        assert!(is_redis_command("GET mykey  "));
+        assert!(is_redis_command("SET mykey value\n"));
+    }
+
+    #[test]
+    fn test_is_redis_command_not_redis() {
+        // Natural language queries should not be recognized
+        assert!(
+            !is_redis_command("show me all keys"),
+            "Natural language should not be recognized"
+        );
+        assert!(
+            !is_redis_command("how many keys do I have"),
+            "Natural language should not be recognized"
+        );
+        assert!(
+            !is_redis_command("list all string keys"),
+            "Natural language should not be recognized"
+        );
+        assert!(
+            !is_redis_command("find keys with pattern"),
+            "Natural language should not be recognized"
+        );
+    }
+
+    #[test]
+    fn test_is_redis_command_empty() {
+        assert!(!is_redis_command(""));
+        assert!(!is_redis_command("   "));
+        assert!(!is_redis_command("\t"));
+        assert!(!is_redis_command("\n"));
+    }
+
+    #[test]
+    fn test_is_redis_command_partial_match() {
+        // Partial matches should not work
+        assert!(
+            !is_redis_command("GETKEYS mykey"),
+            "GETKEYS should not match GET"
+        );
+        assert!(
+            !is_redis_command("SETTINGS"),
+            "SETTINGS should not match SET"
+        );
+    }
+
+    #[test]
+    fn test_is_redis_command_unknown_command() {
+        assert!(
+            !is_redis_command("UNKNOWN mykey"),
+            "Unknown commands should not be recognized"
+        );
+        assert!(
+            !is_redis_command("FOOBAR"),
+            "Random text should not be recognized"
+        );
+    }
+
+    #[test]
+    fn test_is_redis_command_with_args() {
+        // Commands with various arguments
+        assert!(is_redis_command("SET key value EX 100 NX"));
+        assert!(is_redis_command("GET key with spaces"));
+        assert!(is_redis_command("HGETALL biglongkeyname"));
+        assert!(is_redis_command("SCAN 0 MATCH pattern COUNT 100"));
+    }
+
+    #[test]
+    fn test_is_redis_command_unicode() {
+        // Unicode should not affect command detection
+        assert!(is_redis_command("GET 中文key"));
+        assert!(is_redis_command("SET key 值为空"));
+    }
+}
