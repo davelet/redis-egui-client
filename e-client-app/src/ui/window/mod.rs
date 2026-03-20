@@ -116,7 +116,15 @@ impl eframe::App for RedisApp {
                         let shift_match = parsed.shift == modifiers.shift;
                         let key_match = parsed.key_matches(&key_str);
 
-                        if mod_pressed && alt_match && shift_match && key_match {
+                        // For shortcuts that need modifiers (like Cmd+N), check mod_pressed.
+                        // For shortcuts without modifiers (like "1", "2", "0"), ensure no extra modifiers are pressed.
+                        let meets_mod_requirement = if parsed.command || parsed.ctrl {
+                            mod_pressed
+                        } else {
+                            !modifiers.command && !modifiers.ctrl
+                        };
+
+                        if meets_mod_requirement && alt_match && shift_match && key_match {
                             self.handle_shortcut_action(action.clone(), ctx);
                         }
                     }
@@ -264,6 +272,57 @@ impl RedisApp {
 
     fn handle_shortcut_action(&mut self, action: ShortcutAction, ctx: &egui::Context) {
         match action {
+            ShortcutAction::NewConnection => {
+                // Only show new connection dialog if current tab is not connected
+                if let Some(tab) = self.get_active_tab() {
+                    let connected = self.poll_bool(tab.state.connected.clone());
+                    if !connected {
+                        self.new_connection.show = true;
+                    }
+                } else {
+                    // No active tab, show new connection dialog
+                    self.new_connection.show = true;
+                }
+            }
+            ShortcutAction::ConnectAllUnclosed => {
+                let connections: Vec<_> = self
+                    .config
+                    .connections
+                    .connections
+                    .iter()
+                    .cloned()
+                    .collect();
+                let open_conn_names: Vec<_> =
+                    self.config.window.open_connections.connection_names.clone();
+
+                if !open_conn_names.is_empty() {
+                    for (i, conn_name) in open_conn_names.iter().enumerate() {
+                        if let Some(conn_idx) =
+                            connections.iter().position(|c| &c.name == conn_name)
+                        {
+                            let conn = connections[conn_idx].clone();
+                            if i == 0 {
+                                if let Some(tab) = self.get_active_tab_mut() {
+                                    let conn_clone = conn.clone();
+                                    *tab.state.connection_param.blocking_write() =
+                                        Some(conn_clone.clone());
+                                    tab.name = conn.name.clone();
+                                    tab.connected_color = conn.color.clone();
+                                    tab.selected_connection = Some(conn_idx);
+
+                                    let active_tab_idx = self.active_tab;
+                                    self.load_connection_preferences(active_tab_idx);
+                                    self.spawn_connect_with_initial_db(active_tab_idx);
+                                }
+                            } else {
+                                self.create_tab_with_connection(conn_idx, conn);
+                            }
+                        }
+                    }
+                    self.config.clear_open_connections();
+                    self.show_open_connections_prompt = false;
+                }
+            }
             ShortcutAction::NewTab => self.create_new_tab(),
             ShortcutAction::CloseTab => {
                 let idx = self.active_tab;
@@ -317,6 +376,28 @@ impl RedisApp {
                     if tab_idx < self.tabs.len() {
                         self.active_tab = tab_idx;
                         self.scroll_to_tab = Some(tab_idx);
+                    }
+                }
+            }
+            ShortcutAction::ConnectConnection1
+            | ShortcutAction::ConnectConnection2
+            | ShortcutAction::ConnectConnection3
+            | ShortcutAction::ConnectConnection4
+            | ShortcutAction::ConnectConnection5
+            | ShortcutAction::ConnectConnection6
+            | ShortcutAction::ConnectConnection7
+            | ShortcutAction::ConnectConnection8
+            | ShortcutAction::ConnectConnection9 => {
+                // Only work when current tab is not connected (on welcome page)
+                if let Some(tab) = self.get_active_tab() {
+                    let connected = self.poll_bool(tab.state.connected.clone());
+                    if !connected {
+                        if let Some(conn_idx) = action.connection_index() {
+                            if conn_idx < self.config.connections.connections.len() {
+                                let conn = self.config.connections.connections[conn_idx].clone();
+                                self.create_tab_with_connection(conn_idx, conn);
+                            }
+                        }
                     }
                 }
             }
@@ -554,7 +635,8 @@ impl RedisApp {
         self.active_tab = 0;
     }
 
-    /// Remove duplicate and invalid tabs, keeping only the first occurrence of each connection
+    /// Remove duplicate and invalid tabs, keeping only the first occurrence of each connection.
+    /// Also removes tabs with failed connections.
     pub fn remove_duplicate_and_invalid_tabs(&mut self, ctx: &egui::Context) {
         if self.tabs.len() <= 1 {
             return;
@@ -567,6 +649,11 @@ impl RedisApp {
             .iter()
             .enumerate()
             .filter_map(|(idx, tab)| {
+                // Check if disconnected (not connected)
+                let connected = self.poll_bool(tab.state.connected.clone());
+                if !connected {
+                    return Some(idx); // Disconnected tab
+                }
                 if tab.selected_connection.is_none() {
                     Some(idx) // Invalid tab (no connection)
                 } else if !seen_connections.insert(tab.selected_connection) {

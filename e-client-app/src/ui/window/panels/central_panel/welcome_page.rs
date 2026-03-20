@@ -146,6 +146,7 @@ fn render_connection_table(
         // Table header
         ui.horizontal(|ui| {
             ui.set_width(table_width);
+            ui.colored_label(egui::Color32::GRAY, tr(keys::NUMBER, current_lang));
             ui.colored_label(egui::Color32::GRAY, tr(keys::CONNECTION_NAME, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.colored_label(egui::Color32::GRAY, tr(keys::ACTION, current_lang));
@@ -178,6 +179,9 @@ fn render_connection_row(
 ) {
     ui.horizontal(|ui| {
         ui.set_width(table_width);
+
+        // Row number (1-based)
+        ui.colored_label(egui::Color32::GRAY, format!("{}", idx + 1));
 
         // Color indicator and name
         ui.horizontal(|ui| {

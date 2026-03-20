@@ -3,6 +3,28 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum ShortcutAction {
+    #[serde(rename = "new_connection")]
+    NewConnection,
+    #[serde(rename = "connect_all_unclosed")]
+    ConnectAllUnclosed,
+    #[serde(rename = "connect_connection_1")]
+    ConnectConnection1,
+    #[serde(rename = "connect_connection_2")]
+    ConnectConnection2,
+    #[serde(rename = "connect_connection_3")]
+    ConnectConnection3,
+    #[serde(rename = "connect_connection_4")]
+    ConnectConnection4,
+    #[serde(rename = "connect_connection_5")]
+    ConnectConnection5,
+    #[serde(rename = "connect_connection_6")]
+    ConnectConnection6,
+    #[serde(rename = "connect_connection_7")]
+    ConnectConnection7,
+    #[serde(rename = "connect_connection_8")]
+    ConnectConnection8,
+    #[serde(rename = "connect_connection_9")]
+    ConnectConnection9,
     #[serde(rename = "new_tab")]
     NewTab,
     #[serde(rename = "close_tab")]
@@ -48,6 +70,47 @@ impl ShortcutAction {
     pub fn all_actions() -> Vec<(ShortcutAction, &'static str)> {
         vec![
             (ShortcutAction::OpenSettings, "shortcut_open_settings"),
+            (ShortcutAction::NewConnection, "shortcut_new_connection"),
+            (
+                ShortcutAction::ConnectAllUnclosed,
+                "shortcut_connect_all_unclosed",
+            ),
+            (
+                ShortcutAction::ConnectConnection1,
+                "shortcut_connect_connection_1",
+            ),
+            (
+                ShortcutAction::ConnectConnection2,
+                "shortcut_connect_connection_2",
+            ),
+            (
+                ShortcutAction::ConnectConnection3,
+                "shortcut_connect_connection_3",
+            ),
+            (
+                ShortcutAction::ConnectConnection4,
+                "shortcut_connect_connection_4",
+            ),
+            (
+                ShortcutAction::ConnectConnection5,
+                "shortcut_connect_connection_5",
+            ),
+            (
+                ShortcutAction::ConnectConnection6,
+                "shortcut_connect_connection_6",
+            ),
+            (
+                ShortcutAction::ConnectConnection7,
+                "shortcut_connect_connection_7",
+            ),
+            (
+                ShortcutAction::ConnectConnection8,
+                "shortcut_connect_connection_8",
+            ),
+            (
+                ShortcutAction::ConnectConnection9,
+                "shortcut_connect_connection_9",
+            ),
             (ShortcutAction::NewTab, "shortcut_new_tab"),
             (ShortcutAction::CloseTab, "shortcut_close_tab"),
             (ShortcutAction::RefreshKey, "shortcut_refresh_key"),
@@ -89,6 +152,17 @@ impl ShortcutAction {
             "Ctrl"
         };
         match self {
+            ShortcutAction::NewConnection => format!("{}+N", mod_key),
+            ShortcutAction::ConnectAllUnclosed => "0".to_string(),
+            ShortcutAction::ConnectConnection1 => "1".to_string(),
+            ShortcutAction::ConnectConnection2 => "2".to_string(),
+            ShortcutAction::ConnectConnection3 => "3".to_string(),
+            ShortcutAction::ConnectConnection4 => "4".to_string(),
+            ShortcutAction::ConnectConnection5 => "5".to_string(),
+            ShortcutAction::ConnectConnection6 => "6".to_string(),
+            ShortcutAction::ConnectConnection7 => "7".to_string(),
+            ShortcutAction::ConnectConnection8 => "8".to_string(),
+            ShortcutAction::ConnectConnection9 => "9".to_string(),
             ShortcutAction::NewTab => format!("{}+T", mod_key),
             ShortcutAction::CloseTab => format!("{}+W", mod_key),
             ShortcutAction::RefreshKey => format!("{}+R", mod_key),
@@ -114,6 +188,17 @@ impl ShortcutAction {
     /// Returns the translation key for this action
     pub fn translation_key(&self) -> &'static str {
         match self {
+            ShortcutAction::NewConnection => "shortcut_new_connection",
+            ShortcutAction::ConnectAllUnclosed => "shortcut_connect_all_unclosed",
+            ShortcutAction::ConnectConnection1 => "shortcut_connect_connection_1",
+            ShortcutAction::ConnectConnection2 => "shortcut_connect_connection_2",
+            ShortcutAction::ConnectConnection3 => "shortcut_connect_connection_3",
+            ShortcutAction::ConnectConnection4 => "shortcut_connect_connection_4",
+            ShortcutAction::ConnectConnection5 => "shortcut_connect_connection_5",
+            ShortcutAction::ConnectConnection6 => "shortcut_connect_connection_6",
+            ShortcutAction::ConnectConnection7 => "shortcut_connect_connection_7",
+            ShortcutAction::ConnectConnection8 => "shortcut_connect_connection_8",
+            ShortcutAction::ConnectConnection9 => "shortcut_connect_connection_9",
             ShortcutAction::NewTab => "shortcut_new_tab",
             ShortcutAction::CloseTab => "shortcut_close_tab",
             ShortcutAction::RefreshKey => "shortcut_refresh_key",
@@ -155,6 +240,16 @@ impl ShortcutAction {
                 | ShortcutAction::SwitchToTab8
                 | ShortcutAction::SwitchToTab9
                 | ShortcutAction::SwitchToLastTab
+                | ShortcutAction::ConnectAllUnclosed
+                | ShortcutAction::ConnectConnection1
+                | ShortcutAction::ConnectConnection2
+                | ShortcutAction::ConnectConnection3
+                | ShortcutAction::ConnectConnection4
+                | ShortcutAction::ConnectConnection5
+                | ShortcutAction::ConnectConnection6
+                | ShortcutAction::ConnectConnection7
+                | ShortcutAction::ConnectConnection8
+                | ShortcutAction::ConnectConnection9
         )
     }
 
@@ -170,6 +265,22 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab7 => Some(6),
             ShortcutAction::SwitchToTab8 => Some(7),
             ShortcutAction::SwitchToTab9 => Some(8),
+            _ => None,
+        }
+    }
+
+    /// Returns the connection index for connect connection actions (1-9), or None if not a connect action
+    pub fn connection_index(&self) -> Option<usize> {
+        match self {
+            ShortcutAction::ConnectConnection1 => Some(0),
+            ShortcutAction::ConnectConnection2 => Some(1),
+            ShortcutAction::ConnectConnection3 => Some(2),
+            ShortcutAction::ConnectConnection4 => Some(3),
+            ShortcutAction::ConnectConnection5 => Some(4),
+            ShortcutAction::ConnectConnection6 => Some(5),
+            ShortcutAction::ConnectConnection7 => Some(6),
+            ShortcutAction::ConnectConnection8 => Some(7),
+            ShortcutAction::ConnectConnection9 => Some(8),
             _ => None,
         }
     }
@@ -246,6 +357,17 @@ impl ShortcutConfig {
     /// Parse action key string to ShortcutAction enum
     fn parse_action_key(key: &str) -> Option<ShortcutAction> {
         match key {
+            "NewConnection" => Some(ShortcutAction::NewConnection),
+            "ConnectAllUnclosed" => Some(ShortcutAction::ConnectAllUnclosed),
+            "ConnectConnection1" => Some(ShortcutAction::ConnectConnection1),
+            "ConnectConnection2" => Some(ShortcutAction::ConnectConnection2),
+            "ConnectConnection3" => Some(ShortcutAction::ConnectConnection3),
+            "ConnectConnection4" => Some(ShortcutAction::ConnectConnection4),
+            "ConnectConnection5" => Some(ShortcutAction::ConnectConnection5),
+            "ConnectConnection6" => Some(ShortcutAction::ConnectConnection6),
+            "ConnectConnection7" => Some(ShortcutAction::ConnectConnection7),
+            "ConnectConnection8" => Some(ShortcutAction::ConnectConnection8),
+            "ConnectConnection9" => Some(ShortcutAction::ConnectConnection9),
             "NewTab" => Some(ShortcutAction::NewTab),
             "CloseTab" => Some(ShortcutAction::CloseTab),
             "RefreshKey" => Some(ShortcutAction::RefreshKey),

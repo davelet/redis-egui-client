@@ -64,6 +64,17 @@ pub const SUPPORTED_KEYS: [egui::Key; 51] = [
 /// Parse action key string to ShortcutAction enum
 pub fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
     match key {
+        "NewConnection" => Some(ShortcutAction::NewConnection),
+        "ConnectAllUnclosed" => Some(ShortcutAction::ConnectAllUnclosed),
+        "ConnectConnection1" => Some(ShortcutAction::ConnectConnection1),
+        "ConnectConnection2" => Some(ShortcutAction::ConnectConnection2),
+        "ConnectConnection3" => Some(ShortcutAction::ConnectConnection3),
+        "ConnectConnection4" => Some(ShortcutAction::ConnectConnection4),
+        "ConnectConnection5" => Some(ShortcutAction::ConnectConnection5),
+        "ConnectConnection6" => Some(ShortcutAction::ConnectConnection6),
+        "ConnectConnection7" => Some(ShortcutAction::ConnectConnection7),
+        "ConnectConnection8" => Some(ShortcutAction::ConnectConnection8),
+        "ConnectConnection9" => Some(ShortcutAction::ConnectConnection9),
         "NewTab" => Some(ShortcutAction::NewTab),
         "CloseTab" => Some(ShortcutAction::CloseTab),
         "RefreshKey" => Some(ShortcutAction::RefreshKey),

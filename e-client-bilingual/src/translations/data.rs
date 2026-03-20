@@ -249,8 +249,53 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
         keys::SAVED_CONNECTIONS,
         tr_en_zh("Saved Connections", "已保存的连接"),
     );
+    strings.insert(keys::NUMBER, tr_en_zh("#", "序号"));
     strings.insert(keys::ACTION, tr_en_zh("Action", "操作"));
     strings.insert(keys::CONFIRM_DELETE, tr_en_zh("Confirm Delete", "确认删除"));
+    strings.insert(
+        keys::SHORTCUT_NEW_CONNECTION,
+        tr_en_zh("New Connection", "新建连接"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_ALL_UNCLOSED,
+        tr_en_zh("Connect All Unclosed", "连接所有未关闭"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_1,
+        tr_en_zh("Connect Connection 1", "连接序号1"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_2,
+        tr_en_zh("Connect Connection 2", "连接序号2"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_3,
+        tr_en_zh("Connect Connection 3", "连接序号3"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_4,
+        tr_en_zh("Connect Connection 4", "连接序号4"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_5,
+        tr_en_zh("Connect Connection 5", "连接序号5"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_6,
+        tr_en_zh("Connect Connection 6", "连接序号6"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_7,
+        tr_en_zh("Connect Connection 7", "连接序号7"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_8,
+        tr_en_zh("Connect Connection 8", "连接序号8"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CONNECT_CONNECTION_9,
+        tr_en_zh("Connect Connection 9", "连接序号9"),
+    );
 
     // Open connections prompt
     strings.insert(
