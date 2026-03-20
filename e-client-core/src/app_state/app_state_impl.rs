@@ -48,6 +48,7 @@ pub struct AppState {
     pub pending_edit_ttl: Shared<i64>,
     // Global state
     pub loading: Shared<bool>,
+    pub needs_repaint: Shared<bool>, // Flag to request UI repaint (e.g., when keys change)
     pub error_message: Shared<String>,
     pub language: Shared<Language>,
 }
@@ -68,6 +69,7 @@ impl Default for AppState {
             key_filter: shared(String::new()),
             hash_field_filter: shared(String::new()),
             loading: shared(false),
+            needs_repaint: shared(false),
             error_message: shared(String::new()),
             language: shared(Language::English),
             scan_cursor: shared(0),

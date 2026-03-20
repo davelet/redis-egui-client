@@ -194,13 +194,26 @@ impl eframe::App for RedisApp {
 
         // Force continuous repaint while loading to ensure smooth UI updates
         let mut any_loading = false;
+        let mut any_needs_repaint = false;
         for tab in &self.tabs {
             if tab.state.loading.try_read().map(|v| *v).unwrap_or(false) {
                 any_loading = true;
-                break;
+            }
+            if tab
+                .state
+                .needs_repaint
+                .try_read()
+                .map(|v| *v)
+                .unwrap_or(false)
+            {
+                any_needs_repaint = true;
+                // Clear the flag to prevent repeated repaints
+                if let Ok(mut guard) = tab.state.needs_repaint.try_write() {
+                    *guard = false;
+                }
             }
         }
-        if any_loading {
+        if any_loading || any_needs_repaint {
             ctx.request_repaint();
             ctx.request_repaint_after(std::time::Duration::from_millis(UI_REPAINT_INTERVAL_MS));
         }

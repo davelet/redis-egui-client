@@ -59,6 +59,7 @@ pub fn spawn_disconnect(state: &AppState) {
         state.redis_client.disconnect().await;
         *state.connected.write().await = false;
         *state.keys.write().await = vec![];
+        *state.needs_repaint.write().await = true; // Trigger repaint to clear UI
         *state.selected_key.write().await = None;
         *state.key_value.write().await = None;
         *state.error_message.write().await = String::new();

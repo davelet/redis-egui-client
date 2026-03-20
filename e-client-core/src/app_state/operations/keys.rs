@@ -25,6 +25,7 @@ pub fn spawn_load_keys(state: &AppState) {
         *state.scan_has_more.write().await = true;
         *state.loaded_keys_count.write().await = 0;
         *state.keys.write().await = vec![];
+        *state.needs_repaint.write().await = true; // Trigger repaint to clear old keys
 
         // Use HashSet for deduplication
         let mut all_keys_set = std::collections::HashSet::new();
@@ -54,6 +55,7 @@ pub fn spawn_load_keys(state: &AppState) {
                         let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
                         all_keys.sort();
                         *state.keys.write().await = all_keys;
+                        *state.needs_repaint.write().await = true;
                         last_sort_count = loaded_count;
                     }
 
@@ -96,6 +98,7 @@ pub fn spawn_load_keys(state: &AppState) {
         let mut all_keys: Vec<String> = all_keys_set.into_iter().collect();
         all_keys.sort();
         *state.keys.write().await = all_keys.clone();
+        *state.needs_repaint.write().await = true;
 
         // Update final state - ensure scan_has_more and loading are set correctly
         // If we exited due to MAX_INITIAL_KEYS, current_cursor should still be valid
@@ -170,6 +173,7 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                         let mut all_keys: Vec<String> = existing_keys.iter().cloned().collect();
                         all_keys.sort();
                         *state.keys.write().await = all_keys;
+                        *state.needs_repaint.write().await = true;
                         last_update_batch = batch_count;
                     }
 
@@ -241,6 +245,7 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
         }
 
         *state.keys.write().await = all_keys.clone();
+        *state.needs_repaint.write().await = true;
         *state.loaded_keys_count.write().await = all_keys.len();
 
         // Update progress text if still loading more
