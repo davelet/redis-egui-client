@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://github.com/davelet/redis-egui-client/usage/">
+        <link rel="canonical" href="https://github.com/davelet/redis-egui-client/ai_configuration/">
       
       
-        <link rel="prev" href="../install/">
+        <link rel="prev" href="../usage/">
       
       
-        <link rel="next" href="../ai_configuration/">
+        <link rel="next" href="../changelog/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Usage - Rudist</title>
+        <title>AI Configuration - Rudist</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#usage-guide" class="md-skip">
+        <a href="#ai-configuration-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Usage
+              AI Configuration
             
           </span>
         </div>
@@ -297,6 +297,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -316,7 +343,7 @@
   <span class="md-ellipsis">
     
   
-    Usage
+    AI Configuration
   
 
     
@@ -334,7 +361,7 @@
   <span class="md-ellipsis">
     
   
-    Usage
+    AI Configuration
   
 
     
@@ -360,10 +387,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#interface-overview" class="md-nav__link">
+  <a href="#table-of-contents" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interface Overview
+        Table of Contents
       
     </span>
   </a>
@@ -371,22 +398,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connection-management" class="md-nav__link">
+  <a href="#security-note" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connection Management
+        Security Note
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Connection Management">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#openai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenAI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OpenAI">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creating-a-new-connection" class="md-nav__link">
+  <a href="#api-url" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating a New Connection
+        API URL
       
     </span>
   </a>
@@ -394,10 +432,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#connectdisconnect" class="md-nav__link">
+  <a href="#model-id" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connect/Disconnect
+        Model ID
       
     </span>
   </a>
@@ -405,10 +443,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#editdelete-connections" class="md-nav__link">
+  <a href="#how-to-get-api-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Edit/Delete Connections
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -421,22 +470,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#database-operations" class="md-nav__link">
+  <a href="#anthropic-claude" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Database Operations
+        Anthropic (Claude)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Database Operations">
+    <nav class="md-nav" aria-label="Anthropic (Claude)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#switching-databases" class="md-nav__link">
+  <a href="#api-url_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Switching Databases
+        API URL
       
     </span>
   </a>
@@ -444,10 +493,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#browsing-keys" class="md-nav__link">
+  <a href="#model-id_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Browsing Keys
+        Model ID
       
     </span>
   </a>
@@ -455,10 +504,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#key-filtering" class="md-nav__link">
+  <a href="#how-to-get-api-key_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Filtering
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -471,22 +531,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-operations" class="md-nav__link">
+  <a href="#ollama-local" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Operations
+        Ollama (Local)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Key Operations">
+    <nav class="md-nav" aria-label="Ollama (Local)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#viewing-key-values" class="md-nav__link">
+  <a href="#api-url_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Viewing Key Values
+        API URL
       
     </span>
   </a>
@@ -494,10 +554,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#data-type-support" class="md-nav__link">
+  <a href="#model-id_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Type Support
+        Model ID
       
     </span>
   </a>
@@ -505,10 +565,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#editing-keys" class="md-nav__link">
+  <a href="#how-to-install-ollama" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Editing Keys
+        How to Install Ollama
       
     </span>
   </a>
@@ -516,43 +576,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-new-keys" class="md-nav__link">
+  <a href="#example-configuration_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating New Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deleting-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deleting Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#refreshing-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Refreshing Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#modifying-ttl" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Modifying TTL
+        Example Configuration
       
     </span>
   </a>
@@ -565,22 +592,55 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#keyboard-shortcuts" class="md-nav__link">
+  <a href="#openrouter" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keyboard Shortcuts
+        OpenRouter
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Keyboard Shortcuts">
+    <nav class="md-nav" aria-label="OpenRouter">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#customizing-shortcuts" class="md-nav__link">
+  <a href="#api-url_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Customizing Shortcuts
+        API URL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-id_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-get-api-key_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -593,22 +653,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#settings" class="md-nav__link">
+  <a href="#other-compatible-apis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Settings
+        Other Compatible APIs
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Settings">
+    <nav class="md-nav" aria-label="Other Compatible APIs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#language-settings" class="md-nav__link">
+  <a href="#azure-openai" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Language Settings
+        Azure OpenAI
       
     </span>
   </a>
@@ -616,10 +676,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interface-settings" class="md-nav__link">
+  <a href="#google-gemini-via-openai-compatibility" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interface Settings
+        Google Gemini (via OpenAI Compatibility)
       
     </span>
   </a>
@@ -627,10 +687,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#shortcut-settings" class="md-nav__link">
+  <a href="#cohere" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Shortcut Settings
+        Cohere
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloudflare-workers-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloudflare Workers AI
       
     </span>
   </a>
@@ -643,10 +714,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-bar-information" class="md-nav__link">
+  <a href="#general-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Bar Information
+        General Tips
       
     </span>
   </a>
@@ -654,24 +725,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#multi-tab-operations" class="md-nav__link">
+  <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Multi-Tab Operations
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-key-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Key Not Found
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#migrating-from-old-versions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Best Practices
+        Migrating from Old Versions
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -679,33 +767,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ai_configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    AI Configuration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -764,10 +825,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#interface-overview" class="md-nav__link">
+  <a href="#table-of-contents" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interface Overview
+        Table of Contents
       
     </span>
   </a>
@@ -775,22 +836,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connection-management" class="md-nav__link">
+  <a href="#security-note" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connection Management
+        Security Note
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Connection Management">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#openai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenAI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OpenAI">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creating-a-new-connection" class="md-nav__link">
+  <a href="#api-url" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating a New Connection
+        API URL
       
     </span>
   </a>
@@ -798,10 +870,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#connectdisconnect" class="md-nav__link">
+  <a href="#model-id" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connect/Disconnect
+        Model ID
       
     </span>
   </a>
@@ -809,10 +881,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#editdelete-connections" class="md-nav__link">
+  <a href="#how-to-get-api-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Edit/Delete Connections
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -825,22 +908,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#database-operations" class="md-nav__link">
+  <a href="#anthropic-claude" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Database Operations
+        Anthropic (Claude)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Database Operations">
+    <nav class="md-nav" aria-label="Anthropic (Claude)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#switching-databases" class="md-nav__link">
+  <a href="#api-url_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Switching Databases
+        API URL
       
     </span>
   </a>
@@ -848,10 +931,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#browsing-keys" class="md-nav__link">
+  <a href="#model-id_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Browsing Keys
+        Model ID
       
     </span>
   </a>
@@ -859,10 +942,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#key-filtering" class="md-nav__link">
+  <a href="#how-to-get-api-key_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Filtering
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -875,22 +969,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-operations" class="md-nav__link">
+  <a href="#ollama-local" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Operations
+        Ollama (Local)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Key Operations">
+    <nav class="md-nav" aria-label="Ollama (Local)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#viewing-key-values" class="md-nav__link">
+  <a href="#api-url_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Viewing Key Values
+        API URL
       
     </span>
   </a>
@@ -898,10 +992,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#data-type-support" class="md-nav__link">
+  <a href="#model-id_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Type Support
+        Model ID
       
     </span>
   </a>
@@ -909,10 +1003,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#editing-keys" class="md-nav__link">
+  <a href="#how-to-install-ollama" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Editing Keys
+        How to Install Ollama
       
     </span>
   </a>
@@ -920,43 +1014,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-new-keys" class="md-nav__link">
+  <a href="#example-configuration_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating New Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deleting-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deleting Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#refreshing-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Refreshing Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#modifying-ttl" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Modifying TTL
+        Example Configuration
       
     </span>
   </a>
@@ -969,22 +1030,55 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#keyboard-shortcuts" class="md-nav__link">
+  <a href="#openrouter" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keyboard Shortcuts
+        OpenRouter
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Keyboard Shortcuts">
+    <nav class="md-nav" aria-label="OpenRouter">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#customizing-shortcuts" class="md-nav__link">
+  <a href="#api-url_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Customizing Shortcuts
+        API URL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-id_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-get-api-key_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Get API Key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
       
     </span>
   </a>
@@ -997,22 +1091,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#settings" class="md-nav__link">
+  <a href="#other-compatible-apis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Settings
+        Other Compatible APIs
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Settings">
+    <nav class="md-nav" aria-label="Other Compatible APIs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#language-settings" class="md-nav__link">
+  <a href="#azure-openai" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Language Settings
+        Azure OpenAI
       
     </span>
   </a>
@@ -1020,10 +1114,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interface-settings" class="md-nav__link">
+  <a href="#google-gemini-via-openai-compatibility" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interface Settings
+        Google Gemini (via OpenAI Compatibility)
       
     </span>
   </a>
@@ -1031,10 +1125,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#shortcut-settings" class="md-nav__link">
+  <a href="#cohere" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Shortcut Settings
+        Cohere
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloudflare-workers-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloudflare Workers AI
       
     </span>
   </a>
@@ -1047,10 +1152,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-bar-information" class="md-nav__link">
+  <a href="#general-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Bar Information
+        General Tips
       
     </span>
   </a>
@@ -1058,24 +1163,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#multi-tab-operations" class="md-nav__link">
+  <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Multi-Tab Operations
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-key-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Key Not Found
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#migrating-from-old-versions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Best Practices
+        Migrating from Old Versions
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1099,244 +1221,339 @@
   
 
 
-<h1 id="usage-guide">Usage Guide</h1>
-<h2 id="interface-overview">Interface Overview</h2>
-<p>Rudist uses a multi-tab design with four main areas:</p>
+<h1 id="ai-configuration-guide">AI Configuration Guide</h1>
+<p>This document explains how to configure AI models in Redis Client. All AI providers are configured as custom API endpoints.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
 <ul>
-<li><strong>Top Panel</strong>: Connection management, database selection, settings access</li>
-<li><strong>Left Sidebar</strong>: Key list, filter search</li>
-<li><strong>Central Panel</strong>: Key value viewing and editing</li>
-<li><strong>Bottom Status Bar</strong>: Connection status, key count statistics</li>
+<li><a href="#security-note">Security Note</a></li>
+<li><a href="#openai">OpenAI</a></li>
+<li><a href="#anthropic-claude">Anthropic (Claude)</a></li>
+<li><a href="#ollama-local">Ollama (Local)</a></li>
+<li><a href="#openrouter">OpenRouter</a></li>
+<li><a href="#other-compatible-apis">Other Compatible APIs</a></li>
 </ul>
-<h2 id="connection-management">Connection Management</h2>
-<h3 id="creating-a-new-connection">Creating a New Connection</h3>
-<ol>
-<li>Click the <strong>"+ New"</strong> button in the top panel</li>
-<li>Fill in the connection details in the dialog:</li>
-<li><strong>Connection Name</strong>: Custom identifier (e.g., "Production", "Local Dev")</li>
-<li><strong>Host Address</strong>: Redis server IP or hostname</li>
-<li><strong>Port</strong>: Default is 6379</li>
-<li><strong>Username</strong> (optional): ACL authentication username</li>
-<li><strong>Password</strong> (optional): Authentication password</li>
-<li><strong>Color Marker</strong>: Choose a high-contrast color to distinguish environments</li>
-<li>Click <strong>Save</strong> to save the connection configuration</li>
-</ol>
-<h3 id="connectdisconnect">Connect/Disconnect</h3>
-<ul>
-<li>Select a saved connection from the dropdown menu to automatically connect</li>
-<li>Click the <strong>Disconnect</strong> button next to the connection name to disconnect</li>
-<li>Supports multiple tabs connecting to different Redis instances simultaneously</li>
-</ul>
-<h3 id="editdelete-connections">Edit/Delete Connections</h3>
-<ul>
-<li>Hover over a connection item in the dropdown and click the edit icon to modify</li>
-<li>Click the delete icon to remove a saved connection</li>
-</ul>
-<h2 id="database-operations">Database Operations</h2>
-<h3 id="switching-databases">Switching Databases</h3>
-<p>After connecting, use the <strong>DB</strong> dropdown in the top panel to switch databases (0-15).</p>
-<h3 id="browsing-keys">Browsing Keys</h3>
-<p>The <strong>left sidebar</strong> displays all keys in the current database:</p>
-<ul>
-<li><strong>Load Statistics</strong>: Shows loaded keys / total keys count</li>
-<li><strong>Scroll Loading</strong>: Loads keys in batches, automatically loads more when scrolling</li>
-<li><strong>Load All</strong>: Click the load button to load all keys at once (use with caution for large datasets)</li>
-</ul>
-<h3 id="key-filtering">Key Filtering</h3>
-<p>Enter keywords in the filter box at the top of the left sidebar:</p>
-<ul>
-<li>Supports <code>*</code> wildcard (e.g., <code>user:*</code> matches all user-related keys)</li>
-<li>Automatically adds wildcards to both ends if no <code>*</code> is present</li>
-<li>Clear the filter to display all keys</li>
-</ul>
-<h2 id="key-operations">Key Operations</h2>
-<h3 id="viewing-key-values">Viewing Key Values</h3>
-<ol>
-<li>Click a key name in the left sidebar</li>
-<li>The central panel displays detailed key information:</li>
-<li><strong>Key Name</strong> (copyable)</li>
-<li><strong>Data Type</strong> (String, List, Hash, Set, ZSet)</li>
-<li><strong>TTL</strong> expiration time</li>
-<li><strong>Value Content</strong></li>
-</ol>
-<h3 id="data-type-support">Data Type Support</h3>
+<hr />
+<h2 id="security-note">Security Note</h2>
+<p><strong>API Key Storage</strong>: Your API keys are securely stored in your operating system's native credential store:</p>
 <table>
 <thead>
 <tr>
-<th>Type</th>
-<th>Display Format</th>
-<th>Special Features</th>
+<th>Platform</th>
+<th>Credential Store</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>String</strong></td>
-<td>Text editor</td>
-<td>View full content directly</td>
+<td>macOS</td>
+<td>Keychain</td>
 </tr>
 <tr>
-<td><strong>List</strong></td>
-<td>Indexed list</td>
-<td>Lazy loading, click elements to edit</td>
+<td>Windows</td>
+<td>Credential Manager</td>
 </tr>
 <tr>
-<td><strong>Hash</strong></td>
-<td>Field-value table</td>
-<td>Field filter search, field-level editing</td>
-</tr>
-<tr>
-<td><strong>Set</strong></td>
-<td>Member list</td>
-<td>Lazy loading, click elements to edit</td>
-</tr>
-<tr>
-<td><strong>ZSet</strong></td>
-<td>Score-member list</td>
-<td>Display sorted by score</td>
+<td>Linux</td>
+<td>Secret Service (libsecret)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="editing-keys">Editing Keys</h3>
+<p>API keys are <strong>never</strong> stored in plain text configuration files. This ensures your credentials remain secure even if the configuration file is accessed by other applications or accidentally shared.</p>
+<hr />
+<h2 id="openai">OpenAI</h2>
+<h3 id="api-url">API URL</h3>
+<pre><code>https://api.openai.com/v1
+</code></pre>
+<h3 id="model-id">Model ID</h3>
+<p>Common models:
+- <code>gpt-4o</code> - Latest GPT-4 Omni (recommended)
+- <code>gpt-4o-mini</code> - Smaller, faster GPT-4
+- <code>gpt-4-turbo</code> - GPT-4 Turbo
+- <code>gpt-3.5-turbo</code> - GPT-3.5 Turbo (cheaper)</p>
+<p>Full list: https://platform.openai.com/docs/models</p>
+<h3 id="how-to-get-api-key">How to Get API Key</h3>
 <ol>
-<li>Click the <strong>Edit</strong> button to enter edit mode</li>
-<li>Modify the key name or value content</li>
-<li>Click <strong>Save</strong> to apply changes, or <strong>Cancel</strong> to discard</li>
+<li>Go to https://platform.openai.com/api-keys</li>
+<li>Sign in or create an account</li>
+<li>Click "Create new secret key"</li>
+<li>Copy the key (it won't be shown again)</li>
 </ol>
-<h3 id="creating-new-keys">Creating New Keys</h3>
-<ol>
-<li>Click the <strong>➕</strong> button at the top of the left sidebar</li>
-<li>Select the data type (String, List, Hash, Set, ZSet)</li>
-<li>Enter the key name, initial value, and TTL (-1 for no expiration)</li>
-<li>Click <strong>Create</strong> to create the key</li>
-</ol>
-<h3 id="deleting-keys">Deleting Keys</h3>
-<ul>
-<li>Click the <strong>Delete</strong> button in view mode to delete the current key</li>
-<li>Deletion is irreversible, please proceed with caution</li>
-</ul>
-<h3 id="refreshing-keys">Refreshing Keys</h3>
-<p>Click the <strong>🔄</strong> button to reload the current key's value and TTL.</p>
-<h3 id="modifying-ttl">Modifying TTL</h3>
-<ol>
-<li>Click the edit button next to the TTL</li>
-<li>Enter the new expiration time in seconds</li>
-<li>Click <strong>Save</strong> to apply, or leave empty to remove expiration</li>
-</ol>
-<h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
-<p>Rudist supports customizable keyboard shortcuts. Default configuration:</p>
+<h3 id="example-configuration">Example Configuration</h3>
 <table>
 <thead>
 <tr>
-<th>Shortcut</th>
-<th>Function</th>
-<th>Description</th>
+<th>Field</th>
+<th>Value</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>Ctrl/Cmd + T</code></td>
-<td>New Tab</td>
-<td>Open a new blank tab</td>
+<td>Name</td>
+<td>My GPT-4</td>
 </tr>
 <tr>
-<td><code>Ctrl/Cmd + W</code></td>
-<td>Close Tab</td>
-<td>Close the current active tab</td>
+<td>URL</td>
+<td><code>https://api.openai.com/v1</code></td>
 </tr>
 <tr>
-<td><code>Ctrl/Cmd + R</code></td>
-<td>Refresh Key</td>
-<td>Reload the currently selected key</td>
+<td>Model ID</td>
+<td><code>gpt-4o</code></td>
 </tr>
 <tr>
-<td><code>Ctrl/Cmd + F</code></td>
-<td>Focus Filter</td>
-<td>Quickly focus the key filter input box</td>
-</tr>
-<tr>
-<td><code>Ctrl/Cmd + ,</code></td>
-<td>Open Settings</td>
-<td>Open the settings window</td>
-</tr>
-<tr>
-<td><code>Esc</code></td>
-<td>Close Settings</td>
-<td>Close the settings window (only when settings is open)</td>
+<td>API Key</td>
+<td><code>sk-...</code></td>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p><strong>Note</strong>: Use <code>Cmd</code> key on macOS, <code>Ctrl</code> key on Windows/Linux.</p>
-</blockquote>
-<h3 id="customizing-shortcuts">Customizing Shortcuts</h3>
+<hr />
+<h2 id="anthropic-claude">Anthropic (Claude)</h2>
+<h3 id="api-url_1">API URL</h3>
+<pre><code>https://api.anthropic.com/v1
+</code></pre>
+<h3 id="model-id_1">Model ID</h3>
+<p>Common models:
+- <code>claude-sonnet-4-20250514</code> - Latest Claude 4 Sonnet (recommended)
+- <code>claude-3-5-sonnet-20241022</code> - Claude 3.5 Sonnet
+- <code>claude-3-opus-20240229</code> - Claude 3 Opus (most capable)
+- <code>claude-3-haiku-20240307</code> - Claude 3 Haiku (fastest)</p>
+<p>Full list: https://docs.anthropic.com/en/docs/models-overview</p>
+<h3 id="how-to-get-api-key_1">How to Get API Key</h3>
 <ol>
-<li>Open the settings window (<code>Ctrl/Cmd + ,</code>)</li>
-<li>Go to the <strong>Shortcuts</strong> tab</li>
-<li>Click the shortcut entry you want to modify</li>
-<li>Press the new keyboard combination</li>
-<li>The system automatically detects conflicts and warns</li>
-<li>Click <strong>Reset to Default</strong> to restore default settings</li>
+<li>Go to https://console.anthropic.com/</li>
+<li>Sign in or create an account</li>
+<li>Click "API Keys" in the left sidebar</li>
+<li>Click "Create Key"</li>
+<li>Copy the key</li>
 </ol>
-<h2 id="settings">Settings</h2>
-<h3 id="language-settings">Language Settings</h3>
-<ul>
-<li>Supports <strong>English</strong> and <strong>中文 (Chinese)</strong></li>
-<li>Switch in the <strong>General</strong> tab of the settings window</li>
-<li>Changes take effect immediately</li>
-</ul>
-<h3 id="interface-settings">Interface Settings</h3>
-<ul>
-<li><strong>Window Size and Position</strong>: Automatically saves state from last session</li>
-<li><strong>Maximized State</strong>: Remembers if window was maximized</li>
-</ul>
-<h3 id="shortcut-settings">Shortcut Settings</h3>
-<ul>
-<li>View and modify all shortcut bindings</li>
-<li>Supports letters, numbers, F1-F12 function keys</li>
-<li>Supports modifier combinations (Ctrl/Cmd, Alt, Shift)</li>
-</ul>
-<h2 id="status-bar-information">Status Bar Information</h2>
-<p>The bottom status bar displays the following information:</p>
+<h3 id="example-configuration_1">Example Configuration</h3>
 <table>
 <thead>
 <tr>
-<th>Item</th>
-<th>Description</th>
+<th>Field</th>
+<th>Value</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Connection Status</strong></td>
-<td>Disconnected / Connecting / Ready / Loading</td>
+<td>Name</td>
+<td>My Claude</td>
 </tr>
 <tr>
-<td><strong>Total Keys</strong></td>
-<td>Total key count in current database (shown for full scan)</td>
+<td>URL</td>
+<td><code>https://api.anthropic.com/v1</code></td>
 </tr>
 <tr>
-<td><strong>Loaded Keys</strong></td>
-<td>Number of keys loaded into the list (red indicates more available)</td>
+<td>Model ID</td>
+<td><code>claude-sonnet-4-20250514</code></td>
 </tr>
 <tr>
-<td><strong>Error Message</strong></td>
-<td>Displays operation error messages (max 2 lines)</td>
+<td>API Key</td>
+<td><code>sk-ant-api03-...</code></td>
 </tr>
 </tbody>
 </table>
-<h2 id="multi-tab-operations">Multi-Tab Operations</h2>
-<ul>
-<li>Each tab is an independent Redis connection session</li>
-<li>Click tabs to switch between different connections</li>
-<li>Tabs display connection names and custom color markers</li>
-<li>A new blank tab is automatically created after closing the last tab</li>
-</ul>
-<h2 id="best-practices">Best Practices</h2>
+<p><strong>Note</strong>: Anthropic requires adding <code>x-api-key</code> and <code>anthropic-version</code> headers. The client should automatically handle this when using <code>api.anthropic.com/v1</code> URL.</p>
+<hr />
+<h2 id="ollama-local">Ollama (Local)</h2>
+<h3 id="api-url_2">API URL</h3>
+<pre><code>http://localhost:11434
+</code></pre>
+<p>If Ollama is running on a different machine, use:</p>
+<pre><code>http://&lt;hostname&gt;:11434
+</code></pre>
+<h3 id="model-id_2">Model ID</h3>
+<p>List available models by running:</p>
+<pre><code class="language-bash">ollama list
+</code></pre>
+<p>Common models:
+- <code>llama3</code> - Llama 3
+- <code>llama3.2</code> - Llama 3.2
+- <code>mistral</code> - Mistral
+- <code>codellama</code> - Code Llama
+- <code>qwen2.5</code> - Qwen 2.5
+- <code>deepseek-r1</code> - DeepSeek R1</p>
+<h3 id="how-to-install-ollama">How to Install Ollama</h3>
 <ol>
-<li><strong>Environment Marking</strong>: Set prominent red markers for production environment connections</li>
-<li><strong>Key Naming Convention</strong>: Use consistent prefixes (e.g., <code>app:module:key</code>) for easier filtering</li>
-<li><strong>Large Dataset Handling</strong>: Avoid loading millions of keys at once, use filtering to narrow scope</li>
-<li><strong>Regular Refresh</strong>: Use <code>Ctrl/Cmd + R</code> to quickly refresh keys that may change</li>
+<li>Go to https://ollama.com/</li>
+<li>Download and install</li>
+<li>Run <code>ollama serve</code> to start the server</li>
+<li>Run <code>ollama pull &lt;model&gt;</code> to download models</li>
 </ol>
+<h3 id="example-configuration_2">Example Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>Local Llama</td>
+</tr>
+<tr>
+<td>URL</td>
+<td><code>http://localhost:11434</code></td>
+</tr>
+<tr>
+<td>Model ID</td>
+<td><code>llama3</code></td>
+</tr>
+<tr>
+<td>API Key</td>
+<td>(leave empty)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="openrouter">OpenRouter</h2>
+<p><a href="https://openrouter.ai/">OpenRouter</a> is a unified API that provides access to 300+ AI models from various providers through a single endpoint.</p>
+<h3 id="api-url_3">API URL</h3>
+<pre><code>https://openrouter.ai/api/v1
+</code></pre>
+<h3 id="model-id_3">Model ID</h3>
+<p>OpenRouter uses model identifiers in the format <code>provider/model-name</code>:</p>
+<p><strong>Popular Models:</strong>
+- <code>openai/gpt-4o</code> - OpenAI GPT-4 Omni
+- <code>openai/gpt-4o-mini</code> - OpenAI GPT-4 Mini
+- <code>anthropic/claude-sonnet-4-20250514</code> - Anthropic Claude 4 Sonnet
+- <code>anthropic/claude-3.5-sonnet</code> - Anthropic Claude 3.5 Sonnet
+- <code>google/gemini-pro-1.5</code> - Google Gemini Pro
+- <code>meta-llama/llama-3.1-70b-instruct</code> - Meta Llama 3.1
+- <code>deepseek/deepseek-chat</code> - DeepSeek Chat
+- <code>qwen/qwen-2.5-72b-instruct</code> - Qwen 2.5</p>
+<p><strong>Free Models:</strong>
+- <code>google/gemma-2-9b-it</code> - Gemma 2 (free tier available)
+- <code>mistralai/mistral-7b-instruct</code> - Mistral 7B (free tier available)</p>
+<p>Full list: https://openrouter.ai/docs/models</p>
+<h3 id="how-to-get-api-key_2">How to Get API Key</h3>
+<ol>
+<li>Go to https://openrouter.ai/</li>
+<li>Sign in (supports Google, GitHub, email)</li>
+<li>Click "Keys" in the left sidebar</li>
+<li>Click "Create Secret Key"</li>
+<li>Copy the key</li>
+</ol>
+<h3 id="example-configuration_3">Example Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>OpenRouter GPT-4</td>
+</tr>
+<tr>
+<td>URL</td>
+<td><code>https://openrouter.ai/api/v1</code></td>
+</tr>
+<tr>
+<td>Model ID</td>
+<td><code>openai/gpt-4o</code></td>
+</tr>
+<tr>
+<td>API Key</td>
+<td><code>sk-or-v1-...</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: OpenRouter provides free credits for new users and supports models from many providers in one unified API.</p>
+<hr />
+<h2 id="other-compatible-apis">Other Compatible APIs</h2>
+<p>Many AI APIs are compatible with OpenAI's format and can be configured similarly:</p>
+<h3 id="azure-openai">Azure OpenAI</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>https://&lt;your-resource&gt;.openai.azure.com/openai/deployments/&lt;deployment-name&gt;</code></td>
+</tr>
+<tr>
+<td>Model ID</td>
+<td><code>gpt-4o</code> (or your deployment name)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="google-gemini-via-openai-compatibility">Google Gemini (via OpenAI Compatibility)</h3>
+<p>Some proxy services provide OpenAI-compatible access to Gemini.</p>
+<h3 id="cohere">Cohere</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>https://api.cohere.ai/v1</code></td>
+</tr>
+<tr>
+<td>Model ID</td>
+<td><code>command-r-plus</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="cloudflare-workers-ai">Cloudflare Workers AI</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>https://api.cloudflare.com/client/v4/accounts/&lt;account-id&gt;/ai/v1</code></td>
+</tr>
+<tr>
+<td>Model ID</td>
+<td><code>@cf/meta/llama-3.1-8b-instruct</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="general-tips">General Tips</h2>
+<ol>
+<li>
+<p><strong>Temperature</strong>: Controls randomness (0.0 = deterministic, 2.0 = very creative). Recommended: 0.7 for general use.</p>
+</li>
+<li>
+<p><strong>API Key Security</strong>: API keys are securely stored in your operating system's native credential store (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). They are never saved to plain text configuration files.</p>
+</li>
+<li>
+<p><strong>Testing</strong>: After configuring, test with a simple prompt to verify the connection works.</p>
+</li>
+<li>
+<p><strong>Rate Limits</strong>: Be aware of API rate limits for each provider.</p>
+</li>
+<li>
+<p><strong>Costs</strong>: Monitor your API usage to avoid unexpected charges.</p>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="api-key-not-found">API Key Not Found</h3>
+<p>If you encounter "API key not found" errors after configuring a model:
+- Ensure your system's credential store is accessible
+- On Linux, you may need to install <code>libsecret</code> and a compatible secret service (like GNOME Keyring or KWallet)
+- Try re-entering the API key in the model configuration</p>
+<h3 id="migrating-from-old-versions">Migrating from Old Versions</h3>
+<p>If you previously had API keys stored in the configuration file:
+1. Re-enter your API keys in the model configuration UI
+2. The new keys will be automatically migrated to the secure credential store
+3. Old keys in the configuration file will be ignored</p>
 
 
 
