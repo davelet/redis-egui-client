@@ -12,7 +12,7 @@ use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
 
-use super::super::RedisApp;
+use super::super::{RedisApp, SettingsSection};
 
 /// Settings window dimensions
 pub const SETTINGS_WINDOW_WIDTH: f32 = 450.0;
@@ -98,25 +98,54 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                     ui.separator();
 
-                    // AI settings (collapsible)
+                    // AI settings (collapsible) - mutually exclusive with shortcuts
                     let ai_header_text = tr(keys::AI_SETTINGS, current_lang);
-                    egui::CollapsingHeader::new(ai_header_text)
+                    let ai_open = app.settings_expanded_section == Some(SettingsSection::Ai);
+                    let ai_response = egui::CollapsingHeader::new(ai_header_text)
                         .id_salt("settings_ai_collapsible")
+                        .open(Some(ai_open))
                         .show(ui, |ui| {
                             ui.add_space(8.0);
                             render_ai_settings_section(app, ui, ctx, current_lang);
                         });
 
+                    // Update expanded state based on user interaction
+                    if ai_response.header_response.clicked() {
+                        if app.settings_expanded_section == Some(SettingsSection::Ai) {
+                            // Close AI section
+                            app.settings_expanded_section = None;
+                        } else {
+                            // Open AI section, close shortcuts
+                            app.settings_expanded_section = Some(SettingsSection::Ai);
+                        }
+                    }
+
                     ui.separator();
 
-                    // Keyboard shortcuts (collapsible)
+                    // Keyboard shortcuts (collapsible) - mutually exclusive with AI
                     let shortcuts_header_text = tr(keys::KEYBOARD_SHORTCUTS, current_lang);
-                    egui::CollapsingHeader::new(shortcuts_header_text)
+                    let shortcuts_open =
+                        app.settings_expanded_section == Some(SettingsSection::Shortcuts);
+                    let shortcuts_response = egui::CollapsingHeader::new(shortcuts_header_text)
                         .id_salt("settings_shortcuts_collapsible")
+                        .open(Some(shortcuts_open))
                         .show(ui, |ui| {
                             ui.add_space(8.0);
                             render_shortcut_settings(app, ui, ctx, current_lang);
                         });
+
+                    // Update expanded state based on user interaction
+                    if shortcuts_response.header_response.clicked() {
+                        if app.settings_expanded_section == Some(SettingsSection::Shortcuts) {
+                            // Close shortcuts section
+                            app.settings_expanded_section = None;
+                        } else {
+                            // Open shortcuts section, close AI
+                            app.settings_expanded_section = Some(SettingsSection::Shortcuts);
+                        }
+                    }
+
+                    ui.separator();
 
                     ui.separator();
 

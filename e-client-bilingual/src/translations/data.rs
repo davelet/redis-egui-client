@@ -396,6 +396,65 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
         keys::AI_MODEL_REQUIRED_FIELDS,
         tr_en_zh("Name and Model ID are required", "名称和模型 ID 为必填项"),
     );
+    strings.insert(
+        keys::AI_CONFIRM_DIALOG_TITLE,
+        tr_en_zh("Confirm AI Execution", "确认AI执行"),
+    );
+    strings.insert(
+        keys::AI_CONFIRM_DIALOG_MESSAGE,
+        tr_en_zh(
+            "Execute the following Redis command?",
+            "执行以下Redis命令？",
+        ),
+    );
+    strings.insert(keys::AI_EXECUTE, tr_en_zh("Execute", "执行"));
+    strings.insert(
+        keys::AI_TEST_CONNECTION,
+        tr_en_zh("Test Connection", "测试连接"),
+    );
+    strings.insert(
+        keys::AI_TESTING_CONNECTION,
+        tr_en_zh("Testing...", "测试中..."),
+    );
+    strings.insert(
+        keys::AI_TEST_SUCCESS,
+        tr_en_zh("Connection successful!", "连接成功！"),
+    );
+    strings.insert(
+        keys::AI_TEST_FAILED,
+        tr_en_zh("Connection failed", "连接失败"),
+    );
+    strings.insert(
+        keys::AI_ERROR_RATE_LIMIT,
+        tr_en_zh("Rate limit exceeded", "请求频率超限"),
+    );
+    strings.insert(
+        keys::AI_ERROR_AUTH_FAILED,
+        tr_en_zh("Authentication failed", "认证失败"),
+    );
+    strings.insert(
+        keys::AI_ERROR_NETWORK,
+        tr_en_zh("Network error", "网络错误"),
+    );
+    strings.insert(
+        keys::AI_ERROR_TIMEOUT,
+        tr_en_zh("Request timeout", "请求超时"),
+    );
+    strings.insert(
+        keys::AI_SYSTEM_PROMPT,
+        tr_en_zh("System Prompt", "系统提示词"),
+    );
+    strings.insert(
+        keys::AI_SYSTEM_PROMPT_HINT,
+        tr_en_zh(
+            "Instructions for AI. Use {connection}, {database}, {key} as placeholders.",
+            "AI指令。使用 {connection}、{database}、{key} 作为占位符。",
+        ),
+    );
+    strings.insert(
+        keys::AI_SYSTEM_PROMPT_PLACEHOLDER,
+        tr_en_zh("System prompt...", "输入系统提示词..."),
+    );
 
     // Tab switching shortcuts
     strings.insert(

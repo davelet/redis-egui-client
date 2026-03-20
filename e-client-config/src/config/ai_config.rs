@@ -3,6 +3,11 @@ use serde::{Deserialize, Serialize};
 /// Service name for keyring entries
 const KEYRING_SERVICE: &str = "com.e-client.ai";
 
+/// Default system prompt for AI Redis assistant
+pub const DEFAULT_SYSTEM_PROMPT: &str = "You are helping with Redis database operations. \
+Always respond with valid Redis commands that can be executed directly. \
+Only output the Redis command without any explanation or markdown formatting.";
+
 /// Custom AI model configuration
 /// All providers are treated the same - user provides the API endpoint URL
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,6 +87,13 @@ pub struct AiConfig {
     pub confirm_before_execute: bool,
     /// Whether to show AI thinking process
     pub show_ai_thinking: bool,
+    /// Custom system prompt for AI assistant
+    #[serde(default = "default_system_prompt")]
+    pub system_prompt: String,
+}
+
+fn default_system_prompt() -> String {
+    DEFAULT_SYSTEM_PROMPT.to_string()
 }
 
 impl Default for AiConfig {
@@ -92,6 +104,7 @@ impl Default for AiConfig {
             enabled: true,
             confirm_before_execute: true,
             show_ai_thinking: true,
+            system_prompt: DEFAULT_SYSTEM_PROMPT.to_string(),
         }
     }
 }

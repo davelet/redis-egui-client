@@ -120,6 +120,8 @@ pub struct CommandLinePanel {
     pub scroll_to_bottom: bool,
     pub history_index: Option<usize>,
     pub saved_input: String,
+    /// Pending AI command awaiting confirmation
+    pub pending_ai_command: Option<(String, String)>, // (user_input, suggested_redis_command)
 }
 
 impl Default for CommandLinePanel {
@@ -131,6 +133,7 @@ impl Default for CommandLinePanel {
             scroll_to_bottom: false,
             history_index: None,
             saved_input: String::new(),
+            pending_ai_command: None,
         }
     }
 }
@@ -147,6 +150,9 @@ pub struct AiModelEditor {
     pub temperature: f32,
     /// Whether the models list section is collapsed
     pub models_collapsed: bool,
+    /// Connection test state
+    pub testing_connection: bool,
+    pub test_result: Option<Result<(), String>>,
 }
 
 impl Default for AiModelEditor {
@@ -160,6 +166,8 @@ impl Default for AiModelEditor {
             model_id: String::new(),
             temperature: 0.7,
             models_collapsed: true,
+            testing_connection: false,
+            test_result: None,
         }
     }
 }
@@ -174,6 +182,8 @@ impl AiModelEditor {
         self.url.clear();
         self.model_id.clear();
         self.temperature = 0.7;
+        self.testing_connection = false;
+        self.test_result = None;
     }
 
     /// Open editor for editing an existing model
@@ -185,12 +195,16 @@ impl AiModelEditor {
         self.url = model.url.clone();
         self.model_id = model.model_id.clone();
         self.temperature = model.temperature;
+        self.testing_connection = false;
+        self.test_result = None;
     }
 
     /// Close the editor
     pub fn close(&mut self) {
         self.show = false;
         self.editing_model_id = None;
+        self.testing_connection = false;
+        self.test_result = None;
     }
 
     /// Check if currently editing an existing model

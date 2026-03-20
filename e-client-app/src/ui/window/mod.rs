@@ -49,6 +49,15 @@ pub struct RedisApp {
     pub ai_model_editor: AiModelEditor,
     // Delete connection confirmation: (connection index, connection name)
     pub delete_connection_confirm: Option<(usize, String)>,
+    // Settings panel state - track expanded sections for mutually exclusive behavior
+    pub settings_expanded_section: Option<SettingsSection>,
+}
+
+/// Settings panel expandable sections
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsSection {
+    Ai,
+    Shortcuts,
 }
 
 impl eframe::App for RedisApp {
@@ -199,10 +208,7 @@ impl eframe::App for RedisApp {
 }
 
 impl RedisApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        use e_client_config::translations::keys;
-        use e_client_config::translations::tr;
-
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         // Load configuration from the default location
         let config = Config::load().unwrap_or_else(|_| Config::default());
 
@@ -267,6 +273,7 @@ impl RedisApp {
             show_all_tabs_dropdown: false,
             ai_model_editor: AiModelEditor::default(),
             delete_connection_confirm: None,
+            settings_expanded_section: None,
         }
     }
 
@@ -492,6 +499,7 @@ impl RedisApp {
             show_all_tabs_dropdown: false,
             ai_model_editor: AiModelEditor::default(),
             delete_connection_confirm: None,
+            settings_expanded_section: None,
         }
     }
 
@@ -526,8 +534,6 @@ impl RedisApp {
         conn_idx: usize,
         conn: e_client_config::connection::RedisConnectionConfig,
     ) {
-        use e_client_config::translations::tr;
-
         // Check if duplicate connections are allowed
         if !self.config.settings.allow_duplicate_connections {
             // Check if this connection is already open in another tab

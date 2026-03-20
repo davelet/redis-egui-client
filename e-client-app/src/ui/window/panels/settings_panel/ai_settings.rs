@@ -6,6 +6,7 @@ use e_client_basics::constants::{
 use e_client_config::config::ai_config::AiModel;
 use e_client_config::language::Language;
 use e_client_config::translations::{emoji, keys, tr};
+use e_client_core::AiClient;
 
 use super::super::super::RedisApp;
 
@@ -106,6 +107,44 @@ pub fn render_ai_settings_section(
                         }
                     }
                 });
+
+                ui.add_space(8.0);
+
+                // System prompt label and hint
+                ui.label(tr(keys::AI_SYSTEM_PROMPT, current_lang));
+                ui.add_space(2.0);
+                ui.label(
+                    egui::RichText::new(tr(keys::AI_SYSTEM_PROMPT_HINT, current_lang))
+                        .small()
+                        .color(ui.visuals().weak_text_color()),
+                );
+
+                // System prompt text area
+                let system_prompt = &mut app.config.ai_config.system_prompt;
+                egui::Frame::group(ui.style())
+                    .fill(ui.visuals().code_bg_color)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(system_prompt)
+                                .desired_width(f32::INFINITY)
+                                .font(egui::TextStyle::Monospace)
+                                .hint_text(tr(keys::AI_SYSTEM_PROMPT_PLACEHOLDER, current_lang)),
+                        );
+                    });
+
+                // Save system prompt button
+                if ui
+                    .button(format!(
+                        "{} {}",
+                        emoji::action::SAVE,
+                        tr(keys::SAVE, current_lang)
+                    ))
+                    .clicked()
+                {
+                    if let Err(e) = app.config.save_ai_config() {
+                        eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                    }
+                }
 
                 // Models list - collapsible with background
                 if !app.config.ai_config.models.is_empty() {
@@ -277,6 +316,62 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     tr(keys::AI_MODEL_REQUIRED_FIELDS, current_lang),
                 );
             }
+
+            // Test connection button and result
+            ui.horizontal(|ui| {
+                let test_btn = ui.add_enabled(
+                    is_valid && !app.ai_model_editor.testing_connection,
+                    egui::Button::new(if app.ai_model_editor.testing_connection {
+                        tr(keys::AI_TESTING_CONNECTION, current_lang)
+                    } else {
+                        tr(keys::AI_TEST_CONNECTION, current_lang)
+                    }),
+                );
+
+                if test_btn.clicked() && is_valid && !app.ai_model_editor.testing_connection {
+                    // Create test model
+                    let test_model = AiModel {
+                        id: "test".to_string(),
+                        name: app.ai_model_editor.name.clone(),
+                        url: app.ai_model_editor.url.clone(),
+                        model_id: app.ai_model_editor.model_id.clone(),
+                        api_key: if app.ai_model_editor.api_key.is_empty() {
+                            None
+                        } else {
+                            Some(app.ai_model_editor.api_key.clone())
+                        },
+                        temperature: app.ai_model_editor.temperature,
+                    };
+
+                    // Test connection synchronously
+                    let result = AiClient::test_connection_sync(&test_model);
+                    app.ai_model_editor.test_result = Some(result);
+                }
+
+                // Show test result
+                if let Some(result) = &app.ai_model_editor.test_result {
+                    match result {
+                        Ok(()) => {
+                            ui.label(
+                                egui::RichText::new(tr(keys::AI_TEST_SUCCESS, current_lang))
+                                    .color(egui::Color32::from_rgb(50, 200, 50)),
+                            );
+                        }
+                        Err(e) => {
+                            ui.label(
+                                egui::RichText::new(format!(
+                                    "{}: {}",
+                                    tr(keys::AI_TEST_FAILED, current_lang),
+                                    e
+                                ))
+                                .color(egui::Color32::from_rgb(255, 100, 100)),
+                            );
+                        }
+                    }
+                }
+            });
+
+            ui.add_space(8.0);
 
             ui.horizontal(|ui| {
                 let save_btn =

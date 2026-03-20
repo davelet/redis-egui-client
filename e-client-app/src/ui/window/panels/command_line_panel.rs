@@ -1,5 +1,7 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::REDIS_COMMANDS;
+use e_client_config::language::Language;
+use e_client_config::translations::{keys, tr};
 use e_client_core::AiClient;
 
 /// Check if the input is a Redis command
@@ -19,6 +21,48 @@ fn is_redis_command(input: &str) -> bool {
     REDIS_COMMANDS.contains(&first_word.as_str())
 }
 
+/// Build Redis context for AI system prompt
+fn build_redis_context(app: &RedisApp, tab_idx: usize) -> Option<String> {
+    let tab = app.tabs.get(tab_idx)?;
+
+    // Check if connected
+    let connected = app.poll_bool(tab.state.connected.clone());
+    if !connected {
+        return None;
+    }
+
+    // Get connection info from connection_param
+    let conn_param = tab.state.connection_param.blocking_read();
+
+    // Get current database
+    let current_db = app.poll_u32(tab.state.current_db.clone());
+
+    // Get selected key if any
+    let selected_key = app.poll_option_string(tab.state.selected_key.clone());
+
+    // Get system prompt from config
+    let system_prompt = &app.config.ai_config.system_prompt;
+
+    // Build context: system prompt + Redis connection info
+    let mut context = system_prompt.clone();
+
+    if let Some(conn) = conn_param.as_ref() {
+        context.push_str(&format!("\n\nConnection name: {}", conn.name));
+        context.push_str(&format!("\nConnection address: {}:{}", conn.url, conn.port));
+        if let Some(db) = conn.database {
+            context.push_str(&format!("\nDefault database: {}", db));
+        }
+    }
+
+    context.push_str(&format!("\nCurrent database: {}", current_db));
+
+    if let Some(key) = selected_key {
+        context.push_str(&format!("\nCurrently selected key: {}", key));
+    }
+
+    Some(context)
+}
+
 pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let active_tab_idx = app.active_tab;
 
@@ -27,7 +71,24 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         return;
     }
 
-    let _current_lang = app.poll_language(app.tabs[active_tab_idx].state.language.clone());
+    let current_lang = app.poll_language(app.tabs[active_tab_idx].state.language.clone());
+
+    // Handle pending AI command confirmation dialog
+    if let Some((ref user_input, ref redis_cmd)) = app.tabs[active_tab_idx]
+        .command_line_panel
+        .pending_ai_command
+        .clone()
+    {
+        render_ai_confirm_dialog(
+            app,
+            active_tab_idx,
+            ctx,
+            current_lang,
+            user_input,
+            redis_cmd,
+        );
+        return; // Don't render the main panel while dialog is open
+    }
 
     egui::TopBottomPanel::bottom("command_line_panel")
         .resizable(true)
@@ -66,6 +127,12 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                         ui.label(
                                             egui::RichText::new(result)
                                                 .color(egui::Color32::from_rgb(255, 100, 100))
+                                                .monospace(),
+                                        );
+                                    } else if result == "Thinking..." {
+                                        ui.label(
+                                            egui::RichText::new(result)
+                                                .color(egui::Color32::from_rgb(150, 150, 150))
                                                 .monospace(),
                                         );
                                     } else {
@@ -199,37 +266,136 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         });
 }
 
+/// Render AI command confirmation dialog
+fn render_ai_confirm_dialog(
+    app: &mut RedisApp,
+    tab_idx: usize,
+    ctx: &egui::Context,
+    current_lang: Language,
+    user_input: &str,
+    redis_cmd: &str,
+) {
+    // Read config outside the closure to avoid borrow conflict
+    let confirm_before_execute = app.config.ai_config.confirm_before_execute;
+
+    egui::TopBottomPanel::bottom("ai_confirm_dialog")
+        .resizable(false)
+        .default_height(120.0)
+        .show(ctx, |ui| {
+            ui.set_width(ctx.available_rect().width());
+
+            egui::Frame::group(ui.style())
+                .fill(ui.visuals().panel_fill)
+                .show(ui, |ui| {
+                    ui.vertical(|ui| {
+                        // Title
+                        ui.label(
+                            egui::RichText::new(tr(keys::AI_CONFIRM_DIALOG_TITLE, current_lang))
+                                .size(16.0)
+                                .strong(),
+                        );
+
+                        ui.add_space(4.0);
+
+                        // User's question
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                egui::RichText::new("Q: ")
+                                    .color(egui::Color32::BLUE)
+                                    .monospace(),
+                            );
+                            ui.label(egui::RichText::new(user_input).monospace());
+                        });
+
+                        // Suggested command
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                egui::RichText::new("→ ")
+                                    .color(egui::Color32::GREEN)
+                                    .monospace(),
+                            );
+                            ui.label(
+                                egui::RichText::new(redis_cmd)
+                                    .color(egui::Color32::BLUE)
+                                    .monospace(),
+                            );
+                        });
+
+                        ui.add_space(8.0);
+
+                        // Buttons
+                        ui.horizontal(|ui| {
+                            let execute_btn = ui.button(
+                                egui::RichText::new(tr(keys::AI_EXECUTE, current_lang))
+                                    .color(egui::Color32::WHITE),
+                            );
+
+                            if execute_btn.clicked() {
+                                // Execute the suggested Redis command
+                                app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
+                                execute_redis_command(app, tab_idx, redis_cmd.to_string());
+                            }
+
+                            // Show tooltip after checking click
+                            execute_btn.on_hover_text("Execute the Redis command");
+
+                            ui.add_space(8.0);
+
+                            let cancel_btn = ui.button(tr(keys::CANCEL, current_lang));
+                            if cancel_btn.clicked() {
+                                app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
+                            }
+
+                            // Show skip info if not configured to confirm
+                            if !confirm_before_execute {
+                                ui.add_space(8.0);
+                                ui.label(
+                                    egui::RichText::new("(Auto-execute enabled)")
+                                        .small()
+                                        .color(egui::Color32::GRAY),
+                                );
+                            }
+                        });
+                    });
+                });
+        });
+}
+
 fn execute_command(app: &mut RedisApp, tab_idx: usize, input: String) {
     let trimmed_input = input.trim();
 
     // Check if input is a Redis command
     if is_redis_command(trimmed_input) {
-        // Execute as Redis command
-        let client = app.tabs[tab_idx].state.redis_client.clone();
-        let result = client.execute_raw_command_sync(trimmed_input);
-        match result {
-            Ok(output) => {
-                app.tabs[tab_idx]
-                    .command_line_panel
-                    .history
-                    .push((input, output));
-            }
-            Err(e) => {
-                app.tabs[tab_idx]
-                    .command_line_panel
-                    .history
-                    .push((input, format!("ERR: {}", e)));
-            }
-        }
+        // Execute as Redis command directly
+        execute_redis_command(app, tab_idx, input);
     } else {
         // Send to AI for inference
         execute_ai_command(app, tab_idx, trimmed_input.to_string());
     }
 }
 
+/// Execute a Redis command directly
+fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
+    let client = app.tabs[tab_idx].state.redis_client.clone();
+    match client.execute_raw_command_sync(&command) {
+        Ok(output) => {
+            app.tabs[tab_idx]
+                .command_line_panel
+                .history
+                .push((command, output));
+        }
+        Err(e) => {
+            app.tabs[tab_idx]
+                .command_line_panel
+                .history
+                .push((command, format!("ERR: {}", e)));
+        }
+    }
+}
+
 fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String) {
     // Check if AI is enabled and has an active model
-    let ai_config = &app.config.ai_config;
+    let ai_config = &app.config.ai_config.clone();
 
     if !ai_config.enabled {
         app.tabs[tab_idx].command_line_panel.history.push((
@@ -250,28 +416,83 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
     let model = active_model.unwrap();
 
-    // Show thinking indicator
-    app.tabs[tab_idx]
-        .command_line_panel
-        .history
-        .push((trimmed_input.clone(), "Thinking...".to_string()));
+    // Build Redis context
+    let context = build_redis_context(app, tab_idx);
 
-    // Get the history index of the thinking message
-    let thinking_idx = app.tabs[tab_idx].command_line_panel.history.len() - 1;
+    // Show thinking indicator only if configured
+    if ai_config.show_ai_thinking {
+        app.tabs[tab_idx]
+            .command_line_panel
+            .history
+            .push((trimmed_input.clone(), "Thinking...".to_string()));
+    }
 
-    // Clone model for the async operation
+    // Get the history index of the thinking message (if shown)
+    let thinking_idx = if ai_config.show_ai_thinking {
+        Some(app.tabs[tab_idx].command_line_panel.history.len() - 1)
+    } else {
+        None
+    };
+
+    // Clone model and context for the operation
     let model = model.clone();
+    let context_str = context.clone();
 
-    // Execute AI chat synchronously
-    match AiClient::chat_sync(&model, &trimmed_input) {
+    // Execute AI chat synchronously with context
+    match AiClient::chat_sync(&model, &trimmed_input, context_str.as_deref()) {
         Ok(response) => {
-            // Update the thinking message with the actual response
-            app.tabs[tab_idx].command_line_panel.history[thinking_idx] = (trimmed_input, response);
+            // Check if response looks like a Redis command
+            let trimmed_response = response.trim();
+            if is_redis_command(trimmed_response) {
+                // Check if confirmation is required
+                if ai_config.confirm_before_execute {
+                    // Store pending command and show confirmation dialog
+                    app.tabs[tab_idx].command_line_panel.pending_ai_command =
+                        Some((trimmed_input, trimmed_response.to_string()));
+
+                    // Remove the "Thinking..." message since we'll show the dialog
+                    if let Some(idx) = thinking_idx {
+                        app.tabs[tab_idx].command_line_panel.history.remove(idx);
+                    }
+                } else {
+                    // Execute without confirmation
+                    if let Some(idx) = thinking_idx {
+                        // Update the thinking message
+                        app.tabs[tab_idx].command_line_panel.history[idx] =
+                            (trimmed_input, "Executing...".to_string());
+                    }
+
+                    execute_redis_command(app, tab_idx, trimmed_response.to_string());
+
+                    // Remove the "Executing..." message
+                    if let Some(idx) = thinking_idx {
+                        app.tabs[tab_idx].command_line_panel.history.remove(idx);
+                    }
+                }
+            } else {
+                // Non-Redis command response (e.g., explanation or error)
+                if let Some(idx) = thinking_idx {
+                    app.tabs[tab_idx].command_line_panel.history[idx] = (trimmed_input, response);
+                } else {
+                    // No thinking message was shown, add the response directly
+                    app.tabs[tab_idx]
+                        .command_line_panel
+                        .history
+                        .push((trimmed_input, response));
+                }
+            }
         }
         Err(e) => {
             // Update the thinking message with the error
-            app.tabs[tab_idx].command_line_panel.history[thinking_idx] =
-                (trimmed_input, format!("ERR: AI request failed - {}", e));
+            if let Some(idx) = thinking_idx {
+                app.tabs[tab_idx].command_line_panel.history[idx] =
+                    (trimmed_input, format!("ERR: AI request failed - {}", e));
+            } else {
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .history
+                    .push((trimmed_input, format!("ERR: AI request failed - {}", e)));
+            }
         }
     }
 }
