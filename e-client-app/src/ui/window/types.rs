@@ -112,6 +112,16 @@ impl Default for ElementEditDialog {
     }
 }
 
+/// AI chat async result
+pub struct AiChatPending {
+    pub thinking_idx: Option<usize>,
+    pub user_input: String,
+    #[allow(dead_code)]
+    pub context: Option<String>,
+    pub confirm_before_execute: bool,
+    pub receiver: std::sync::mpsc::Receiver<Result<String, String>>,
+}
+
 /// Command line panel state
 pub struct CommandLinePanel {
     pub show: bool,
@@ -122,6 +132,8 @@ pub struct CommandLinePanel {
     pub saved_input: String,
     /// Pending AI command awaiting confirmation
     pub pending_ai_command: Option<(String, String)>, // (user_input, suggested_redis_command)
+    /// Pending AI chat async operation
+    pub ai_chat_pending: Option<AiChatPending>,
 }
 
 impl Default for CommandLinePanel {
@@ -134,6 +146,7 @@ impl Default for CommandLinePanel {
             history_index: None,
             saved_input: String::new(),
             pending_ai_command: None,
+            ai_chat_pending: None,
         }
     }
 }
@@ -153,6 +166,8 @@ pub struct AiModelEditor {
     /// Connection test state
     pub testing_connection: bool,
     pub test_result: Option<Result<(), String>>,
+    /// Receiver for async test connection result
+    pub test_result_receiver: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
 }
 
 impl Default for AiModelEditor {
@@ -168,6 +183,7 @@ impl Default for AiModelEditor {
             models_collapsed: true,
             testing_connection: false,
             test_result: None,
+            test_result_receiver: None,
         }
     }
 }

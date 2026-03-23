@@ -103,7 +103,7 @@ impl eframe::App for RedisApp {
         if !self.show_settings {
             use crate::ui::window::panels::settings_panel::SUPPORTED_KEYS;
 
-            // Collect current input state
+            // Collect current input state once
             let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
                 let keys: Vec<egui::Key> = SUPPORTED_KEYS
                     .into_iter()
@@ -112,29 +112,60 @@ impl eframe::App for RedisApp {
                 (i.modifiers, keys)
             });
 
-            // Check each configured shortcut
-            let is_macos = cfg!(target_os = "macos");
-            for (action, _) in ShortcutAction::all_actions() {
-                let binding = self.config.settings.shortcuts.get_binding(&action);
-                if let Some(parsed) = ParsedShortcut::parse(&binding) {
-                    for key in &pressed_keys {
-                        let key_str = format!("{:?}", key);
-                        let mod_pressed: bool =
-                            parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
-                        let alt_match = parsed.alt == modifiers.alt;
-                        let shift_match = parsed.shift == modifiers.shift;
-                        let key_match = parsed.key_matches(&key_str);
+            // Check if any text input (TextEdit) is focused
+            let text_input_focused = ctx.wants_keyboard_input();
 
-                        // For shortcuts that need modifiers (like Cmd+N), check mod_pressed.
-                        // For shortcuts without modifiers (like "1", "2", "0"), ensure no extra modifiers are pressed.
-                        let meets_mod_requirement = if parsed.command || parsed.ctrl {
-                            mod_pressed
-                        } else {
-                            !modifiers.command && !modifiers.ctrl
-                        };
+            // Check if any pressed key is a function key (F1-F12) or ESC
+            let has_function_key = pressed_keys.iter().any(|k| {
+                matches!(
+                    k,
+                    egui::Key::F1
+                        | egui::Key::F2
+                        | egui::Key::F3
+                        | egui::Key::F4
+                        | egui::Key::F5
+                        | egui::Key::F6
+                        | egui::Key::F7
+                        | egui::Key::F8
+                        | egui::Key::F9
+                        | egui::Key::F10
+                        | egui::Key::F11
+                        | egui::Key::F12
+                )
+            });
+            let esc_pressed = pressed_keys.contains(&egui::Key::Escape);
 
-                        if meets_mod_requirement && alt_match && shift_match && key_match {
-                            self.handle_shortcut_action(action.clone(), ctx);
+            // Only process shortcuts when:
+            // 1. No text input has focus, OR
+            // 2. ESC is pressed, OR
+            // 3. A function key is pressed
+            let should_process_shortcuts = !text_input_focused || esc_pressed || has_function_key;
+
+            if should_process_shortcuts {
+                // Check each configured shortcut
+                let is_macos = cfg!(target_os = "macos");
+                for (action, _) in ShortcutAction::all_actions() {
+                    let binding = self.config.settings.shortcuts.get_binding(&action);
+                    if let Some(parsed) = ParsedShortcut::parse(&binding) {
+                        for key in &pressed_keys {
+                            let key_str = format!("{:?}", key);
+                            let mod_pressed: bool =
+                                parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                            let alt_match = parsed.alt == modifiers.alt;
+                            let shift_match = parsed.shift == modifiers.shift;
+                            let key_match = parsed.key_matches(&key_str);
+
+                            // For shortcuts that need modifiers (like Cmd+N), check mod_pressed.
+                            // For shortcuts without modifiers (like "1", "2", "0"), ensure no extra modifiers are pressed.
+                            let meets_mod_requirement = if parsed.command || parsed.ctrl {
+                                mod_pressed
+                            } else {
+                                !modifiers.command && !modifiers.ctrl
+                            };
+
+                            if meets_mod_requirement && alt_match && shift_match && key_match {
+                                self.handle_shortcut_action(action.clone(), ctx);
+                            }
                         }
                     }
                 }

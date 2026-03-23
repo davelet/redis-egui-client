@@ -188,3 +188,4 @@ pub const SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS: &str =
 pub const SHOW_UNCLOSED_CONNECTIONS: &str = "show_unclosed_connections";
 pub const ALLOW_DUPLICATE_CONNECTIONS: &str = "allow_duplicate_connections";
 pub const GROUP_KEYS_BY_COLON: &str = "group_keys_by_colon";
+pub const COMMAND_LINE_HINT: &str = "command_line_hint";

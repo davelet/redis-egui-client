@@ -286,7 +286,8 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ui.label(tr(keys::AI_API_KEY, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.ai_model_editor.api_key)
-                            .char_limit(AI_API_KEY_LIMIT),
+                            .char_limit(AI_API_KEY_LIMIT)
+                            .password(true),
                     );
                     ui.label(format!(
                         "{}/{}",
@@ -319,6 +320,15 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
 
             // Test connection button and result
             ui.horizontal(|ui| {
+                // Check for async test result
+                if let Some(receiver) = &app.ai_model_editor.test_result_receiver {
+                    if let Ok(result) = receiver.try_recv() {
+                        app.ai_model_editor.test_result = Some(result);
+                        app.ai_model_editor.testing_connection = false;
+                        app.ai_model_editor.test_result_receiver = None;
+                    }
+                }
+
                 let test_btn = ui.add_enabled(
                     is_valid && !app.ai_model_editor.testing_connection,
                     egui::Button::new(if app.ai_model_editor.testing_connection {
@@ -343,9 +353,16 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         temperature: app.ai_model_editor.temperature,
                     };
 
-                    // Test connection synchronously
-                    let result = AiClient::test_connection_sync(&test_model);
-                    app.ai_model_editor.test_result = Some(result);
+                    // Test connection asynchronously
+                    app.ai_model_editor.testing_connection = true;
+                    app.ai_model_editor.test_result = None;
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    app.ai_model_editor.test_result_receiver = Some(rx);
+
+                    tokio::task::spawn_blocking(move || {
+                        let result = AiClient::test_connection_sync(&test_model);
+                        let _ = tx.send(result);
+                    });
                 }
 
                 // Show test result

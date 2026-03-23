@@ -510,6 +510,15 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
         keys::REMOVE_DUPLICATE_AND_INVALID_TABS,
         tr_en_zh("Remove Duplicate and Invalid Tabs", "移除重复和无效标签页"),
     );
+
+    // Command line hint
+    strings.insert(
+        keys::COMMAND_LINE_HINT,
+        tr_en_zh(
+            "Enter Redis command or ask AI...",
+            "输入 Redis 命令或询问 AI...",
+        ),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants
