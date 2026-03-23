@@ -130,10 +130,12 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
 
-                // Refresh keys button
-                if ui.button(emoji::action::REFRESH).clicked() {
+                // Refresh keys button with F5 hint
+                let refresh_btn = ui.button(emoji::action::REFRESH);
+                if refresh_btn.clicked() {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
+                refresh_btn.on_hover_text("F5");
             });
 
             // Show loading progress

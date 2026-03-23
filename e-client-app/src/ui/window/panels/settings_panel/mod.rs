@@ -147,8 +147,6 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                     ui.separator();
 
-                    ui.separator();
-
                     // Close button
                     ui.horizontal(|ui| {
                         if ui.button(tr(keys::CLOSE, current_lang)).clicked() {

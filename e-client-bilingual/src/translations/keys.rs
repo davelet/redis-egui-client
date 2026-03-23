@@ -189,3 +189,6 @@ pub const SHOW_UNCLOSED_CONNECTIONS: &str = "show_unclosed_connections";
 pub const ALLOW_DUPLICATE_CONNECTIONS: &str = "allow_duplicate_connections";
 pub const GROUP_KEYS_BY_COLON: &str = "group_keys_by_colon";
 pub const COMMAND_LINE_HINT: &str = "command_line_hint";
+pub const SHORTCUT_REFRESH_KEYS: &str = "shortcut_refresh_keys";
+pub const SHORTCUT_EXECUTE_AI_COMMAND: &str = "shortcut_execute_ai_command";
+pub const SHORTCUT_CANCEL_AI_COMMAND: &str = "shortcut_cancel_ai_command";

@@ -90,7 +90,6 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
             user_input,
             redis_cmd,
         );
-        return; // Don't render the main panel while dialog is open
     }
 
     egui::TopBottomPanel::bottom("command_line_panel")
@@ -254,8 +253,14 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     response.request_focus();
                 }
 
-                // Handle Esc key to close panel
-                if !app.show_settings && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                // Handle Esc key to close panel (but not when AI confirm dialog is open)
+                if !app.show_settings
+                    && app.tabs[active_tab_idx]
+                        .command_line_panel
+                        .pending_ai_command
+                        .is_none()
+                    && ui.input(|i| i.key_pressed(egui::Key::Escape))
+                {
                     app.tabs[active_tab_idx].command_line_panel.show = false;
                 }
             });
@@ -274,12 +279,45 @@ fn render_ai_confirm_dialog(
     // Read config outside the closure to avoid borrow conflict
     let confirm_before_execute = app.config.ai_config.confirm_before_execute;
 
-    egui::TopBottomPanel::bottom("ai_confirm_dialog")
-        .resizable(false)
-        .default_height(120.0)
-        .show(ctx, |ui| {
-            ui.set_width(ctx.available_rect().width());
+    let screen = ctx.screen_rect();
+    let dialog_width = 520.0_f32.min(screen.width() - 40.0);
 
+    let mut dialog_action: Option<DialogAction> = None;
+
+    // Handle keyboard shortcuts before rendering (consumes the events)
+    // Right arrow to execute, Left arrow to cancel
+    ctx.input_mut(|i| {
+        if i.key_pressed(egui::Key::ArrowRight) {
+            dialog_action = Some(DialogAction::Execute);
+            i.consume_key(egui::Modifiers::NONE, egui::Key::ArrowRight);
+        } else if i.key_pressed(egui::Key::ArrowLeft) {
+            dialog_action = Some(DialogAction::Cancel);
+            i.consume_key(egui::Modifiers::NONE, egui::Key::ArrowLeft);
+        }
+    });
+
+    // If keyboard action was taken, handle it directly without showing the dialog
+    if dialog_action.is_some() {
+        match dialog_action {
+            Some(DialogAction::Execute) => {
+                app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
+                execute_redis_command(app, tab_idx, redis_cmd.to_string());
+            }
+            Some(DialogAction::Cancel) => {
+                app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
+            }
+            None => {}
+        }
+        return;
+    }
+
+    egui::Window::new(tr(keys::AI_CONFIRM_DIALOG_TITLE, current_lang))
+        .title_bar(false)
+        .resizable(false)
+        .collapsible(false)
+        .default_width(dialog_width)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
             egui::Frame::group(ui.style())
                 .fill(ui.visuals().panel_fill)
                 .show(ui, |ui| {
@@ -323,16 +361,14 @@ fn render_ai_confirm_dialog(
                         ui.horizontal(|ui| {
                             let execute_btn = ui.button(
                                 egui::RichText::new(tr(keys::AI_EXECUTE, current_lang))
-                                    .color(egui::Color32::WHITE),
+                                    .color(ui.visuals().text_color()),
                             );
 
                             if execute_btn.clicked() {
-                                // Execute the suggested Redis command
                                 app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
                                 execute_redis_command(app, tab_idx, redis_cmd.to_string());
                             }
 
-                            // Show tooltip after checking click
                             execute_btn.on_hover_text("Execute the Redis command");
 
                             ui.add_space(8.0);
@@ -355,6 +391,12 @@ fn render_ai_confirm_dialog(
                     });
                 });
         });
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DialogAction {
+    Execute,
+    Cancel,
 }
 
 fn execute_command(app: &mut RedisApp, tab_idx: usize, input: String) {

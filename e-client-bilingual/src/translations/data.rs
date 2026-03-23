@@ -519,6 +519,22 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
             "输入 Redis 命令或询问 AI...",
         ),
     );
+
+    // Refresh keys shortcut
+    strings.insert(
+        keys::SHORTCUT_REFRESH_KEYS,
+        tr_en_zh("Refresh Keys (Side Panel)", "刷新键列表（侧边栏）"),
+    );
+
+    // AI command confirmation shortcuts
+    strings.insert(
+        keys::SHORTCUT_EXECUTE_AI_COMMAND,
+        tr_en_zh("Execute AI Command", "执行AI命令"),
+    );
+    strings.insert(
+        keys::SHORTCUT_CANCEL_AI_COMMAND,
+        tr_en_zh("Cancel AI Command", "取消AI命令"),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants

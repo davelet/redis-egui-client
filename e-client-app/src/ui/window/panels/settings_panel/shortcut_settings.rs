@@ -7,7 +7,7 @@ use e_client_config::translations::{emoji, keys, tr, tr_fmt};
 use super::super::super::RedisApp;
 
 /// All supported keyboard keys for shortcuts
-pub const SUPPORTED_KEYS: [egui::Key; 51] = [
+pub const SUPPORTED_KEYS: [egui::Key; 56] = [
     egui::Key::A,
     egui::Key::B,
     egui::Key::C,
@@ -59,6 +59,11 @@ pub const SUPPORTED_KEYS: [egui::Key; 51] = [
     egui::Key::Comma,
     egui::Key::Period,
     egui::Key::Semicolon,
+    egui::Key::Enter,
+    egui::Key::ArrowUp,
+    egui::Key::ArrowDown,
+    egui::Key::ArrowLeft,
+    egui::Key::ArrowRight,
 ];
 
 /// Parse action key string to ShortcutAction enum
@@ -94,6 +99,9 @@ pub fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
         "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
         "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
+        "RefreshKeys" => Some(ShortcutAction::RefreshKeys),
+        "ExecuteAiCommand" => Some(ShortcutAction::ExecuteAiCommand),
+        "CancelAiCommand" => Some(ShortcutAction::CancelAiCommand),
         _ => None,
     }
 }
@@ -144,6 +152,13 @@ pub fn parse_key_from_str(key: &str) -> Option<egui::Key> {
         "," | "Comma" => Some(egui::Key::Comma),
         "." | "Period" => Some(egui::Key::Period),
         ";" | "Semicolon" => Some(egui::Key::Semicolon),
+        // Special keys
+        "Enter" | "Return" => Some(egui::Key::Enter),
+        // Arrow keys
+        "Up" | "ArrowUp" => Some(egui::Key::ArrowUp),
+        "Down" | "ArrowDown" => Some(egui::Key::ArrowDown),
+        "Left" | "ArrowLeft" => Some(egui::Key::ArrowLeft),
+        "Right" | "ArrowRight" => Some(egui::Key::ArrowRight),
         _ => None,
     }
 }
@@ -275,9 +290,18 @@ pub fn render_shortcut_settings(
                         // Check if this shortcut is non-editable
                         let is_non_editable = action.is_non_editable();
 
-                        // Action name with bold font (translated)
+                        // Check if this is a customized shortcut
+                        let is_customized = !is_non_editable
+                            && app.config.settings.shortcuts.is_customized(&action);
+
+                        // Action name with bold font (translated), underline for customized
                         ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(tr(trans_key, current_lang)).strong());
+                            let text = egui::RichText::new(tr(trans_key, current_lang));
+                            if is_customized {
+                                ui.label(text.underline());
+                            } else {
+                                ui.label(text);
+                            }
                         });
 
                         // Current shortcut display or input

@@ -63,6 +63,12 @@ pub enum ShortcutAction {
     SwitchToLastTab,
     #[serde(rename = "remove_duplicate_and_invalid_tabs")]
     RemoveDuplicateAndInvalidTabs,
+    #[serde(rename = "refresh_keys")]
+    RefreshKeys,
+    #[serde(rename = "execute_ai_command")]
+    ExecuteAiCommand,
+    #[serde(rename = "cancel_ai_command")]
+    CancelAiCommand,
 }
 
 impl ShortcutAction {
@@ -141,6 +147,15 @@ impl ShortcutAction {
                 ShortcutAction::RemoveDuplicateAndInvalidTabs,
                 "shortcut_remove_duplicate_and_invalid_tabs",
             ),
+            (ShortcutAction::RefreshKeys, "shortcut_refresh_keys"),
+            (
+                ShortcutAction::ExecuteAiCommand,
+                "shortcut_execute_ai_command",
+            ),
+            (
+                ShortcutAction::CancelAiCommand,
+                "shortcut_cancel_ai_command",
+            ),
         ]
     }
 
@@ -182,6 +197,9 @@ impl ShortcutAction {
             ShortcutAction::SwitchToTab9 => format!("{}+9", mod_key),
             ShortcutAction::SwitchToLastTab => format!("{}+0", mod_key),
             ShortcutAction::RemoveDuplicateAndInvalidTabs => format!("{}+Shift+D", mod_key),
+            ShortcutAction::RefreshKeys => "F5".to_string(),
+            ShortcutAction::ExecuteAiCommand => "Right".to_string(),
+            ShortcutAction::CancelAiCommand => "Left".to_string(),
         }
     }
 
@@ -220,6 +238,9 @@ impl ShortcutAction {
             ShortcutAction::RemoveDuplicateAndInvalidTabs => {
                 "shortcut_remove_duplicate_and_invalid_tabs"
             }
+            ShortcutAction::RefreshKeys => "shortcut_refresh_keys",
+            ShortcutAction::ExecuteAiCommand => "shortcut_execute_ai_command",
+            ShortcutAction::CancelAiCommand => "shortcut_cancel_ai_command",
         }
     }
 
@@ -230,6 +251,8 @@ impl ShortcutAction {
             ShortcutAction::OpenSettings
                 | ShortcutAction::CloseSettings
                 | ShortcutAction::CloseCommandLine
+                | ShortcutAction::ExecuteAiCommand
+                | ShortcutAction::CancelAiCommand
                 | ShortcutAction::SwitchToTab1
                 | ShortcutAction::SwitchToTab2
                 | ShortcutAction::SwitchToTab3
@@ -250,6 +273,7 @@ impl ShortcutAction {
                 | ShortcutAction::ConnectConnection7
                 | ShortcutAction::ConnectConnection8
                 | ShortcutAction::ConnectConnection9
+                | ShortcutAction::RefreshKeys
         )
     }
 
@@ -308,6 +332,13 @@ impl ShortcutConfig {
             .get(&format!("{:?}", action))
             .cloned()
             .unwrap_or_else(|| action.default_key())
+    }
+
+    /// Check if the binding for this action is customized (different from default)
+    pub fn is_customized(&self, action: &ShortcutAction) -> bool {
+        let current_binding = self.get_binding(action);
+        let default_binding = action.default_key();
+        current_binding != default_binding
     }
 
     pub fn set_binding(&mut self, action: &ShortcutAction, key: String) {
@@ -387,6 +418,9 @@ impl ShortcutConfig {
             "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
             "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
             "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
+            "RefreshKeys" => Some(ShortcutAction::RefreshKeys),
+            "ExecuteAiCommand" => Some(ShortcutAction::ExecuteAiCommand),
+            "CancelAiCommand" => Some(ShortcutAction::CancelAiCommand),
             _ => None,
         }
     }

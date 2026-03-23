@@ -165,6 +165,8 @@ impl eframe::App for RedisApp {
 
                             if meets_mod_requirement && alt_match && shift_match && key_match {
                                 self.handle_shortcut_action(action.clone(), ctx);
+                                // Consume the key event to prevent further processing
+                                ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, *key));
                             }
                         }
                     }
@@ -411,7 +413,10 @@ impl RedisApp {
             }
             ShortcutAction::CloseCommandLine => {
                 if let Some(tab) = self.tabs.get_mut(self.active_tab) {
-                    tab.command_line_panel.show = false;
+                    // Don't close if AI confirm dialog is open (it handles ESC itself)
+                    if tab.command_line_panel.pending_ai_command.is_none() {
+                        tab.command_line_panel.show = false;
+                    }
                 }
             }
             ShortcutAction::SwitchToTab1
@@ -461,6 +466,15 @@ impl RedisApp {
             }
             ShortcutAction::RemoveDuplicateAndInvalidTabs => {
                 self.remove_duplicate_and_invalid_tabs(ctx);
+            }
+            ShortcutAction::RefreshKeys => {
+                if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+                    tab.state.spawn_load_keys();
+                }
+            }
+            ShortcutAction::ExecuteAiCommand | ShortcutAction::CancelAiCommand => {
+                // These shortcuts are handled in render_ai_confirm_dialog
+                // Do nothing here to avoid conflicts
             }
         }
     }
