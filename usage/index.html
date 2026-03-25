@@ -565,6 +565,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ai-assistant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Assistant
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AI Assistant">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-ai-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Opening the AI Panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-command-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Command Confirmation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-context-awareness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Context Awareness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring AI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-ai-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding AI Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keyboard-shortcuts" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -969,6 +1052,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ai-assistant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Assistant
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AI Assistant">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-ai-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Opening the AI Panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-command-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Command Confirmation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-context-awareness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Context Awareness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring AI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-ai-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding AI Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keyboard-shortcuts" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1222,6 +1388,83 @@
 <li>Enter the new expiration time in seconds</li>
 <li>Click <strong>Save</strong> to apply, or leave empty to remove expiration</li>
 </ol>
+<h2 id="ai-assistant">AI Assistant</h2>
+<p>Rudist integrates an AI assistant that helps you manage Redis databases using natural language. Instead of memorizing Redis commands, you can describe what you want in plain English.</p>
+<h3 id="opening-the-ai-panel">Opening the AI Panel</h3>
+<p>Press <code>Ctrl/Cmd + E</code> to open the command line panel at the bottom of the window. The panel includes:</p>
+<ul>
+<li><strong>History area</strong>: Shows previous commands and AI responses</li>
+<li><strong>Input field</strong>: Enter Redis commands or natural language queries</li>
+</ul>
+<h3 id="how-it-works">How It Works</h3>
+<p>The AI panel intelligently detects your input type:</p>
+<table>
+<thead>
+<tr>
+<th>Input Type</th>
+<th>Example</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Redis Command</strong></td>
+<td><code>GET mykey</code></td>
+<td>Directly executes the command</td>
+</tr>
+<tr>
+<td><strong>Natural Language</strong></td>
+<td><code>show me all string keys</code></td>
+<td>Sends to AI, returns a Redis command for confirmation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Smart Detection</strong>: If your input matches a known Redis command (like <code>GET</code>, <code>SET</code>, <code>DEL</code>), it's executed directly. Otherwise, it's sent to the AI for interpretation.</p>
+<h3 id="ai-command-confirmation">AI Command Confirmation</h3>
+<p>When you enter a natural language query and the AI returns a Redis command:</p>
+<ol>
+<li>A confirmation dialog appears showing:</li>
+<li><strong>Q</strong>: Your original question</li>
+<li><strong>→</strong>: The suggested Redis command</li>
+<li>Choose to <strong>Execute</strong> or <strong>Cancel</strong></li>
+</ol>
+<p><strong>Keyboard shortcuts for the dialog:</strong>
+- <code>→</code> (Right Arrow): Execute the suggested command
+- <code>←</code> (Left Arrow): Cancel and discard</p>
+<p><strong>Auto-execute mode</strong>: In AI settings, you can enable auto-execute to skip the confirmation dialog and run commands directly.</p>
+<h3 id="ai-context-awareness">AI Context Awareness</h3>
+<p>The AI has access to your current context when generating commands:</p>
+<ul>
+<li>Current connection name and address</li>
+<li>Current database number</li>
+<li>Currently selected key (if any)</li>
+</ul>
+<p>This allows it to generate context-aware commands like <code>GET user:123</code> when you've selected that key.</p>
+<h3 id="configuring-ai">Configuring AI</h3>
+<ol>
+<li>Open Settings (<code>Ctrl/Cmd + ,</code>)</li>
+<li>Go to the <strong>AI</strong> tab</li>
+<li>Configure:</li>
+<li><strong>Enable/Disable</strong>: Toggle AI features globally</li>
+<li><strong>Model Selection</strong>: Choose from configured AI models</li>
+<li><strong>Confirm Before Execute</strong>: Require confirmation before running AI-generated commands</li>
+<li><strong>Show Thinking</strong>: Display "Thinking..." while AI is processing</li>
+<li><strong>System Prompt</strong>: Customize AI behavior instructions</li>
+</ol>
+<h3 id="adding-ai-models">Adding AI Models</h3>
+<p>Rudist supports multiple AI providers via custom API endpoints:</p>
+<ol>
+<li>Click <strong>Add Model</strong></li>
+<li>Fill in:</li>
+<li><strong>Name</strong>: Display name (e.g., "My GPT-4")</li>
+<li><strong>URL</strong>: API endpoint base URL</li>
+<li><strong>Model ID</strong>: Specific model identifier</li>
+<li><strong>API Key</strong>: Authentication key (stored securely in system keychain)</li>
+</ol>
+<p><strong>Supported providers</strong>: OpenAI, Anthropic Claude, Ollama (local), OpenRouter, and any OpenAI-compatible API.</p>
+<blockquote>
+<p><strong>Note</strong>: API keys are stored securely in your operating system's credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service). They are never saved to plain text config files.</p>
+</blockquote>
 <h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
 <p>Rudist supports customizable keyboard shortcuts. Default configuration:</p>
 <table>
@@ -1244,9 +1487,14 @@
 <td>Close the current active tab</td>
 </tr>
 <tr>
+<td><code>Ctrl/Cmd + N</code></td>
+<td>New Connection</td>
+<td>Open the new connection dialog</td>
+</tr>
+<tr>
 <td><code>Ctrl/Cmd + R</code></td>
 <td>Refresh Key</td>
-<td>Reload the currently selected key</td>
+<td>Reload the currently selected key's value and TTL</td>
 </tr>
 <tr>
 <td><code>Ctrl/Cmd + F</code></td>
@@ -1254,19 +1502,68 @@
 <td>Quickly focus the key filter input box</td>
 </tr>
 <tr>
+<td><code>Ctrl/Cmd + E</code></td>
+<td>Toggle Command Line</td>
+<td>Open or close the CLI panel (AI command input)</td>
+</tr>
+<tr>
 <td><code>Ctrl/Cmd + ,</code></td>
 <td>Open Settings</td>
 <td>Open the settings window</td>
 </tr>
 <tr>
+<td><code>Ctrl/Cmd + Shift + D</code></td>
+<td>Remove Duplicate Tabs</td>
+<td>Close duplicate tabs connected to the same Redis instance</td>
+</tr>
+<tr>
+<td><code>F5</code></td>
+<td>Refresh Key List</td>
+<td>Reload the entire key list from the sidebar</td>
+</tr>
+<tr>
 <td><code>Esc</code></td>
-<td>Close Settings</td>
-<td>Close the settings window (only when settings is open)</td>
+<td>Close Settings / Command Line</td>
+<td>Close settings window, or close CLI panel (context-dependent)</td>
+</tr>
+<tr>
+<td><code>Cmd/Ctrl + 1-9</code></td>
+<td>Switch to Tab</td>
+<td>Switch to tab 1 through 9</td>
+</tr>
+<tr>
+<td><code>Cmd/Ctrl + 0</code></td>
+<td>Switch to Last Tab</td>
+<td>Switch to the previously active tab</td>
+</tr>
+<tr>
+<td><code>1-9</code></td>
+<td>Quick Connect</td>
+<td>Connect to saved connection 1 through 9 (no modifier)</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>Connect All Unclosed</td>
+<td>Reconnect all previously connected connections</td>
+</tr>
+<tr>
+<td><code>→</code> (Right Arrow)</td>
+<td>Execute AI Command</td>
+<td>Execute the AI-suggested command (non-customizable)</td>
+</tr>
+<tr>
+<td><code>←</code> (Left Arrow)</td>
+<td>Cancel AI Command</td>
+<td>Cancel the AI command confirmation dialog (non-customizable)</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Note</strong>: Use <code>Cmd</code> key on macOS, <code>Ctrl</code> key on Windows/Linux.</p>
+<p><strong>Note</strong>:
+- Use <code>Cmd</code> key on macOS, <code>Ctrl</code> key on Windows/Linux.
+- <code>Ctrl/Cmd + R</code> only refreshes the currently selected key; <code>F5</code> refreshes the entire key list in the sidebar.
+- <code>Esc</code> behavior depends on context: when settings is open, it closes settings; otherwise, it closes the CLI panel (if open).
+- Some shortcuts (Tab switching 1-9, Quick Connect 0-9, AI commands, Refresh Key List) are fixed and cannot be customized.</p>
 </blockquote>
 <h3 id="customizing-shortcuts">Customizing Shortcuts</h3>
 <ol>

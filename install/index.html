@@ -365,6 +365,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#important-keychainkeyring-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important: Keychain/Keyring Access
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important: Keychain/Keyring Access">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#first-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First Launch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-this-is-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Is Needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-if-i-deny" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What If I Deny?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -513,6 +563,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#important-keychainkeyring-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important: Keychain/Keyring Access
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important: Keychain/Keyring Access">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#first-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First Launch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-this-is-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Is Needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-if-i-deny" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What If I Deny?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -545,6 +645,27 @@ cargo run
 <pre><code class="language-bash">cargo build --release
 </code></pre>
 <p>Executable: <code>target/release/rudist</code></p>
+<h2 id="important-keychainkeyring-access">Important: Keychain/Keyring Access</h2>
+<blockquote>
+<p>⚠️ <strong>IMPORTANT</strong>: Rudist uses the system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service) to securely store Redis connection passwords.</p>
+</blockquote>
+<h3 id="first-launch">First Launch</h3>
+<p>On <strong>first launch</strong>, your system will prompt you to enter your <strong>login password</strong> to allow Rudist to access the keychain. This is a <strong>one-time permission</strong> request.</p>
+<ul>
+<li><strong>macOS</strong>: You'll see a system dialog asking for your login password</li>
+<li><strong>Windows</strong>: You may see a UAC prompt or credential request</li>
+<li><strong>Linux</strong>: A keyring unlock dialog may appear</li>
+</ul>
+<h3 id="why-this-is-needed">Why This Is Needed</h3>
+<ul>
+<li>Connection passwords are stored encrypted in the system keychain</li>
+<li>This ensures your Redis credentials remain secure</li>
+<li>Without this permission, Rudist cannot save or retrieve connection passwords</li>
+</ul>
+<h3 id="what-if-i-deny">What If I Deny?</h3>
+<p>If you deny keychain access, you can still use Rudist, but:
+- Passwords won't be saved between sessions
+- You'll need to enter passwords manually each time you connect</p>
 
 
 
