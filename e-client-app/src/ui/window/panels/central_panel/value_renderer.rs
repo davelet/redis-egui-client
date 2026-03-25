@@ -80,7 +80,16 @@ fn render_list_value(
     ui.label(tr_fmt(keys::TYPE_LIST, current_lang, &[&len.to_string()]));
 
     if items.is_empty() && *len > 0 {
-        if ui.button(tr(keys::LOAD_FIRST_100, current_lang)).clicked() {
+        let auto_expand = app.config.settings.auto_expand;
+        let threshold = app.config.settings.auto_expand_threshold;
+        if auto_expand && *len <= threshold {
+            // Auto-load all items when auto-expand is enabled and within threshold
+            app.tabs[active_tab_idx].state.spawn_load_list_range(
+                key.to_string(),
+                0,
+                ((*len).saturating_sub(1)) as isize,
+            );
+        } else if ui.button(tr(keys::LOAD_FIRST_100, current_lang)).clicked() {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_list_range(key.to_string(), 0, 99);
@@ -135,15 +144,30 @@ fn render_hash_value(
         }
     });
 
+    let auto_expand = app.config.settings.auto_expand;
+    let threshold = app.config.settings.auto_expand_threshold;
+
     if fields.is_empty() {
         if len > 0 {
-            if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
+            if auto_expand && len <= threshold {
+                // Auto-load fields when auto-expand is enabled and len is within threshold
+                app.tabs[active_tab_idx]
+                    .state
+                    .spawn_load_hash_fields(key.to_string());
+            } else if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
                 app.tabs[active_tab_idx]
                     .state
                     .spawn_load_hash_fields(key.to_string());
             }
         }
     } else {
+        // Auto-load all hash field values when auto-expand is enabled and within threshold
+        if auto_expand && len <= threshold && loaded_values.len() < len {
+            app.tabs[active_tab_idx]
+                .state
+                .spawn_load_all_hash_field_values(key.to_string());
+        }
+
         let filter = app.poll_string_hash_field_filter();
 
         let filtered_fields: Vec<&String> = fields
@@ -272,7 +296,14 @@ fn render_set_value(
     ui.label(tr_fmt(keys::TYPE_SET, current_lang, &[&len.to_string()]));
 
     if items.is_empty() && *len > 0 {
-        if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+        let auto_expand = app.config.settings.auto_expand;
+        let threshold = app.config.settings.auto_expand_threshold;
+        if auto_expand && *len <= threshold {
+            // Auto-load all members when auto-expand is enabled and within threshold
+            app.tabs[active_tab_idx]
+                .state
+                .spawn_load_set_members(key.to_string());
+        } else if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_set_members(key.to_string());
@@ -305,7 +336,16 @@ fn render_zset_value(
     ui.label(tr_fmt(keys::TYPE_ZSET, current_lang, &[&len.to_string()]));
 
     if items.is_empty() && *len > 0 {
-        if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+        let auto_expand = app.config.settings.auto_expand;
+        let threshold = app.config.settings.auto_expand_threshold;
+        if auto_expand && *len <= threshold {
+            // Auto-load all items when auto-expand is enabled and within threshold
+            app.tabs[active_tab_idx].state.spawn_load_zset_range(
+                key.to_string(),
+                0,
+                ((*len).saturating_sub(1)) as isize,
+            );
+        } else if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_zset_range(key.to_string(), 0, 99);

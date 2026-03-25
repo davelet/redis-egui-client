@@ -16,10 +16,12 @@ pub struct ConfigOfUser {
     pub allow_duplicate_connections: bool,
     #[serde(default = "default_true")]
     pub group_keys_by_colon: bool,
-}
-
-fn default_true() -> bool {
-    true
+    #[serde(default)]
+    pub auto_refresh_ttl: bool,
+    #[serde(default)]
+    pub auto_expand: bool,
+    #[serde(default = "default_auto_expand_threshold")]
+    pub auto_expand_threshold: usize,
 }
 
 impl Default for ConfigOfUser {
@@ -31,6 +33,17 @@ impl Default for ConfigOfUser {
             show_unclosed_connections: true,
             allow_duplicate_connections: true,
             group_keys_by_colon: true,
+            auto_refresh_ttl: false,
+            auto_expand: true,
+            auto_expand_threshold: default_auto_expand_threshold(),
         }
     }
+}
+
+fn default_auto_expand_threshold() -> usize {
+    2
+}
+
+fn default_true() -> bool {
+    true
 }

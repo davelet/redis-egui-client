@@ -105,6 +105,79 @@ Click the **🔄** button to reload the current key's value and TTL.
 2. Enter the new expiration time in seconds
 3. Click **Save** to apply, or leave empty to remove expiration
 
+## AI Assistant
+
+Rudist integrates an AI assistant that helps you manage Redis databases using natural language. Instead of memorizing Redis commands, you can describe what you want in plain English.
+
+### Opening the AI Panel
+
+Press `Ctrl/Cmd + E` to open the command line panel at the bottom of the window. The panel includes:
+
+- **History area**: Shows previous commands and AI responses
+- **Input field**: Enter Redis commands or natural language queries
+
+### How It Works
+
+The AI panel intelligently detects your input type:
+
+| Input Type | Example | Behavior |
+|------------|---------|----------|
+| **Redis Command** | `GET mykey` | Directly executes the command |
+| **Natural Language** | `show me all string keys` | Sends to AI, returns a Redis command for confirmation |
+
+**Smart Detection**: If your input matches a known Redis command (like `GET`, `SET`, `DEL`), it's executed directly. Otherwise, it's sent to the AI for interpretation.
+
+### AI Command Confirmation
+
+When you enter a natural language query and the AI returns a Redis command:
+
+1. A confirmation dialog appears showing:
+   - **Q**: Your original question
+   - **→**: The suggested Redis command
+2. Choose to **Execute** or **Cancel**
+
+**Keyboard shortcuts for the dialog:**
+- `→` (Right Arrow): Execute the suggested command
+- `←` (Left Arrow): Cancel and discard
+
+**Auto-execute mode**: In AI settings, you can enable auto-execute to skip the confirmation dialog and run commands directly.
+
+### AI Context Awareness
+
+The AI has access to your current context when generating commands:
+
+- Current connection name and address
+- Current database number
+- Currently selected key (if any)
+
+This allows it to generate context-aware commands like `GET user:123` when you've selected that key.
+
+### Configuring AI
+
+1. Open Settings (`Ctrl/Cmd + ,`)
+2. Go to the **AI** tab
+3. Configure:
+   - **Enable/Disable**: Toggle AI features globally
+   - **Model Selection**: Choose from configured AI models
+   - **Confirm Before Execute**: Require confirmation before running AI-generated commands
+   - **Show Thinking**: Display "Thinking..." while AI is processing
+   - **System Prompt**: Customize AI behavior instructions
+
+### Adding AI Models
+
+Rudist supports multiple AI providers via custom API endpoints:
+
+1. Click **Add Model**
+2. Fill in:
+   - **Name**: Display name (e.g., "My GPT-4")
+   - **URL**: API endpoint base URL
+   - **Model ID**: Specific model identifier
+   - **API Key**: Authentication key (stored securely in system keychain)
+
+**Supported providers**: OpenAI, Anthropic Claude, Ollama (local), OpenRouter, and any OpenAI-compatible API.
+
+> **Note**: API keys are stored securely in your operating system's credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service). They are never saved to plain text config files.
+
 ## Keyboard Shortcuts
 
 Rudist supports customizable keyboard shortcuts. Default configuration:
@@ -113,12 +186,26 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 |----------|----------|-------------|
 | `Ctrl/Cmd + T` | New Tab | Open a new blank tab |
 | `Ctrl/Cmd + W` | Close Tab | Close the current active tab |
-| `Ctrl/Cmd + R` | Refresh Key | Reload the currently selected key |
+| `Ctrl/Cmd + N` | New Connection | Open the new connection dialog |
+| `Ctrl/Cmd + R` | Refresh Key | Reload the currently selected key's value and TTL |
 | `Ctrl/Cmd + F` | Focus Filter | Quickly focus the key filter input box |
+| `Ctrl/Cmd + E` | Toggle Command Line | Open or close the CLI panel (AI command input) |
 | `Ctrl/Cmd + ,` | Open Settings | Open the settings window |
-| `Esc` | Close Settings | Close the settings window (only when settings is open) |
+| `Ctrl/Cmd + Shift + D` | Remove Duplicate Tabs | Close duplicate tabs connected to the same Redis instance |
+| `F5` | Refresh Key List | Reload the entire key list from the sidebar |
+| `Esc` | Close Settings / Command Line | Close settings window, or close CLI panel (context-dependent) |
+| `Cmd/Ctrl + 1-9` | Switch to Tab | Switch to tab 1 through 9 |
+| `Cmd/Ctrl + 0` | Switch to Last Tab | Switch to the previously active tab |
+| `1-9` | Quick Connect | Connect to saved connection 1 through 9 (no modifier) |
+| `0` | Connect All Unclosed | Reconnect all previously connected connections |
+| `→` (Right Arrow) | Execute AI Command | Execute the AI-suggested command (non-customizable) |
+| `←` (Left Arrow) | Cancel AI Command | Cancel the AI command confirmation dialog (non-customizable) |
 
-> **Note**: Use `Cmd` key on macOS, `Ctrl` key on Windows/Linux.
+> **Note**:
+> - Use `Cmd` key on macOS, `Ctrl` key on Windows/Linux.
+> - `Ctrl/Cmd + R` only refreshes the currently selected key; `F5` refreshes the entire key list in the sidebar.
+> - `Esc` behavior depends on context: when settings is open, it closes settings; otherwise, it closes the CLI panel (if open).
+> - Some shortcuts (Tab switching 1-9, Quick Connect 0-9, AI commands, Refresh Key List) are fixed and cannot be customized.
 
 ### Customizing Shortcuts
 

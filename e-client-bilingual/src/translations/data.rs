@@ -321,6 +321,21 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
         keys::GROUP_KEYS_BY_COLON,
         tr_en_zh("Group Keys by Colon", "按冒号分组键"),
     );
+    strings.insert(
+        keys::AUTO_REFRESH_TTL,
+        tr_en_zh("Auto Refresh TTL", "自动刷新 TTL"),
+    );
+    strings.insert(
+        keys::AUTO_EXPAND,
+        tr_en_zh("Auto Expand Composite Types", "自动展开复合类型"),
+    );
+    strings.insert(
+        keys::AUTO_EXPAND_THRESHOLD,
+        tr_en_zh(
+            "Expand When Elements Not Exceeding",
+            "元素不超过此值时自动展开",
+        ),
+    );
 
     // Keyboard shortcuts
     strings.insert(

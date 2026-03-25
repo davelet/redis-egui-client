@@ -17,8 +17,8 @@ pub fn render_view_mode(
     ttl: i64,
     current_lang: Language,
 ) {
-    // Auto-refresh TTL every second (only when TTL > 0, meaning key has expiration)
-    if ttl > 0 {
+    // Auto-refresh TTL every second (only when TTL > 0 and auto_refresh is enabled)
+    if ttl > 0 && app.config.settings.auto_refresh_ttl {
         let should_refresh = {
             let last_refresh = app.tabs[active_tab_idx]
                 .state
