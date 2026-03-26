@@ -1,6 +1,6 @@
 [package]
 name = "e-client-app"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 repository = "https://github.com/davelet/redis-egui-client"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
@@ -27,6 +27,8 @@ wgpu = { version = "27", features = ["metal", "dx12"]}
 tracing = "0.1.44"
 tracing-subscriber = "0.3.22"
 
+[build-dependencies]
+winres = "0.1.12"
 [package.metadata.bundle]
 name = "Rudist"
 identifier = "com.sheldon.client.rudist"
@@ -42,3 +44,30 @@ upgrade-guid = "7B341871-490E-44C5-BE5B-9BDE6D84A371"
 path-guid = "11E8DDEE-AA89-406C-9A09-8558E7D5BE88"
 license = false
 eula = false
+
+[package.metadata.packager]
+product-name = "Rudist"
+identifier = "com.sheldon.client.rudist"
+version = "0.4.1"
+category = "DeveloperTool"
+publisher = "Sheldon.Wei"
+homepage = "https://github.com/davelet/redis-egui-client"
+icons = ["../assets/icon.icns"]
+
+formats = [
+  "wix",     # Windows 安装包
+  "dmg",      # macOS 镜像
+]
+
+[[package.metadata.packager.binaries]]
+main = true
+path = "e-client-app"
+
+[package.metadata.packager.macos]
+minimum-system-version = "10.13"
+entitlements = "entitlements.plist"
+
+[package.metadata.packager.dmg]
+app-position = [180, 170]
+application-folder-position = [360, 170]
+window-size = [600, 400]

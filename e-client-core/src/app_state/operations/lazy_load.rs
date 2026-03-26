@@ -26,12 +26,21 @@ pub fn spawn_load_list_range(state: &AppState, key: String, start: isize, stop: 
 pub fn spawn_load_hash_fields(state: &AppState, key: String) {
     let state = state.clone();
     tokio::spawn(async move {
+        let filter = state.hash_field_filter.read().await.clone();
+        let match_pattern = if filter.is_empty() {
+            "*".to_string()
+        } else if filter.contains('*') {
+            filter
+        } else {
+            format!("*{}*", filter)
+        };
+
         match state
             .redis_client
-            .get_hash_fields(&key, 0, ITEMS_PER_LOAD)
+            .get_hash_fields(&key, &match_pattern)
             .await
         {
-            Ok((_, fields)) => {
+            Ok(fields) => {
                 let mut value = state.key_value.write().await;
                 if let Some(ValueData::Hash {
                     fields: existing_fields,
@@ -53,12 +62,21 @@ pub fn spawn_load_hash_fields(state: &AppState, key: String) {
 pub fn spawn_load_hash_fields_preserve_values(state: &AppState, key: String) {
     let state = state.clone();
     tokio::spawn(async move {
+        let filter = state.hash_field_filter.read().await.clone();
+        let match_pattern = if filter.is_empty() {
+            "*".to_string()
+        } else if filter.contains('*') {
+            filter
+        } else {
+            format!("*{}*", filter)
+        };
+
         match state
             .redis_client
-            .get_hash_fields(&key, 0, ITEMS_PER_LOAD)
+            .get_hash_fields(&key, &match_pattern)
             .await
         {
-            Ok((_, fields)) => {
+            Ok(fields) => {
                 let mut value = state.key_value.write().await;
                 if let Some(ValueData::Hash {
                     fields: existing_fields,

@@ -83,7 +83,10 @@ pub fn spawn_update_ttl(state: &AppState, key: String, ttl: i64) {
         } else {
             state.edit_state.write().await.save_message = "TTL updated successfully".to_string();
             // Refresh TTL display without clearing hash fields
-            state.spawn_load_value(key, false);
+            state.spawn_load_value(
+                key,
+                crate::app_state::operations::keys::HashLoadMode::PreserveFields,
+            );
         }
     });
 }

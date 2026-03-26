@@ -131,7 +131,7 @@ fn render_value_edit(
 
     match edited_value {
         EditedValue::String(s) => {
-            changed |= render_string_edit(ui, s, editable);
+            changed |= render_string_edit(ui, s, editable, current_lang);
         }
         EditedValue::Hash(fields) => {
             changed |= render_hash_edit(ui, fields, editable, current_lang);
@@ -154,16 +154,13 @@ fn render_value_edit(
 }
 
 /// Render string value edit
-fn render_string_edit(ui: &mut egui::Ui, s: &mut crate::core::JsonValue, editable: bool) -> bool {
-    ui.label(tr(
-        keys::TYPE_STRING,
-        ui.ctx()
-            .style()
-            .text_styles
-            .values()
-            .next()
-            .map_or(English, |_| English),
-    ));
+fn render_string_edit(
+    ui: &mut egui::Ui,
+    s: &mut crate::core::JsonValue,
+    editable: bool,
+    current_lang: Language,
+) -> bool {
+    ui.label(tr(keys::TYPE_STRING, current_lang));
     let mut changed = false;
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])

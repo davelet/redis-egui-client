@@ -14,9 +14,12 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
     let connected = app.poll_bool(app.tabs[active_tab_idx].state.connected.clone());
     let loading = app.poll_bool(app.tabs[active_tab_idx].state.loading.clone());
     let total_keys = app.poll_usize(app.tabs[active_tab_idx].state.total_keys.clone());
-    let loaded_keys = app
-        .poll_vec_string(app.tabs[active_tab_idx].state.keys.clone())
-        .len();
+    let loaded_keys = app.tabs[active_tab_idx]
+        .state
+        .keys
+        .try_read()
+        .map(|k| k.len())
+        .unwrap_or(0);
     let scan_has_more = app.poll_bool(app.tabs[active_tab_idx].state.scan_has_more.clone());
     let error_message = app.poll_string(app.tabs[active_tab_idx].state.error_message.clone());
 

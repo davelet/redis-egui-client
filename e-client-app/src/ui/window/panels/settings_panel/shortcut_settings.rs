@@ -171,7 +171,7 @@ pub fn render_shortcut_settings(
     current_lang: Language,
 ) {
     // Check if we're currently capturing a shortcut
-    let is_capturing = app.editing_shortcut.is_some();
+    let is_capturing = app.shortcut_state.editing_shortcut.is_some();
 
     if is_capturing {
         ui.colored_label(
@@ -182,7 +182,7 @@ pub fn render_shortcut_settings(
     }
 
     // Show conflict warning if any
-    if let Some(ref warning) = app.shortcut_conflict_warning {
+    if let Some(ref warning) = app.shortcut_state.shortcut_conflict_warning {
         ui.colored_label(
             ui.visuals().error_fg_color,
             format!("{} {}", emoji::action::WARNING, warning),
@@ -195,19 +195,20 @@ pub fn render_shortcut_settings(
         ctx.input(|i| {
             // Check for Enter key to save
             if i.key_pressed(egui::Key::Enter) {
-                let has_conflict = app.shortcut_conflict_warning.is_some();
-                let can_save = !app.shortcut_input_buffer.is_empty() && !has_conflict;
+                let has_conflict = app.shortcut_state.shortcut_conflict_warning.is_some();
+                let can_save =
+                    !app.shortcut_state.shortcut_input_buffer.is_empty() && !has_conflict;
                 if can_save {
-                    if let Some(current_action_str) = &app.editing_shortcut {
+                    if let Some(current_action_str) = &app.shortcut_state.editing_shortcut {
                         if let Some(current_action) = parse_action_from_key(current_action_str) {
-                            app.config
-                                .settings
-                                .shortcuts
-                                .set_binding(&current_action, app.shortcut_input_buffer.clone());
+                            app.config.settings.shortcuts.set_binding(
+                                &current_action,
+                                app.shortcut_state.shortcut_input_buffer.clone(),
+                            );
                             app.config.mark_settings_dirty();
-                            app.editing_shortcut = None;
-                            app.shortcut_input_buffer.clear();
-                            app.shortcut_conflict_warning = None;
+                            app.shortcut_state.editing_shortcut = None;
+                            app.shortcut_state.shortcut_input_buffer.clear();
+                            app.shortcut_state.shortcut_conflict_warning = None;
                         }
                     }
                 }
@@ -215,9 +216,9 @@ pub fn render_shortcut_settings(
 
             // Check for Escape key to cancel
             if i.key_pressed(egui::Key::Escape) {
-                app.editing_shortcut = None;
-                app.shortcut_input_buffer.clear();
-                app.shortcut_conflict_warning = None;
+                app.shortcut_state.editing_shortcut = None;
+                app.shortcut_state.shortcut_input_buffer.clear();
+                app.shortcut_state.shortcut_conflict_warning = None;
             }
 
             let modifiers = i.modifiers;
@@ -246,26 +247,26 @@ pub fn render_shortcut_settings(
                         parts.push("Shift".to_string());
                     }
                     parts.push(format!("{:?}", key));
-                    app.shortcut_input_buffer = parts.join("+");
+                    app.shortcut_state.shortcut_input_buffer = parts.join("+");
 
                     // Check for conflicts
-                    if let Some(current_action_str) = &app.editing_shortcut {
+                    if let Some(current_action_str) = &app.shortcut_state.editing_shortcut {
                         if let Some(current_action) = parse_action_from_key(current_action_str) {
-                            if let Some(conflict_action) = app
-                                .config
-                                .settings
-                                .shortcuts
-                                .check_conflict(&app.shortcut_input_buffer, &current_action)
+                            if let Some(conflict_action) =
+                                app.config.settings.shortcuts.check_conflict(
+                                    &app.shortcut_state.shortcut_input_buffer,
+                                    &current_action,
+                                )
                             {
                                 let conflict_name =
                                     tr(conflict_action.translation_key(), current_lang);
-                                app.shortcut_conflict_warning = Some(tr_fmt(
+                                app.shortcut_state.shortcut_conflict_warning = Some(tr_fmt(
                                     keys::SHORTCUT_CONFLICTS_WITH,
                                     current_lang,
                                     &[conflict_name],
                                 ));
                             } else {
-                                app.shortcut_conflict_warning = None;
+                                app.shortcut_state.shortcut_conflict_warning = None;
                             }
                         }
                     }
@@ -285,7 +286,8 @@ pub fn render_shortcut_settings(
                 .show(ui, |ui| {
                     for (action, trans_key) in ShortcutAction::all_actions() {
                         let action_key = format!("{:?}", action);
-                        let is_editing = app.editing_shortcut.as_ref() == Some(&action_key);
+                        let is_editing =
+                            app.shortcut_state.editing_shortcut.as_ref() == Some(&action_key);
 
                         // Check if this shortcut is non-editable
                         let is_non_editable = action.is_non_editable();
@@ -306,7 +308,7 @@ pub fn render_shortcut_settings(
 
                         // Current shortcut display or input
                         if is_editing {
-                            let display_text = app.shortcut_input_buffer.clone();
+                            let display_text = app.shortcut_state.shortcut_input_buffer.clone();
                             let response = ui.add(
                                 egui::TextEdit::singleline(&mut display_text.clone())
                                     .desired_width(120.0)
@@ -340,9 +342,10 @@ pub fn render_shortcut_settings(
                                 );
                             } else if is_editing {
                                 // Check if there's a conflict before allowing save
-                                let has_conflict = app.shortcut_conflict_warning.is_some();
-                                let can_save =
-                                    !app.shortcut_input_buffer.is_empty() && !has_conflict;
+                                let has_conflict =
+                                    app.shortcut_state.shortcut_conflict_warning.is_some();
+                                let can_save = !app.shortcut_state.shortcut_input_buffer.is_empty()
+                                    && !has_conflict;
 
                                 ui.visuals_mut().override_text_color =
                                     Some(ui.visuals().selection.bg_fill);
@@ -355,14 +358,14 @@ pub fn render_shortcut_settings(
                                     .add_enabled(can_save, egui::Button::new(save_text))
                                     .clicked()
                                 {
-                                    app.config
-                                        .settings
-                                        .shortcuts
-                                        .set_binding(&action, app.shortcut_input_buffer.clone());
+                                    app.config.settings.shortcuts.set_binding(
+                                        &action,
+                                        app.shortcut_state.shortcut_input_buffer.clone(),
+                                    );
                                     app.config.mark_settings_dirty();
-                                    app.editing_shortcut = None;
-                                    app.shortcut_input_buffer.clear();
-                                    app.shortcut_conflict_warning = None;
+                                    app.shortcut_state.editing_shortcut = None;
+                                    app.shortcut_state.shortcut_input_buffer.clear();
+                                    app.shortcut_state.shortcut_conflict_warning = None;
                                 }
                                 ui.visuals_mut().override_text_color = None;
                                 let cancel_text = format!(
@@ -371,9 +374,9 @@ pub fn render_shortcut_settings(
                                     tr(keys::CANCEL, current_lang)
                                 );
                                 if ui.button(cancel_text).clicked() {
-                                    app.editing_shortcut = None;
-                                    app.shortcut_input_buffer.clear();
-                                    app.shortcut_conflict_warning = None;
+                                    app.shortcut_state.editing_shortcut = None;
+                                    app.shortcut_state.shortcut_input_buffer.clear();
+                                    app.shortcut_state.shortcut_conflict_warning = None;
                                 }
                             } else {
                                 let edit_text = format!(
@@ -382,11 +385,11 @@ pub fn render_shortcut_settings(
                                     tr(keys::EDIT, current_lang)
                                 );
                                 if ui.button(edit_text).clicked() {
-                                    app.editing_shortcut = Some(action_key);
+                                    app.shortcut_state.editing_shortcut = Some(action_key);
                                     // Initialize with current binding
-                                    app.shortcut_input_buffer =
+                                    app.shortcut_state.shortcut_input_buffer =
                                         app.config.settings.shortcuts.get_binding(&action);
-                                    app.shortcut_conflict_warning = None;
+                                    app.shortcut_state.shortcut_conflict_warning = None;
                                 }
                             }
                         });
@@ -406,9 +409,9 @@ pub fn render_shortcut_settings(
             app.config.settings.shortcuts.reset_to_default();
             app.config.mark_settings_dirty();
             // Clear editing state to refresh the display
-            app.editing_shortcut = None;
-            app.shortcut_input_buffer.clear();
-            app.shortcut_conflict_warning = None;
+            app.shortcut_state.editing_shortcut = None;
+            app.shortcut_state.shortcut_input_buffer.clear();
+            app.shortcut_state.shortcut_conflict_warning = None;
         }
     });
 }

@@ -37,8 +37,9 @@
 - **内存优化** - 大值按需加载，防止内存暴涨
 
 ### 跨平台支持
-- **macOS** - 原生 App Bundle 支持，兼容 Apple Silicon 和 Intel
-- **Windows** - MSI 安装程序，支持添加到系统 PATH
+- **macOS** - 原生 App Bundle (.app)，支持 Apple Silicon (M1/M2/M3)
+  - ⚠️ **Intel Mac 不提供预构建版本**，Intel 用户需要[自行编译](#从源码构建)
+- **Windows** - MSI 安装程序，支持应用程序图标和系统 PATH 集成
 
 ## 快速开始
 
@@ -74,6 +75,15 @@ cargo install cargo-bundle
 
 # 构建 macOS 应用
 ./scripts/build-macos.sh
+```
+
+### Windows 构建（包含图标支持）
+
+Windows 构建会自动包含应用程序图标生成。确保你已安装 Windows 目标的 Rust 工具链：
+
+```bash
+# 为 Windows 构建（如果已设置交叉编译，可以从任何平台构建）
+cargo build --release --target x86_64-pc-windows-msvc
 ```
 
 ## 使用指南

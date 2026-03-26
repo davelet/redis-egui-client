@@ -181,9 +181,10 @@ fn render_ttl_controls(
 ) {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         if ui.button(emoji::action::REFRESH).clicked() {
-            app.tabs[active_tab_idx]
-                .state
-                .spawn_load_value(key.to_string(), true);
+            app.tabs[active_tab_idx].state.spawn_load_value(
+                key.to_string(),
+                e_client_core::app_state::operations::keys::HashLoadMode::ReloadFields,
+            );
         }
 
         let ttl_text = format_ttl(ttl);

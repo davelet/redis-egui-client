@@ -45,22 +45,42 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
     }
 
     let active_tab_idx = app.active_tab;
-    let tab = &app.tabs[active_tab_idx];
-    let current_lang = app.poll_language(tab.state.language.clone());
-    let connected = app.poll_bool(tab.state.connected.clone());
+    let (
+        current_lang,
+        connected,
+        keys_arc,
+        selected_key,
+        loading,
+        scan_has_more,
+        total_keys,
+        loading_progress_text,
+        key_filter,
+        side_panel_width,
+    ) = {
+        let tab = &app.tabs[active_tab_idx];
+        (
+            app.poll_language(tab.state.language.clone()),
+            app.poll_bool(tab.state.connected.clone()),
+            tab.state.keys.clone(),
+            app.poll_option_string(tab.state.selected_key.clone()),
+            app.poll_bool(tab.state.loading.clone()),
+            app.poll_bool(tab.state.scan_has_more.clone()),
+            app.poll_usize(tab.state.total_keys.clone()),
+            app.poll_string(tab.state.loading_progress_text.clone()),
+            app.poll_string(tab.state.key_filter.clone()),
+            tab.side_panel_width,
+        )
+    };
 
     if !connected {
         return;
     }
 
-    let keys = app.poll_vec_string(tab.state.keys.clone());
-    let selected_key = app.poll_option_string(tab.state.selected_key.clone());
-    let loading = app.poll_bool(tab.state.loading.clone());
-    let scan_has_more = app.poll_bool(tab.state.scan_has_more.clone());
-    let total_keys = app.poll_usize(tab.state.total_keys.clone());
-    let loading_progress_text = app.poll_string(tab.state.loading_progress_text.clone());
-    let key_filter = app.poll_string(tab.state.key_filter.clone());
-    let side_panel_width = tab.side_panel_width;
+    let keys_guard = keys_arc.try_read();
+    let keys = match &keys_guard {
+        Ok(guard) => &**guard,
+        Err(_) => &[] as &[String],
+    };
 
     // Use a unique panel ID for each tab to avoid sharing state
     let panel_id = egui::Id::new(("side_panel", active_tab_idx));
@@ -183,22 +203,22 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .show(ui, |ui| {
                     // Limit rendering to improve performance with large datasets
                     // Only show first MAX_LOADED_KEYS keys or all keys if less than that
-                    let keys_to_show: Vec<String> = if keys.len() > MAX_LOADED_KEYS {
-                        keys[0..MAX_LOADED_KEYS].to_vec()
+                    let keys_to_show = if keys.len() > MAX_LOADED_KEYS {
+                        &keys[0..MAX_LOADED_KEYS]
                     } else {
-                        keys.clone()
+                        keys
                     };
 
                     if group_by_colon {
                         // Build and render key tree
                         let mut root = KeyTreeNode::new();
-                        for key in &keys_to_show {
+                        for key in keys_to_show {
                             root.insert(key);
                         }
                         render_key_tree(ui, &root, &selected_key, active_tab_idx, app, "root");
                     } else {
                         // Render flat list
-                        for key in &keys_to_show {
+                        for key in keys_to_show {
                             render_key_item(ui, key, key, &selected_key, active_tab_idx, app);
                         }
                     }
@@ -365,7 +385,10 @@ fn render_key_item(
     if response.clicked() {
         let tab = &mut app.tabs[active_tab_idx];
         *tab.state.selected_key.blocking_write() = Some(full_key.to_string());
-        tab.state.spawn_load_value(full_key.to_string(), true);
+        tab.state.spawn_load_value(
+            full_key.to_string(),
+            e_client_core::app_state::operations::keys::HashLoadMode::ReloadFields,
+        );
     }
 
     // Draw the background for selected item
@@ -430,7 +453,10 @@ fn render_key_tree(
                     if ui.selectable_label(is_selected, name).clicked() {
                         let tab = &mut app.tabs[active_tab_idx];
                         *tab.state.selected_key.blocking_write() = Some(full_key.clone());
-                        tab.state.spawn_load_value(full_key.clone(), true);
+                        tab.state.spawn_load_value(
+                            full_key.clone(),
+                            e_client_core::app_state::operations::keys::HashLoadMode::ReloadFields,
+                        );
                     }
                 } else {
                     ui.label(name);

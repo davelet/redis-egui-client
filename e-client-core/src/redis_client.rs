@@ -61,77 +61,6 @@ impl RedisClient {
         }
     }
 
-    /// Execute a raw Redis command synchronously (blocking)
-    pub fn execute_raw_command_sync(&self, cmd: &str) -> Result<String, String> {
-        let parts: Vec<&str> = cmd.split_whitespace().collect();
-        if parts.is_empty() {
-            return Err("Empty command".to_string());
-        }
-
-        // Clone the command parts for the async block
-        let command = parts[0].to_string();
-        let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
-
-        // We need to block on the async operation
-        let rt = tokio::runtime::Handle::try_current();
-        match rt {
-            Ok(handle) => {
-                // We're in an async context, use block_in_place
-                let result: Result<String, String> = tokio::task::block_in_place(|| {
-                    handle.block_on(async {
-                        // Check connection status first with read lock
-                        {
-                            let manager = self.manager.read().await;
-                            if manager.is_none() {
-                                return Err("Not connected to Redis".to_string());
-                            }
-                        } // Read lock is released here
-
-                        // Now acquire write lock to execute command
-                        let mut manager = self.manager.write().await;
-                        if let Some(conn) = manager.as_mut() {
-                            let result: redis::RedisResult<redis::Value> =
-                                redis::cmd(&command).arg(&args).query_async(conn).await;
-                            match result {
-                                Ok(val) => Ok(format_redis_value(&val)),
-                                Err(e) => Err(e.to_string()),
-                            }
-                        } else {
-                            Err("Not connected".to_string())
-                        }
-                    })
-                });
-                result
-            }
-            Err(_) => {
-                // No runtime available, create one
-                let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-                rt.block_on(async {
-                    // Check connection status first with read lock
-                    {
-                        let manager = self.manager.read().await;
-                        if manager.is_none() {
-                            return Err("Not connected to Redis".to_string());
-                        }
-                    } // Read lock is released here
-
-                    // Now acquire write lock to execute command
-                    let mut manager = self.manager.write().await;
-                    if let Some(conn) = manager.as_mut() {
-                        let result: redis::RedisResult<redis::Value> =
-                            redis::cmd(&command).arg(&args).query_async(conn).await;
-                        match result {
-                            Ok(val) => Ok(format_redis_value(&val)),
-                            Err(e) => Err(e.to_string()),
-                        }
-                    } else {
-                        Err("Not connected".to_string())
-                    }
-                })
-            }
-        }
-    }
-
     pub async fn get_databases(&self) -> Result<Vec<u32>, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
@@ -278,15 +207,34 @@ impl RedisClient {
     pub async fn get_hash_fields(
         &self,
         key: &str,
-        _cursor: u64,
-        _count: usize,
-    ) -> Result<(u64, Vec<String>), RedisError> {
+        match_pattern: &str,
+    ) -> Result<Vec<String>, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let fields: Vec<String> = redis::cmd("HKEYS").arg(key).query_async(conn).await?;
-            Ok((0, fields))
+            let mut all_fields = Vec::new();
+            let mut cursor: u64 = 0;
+
+            loop {
+                let mut cmd = redis::cmd("HSCAN");
+                cmd.arg(key).arg(cursor);
+                if !match_pattern.is_empty() && match_pattern != "*" {
+                    cmd.arg("MATCH").arg(match_pattern);
+                }
+                cmd.arg("COUNT").arg(1000);
+
+                let (new_cursor, items): (u64, Vec<String>) = cmd.query_async(conn).await?;
+                for field in items.into_iter().step_by(2) {
+                    all_fields.push(field);
+                }
+
+                cursor = new_cursor;
+                if cursor == 0 {
+                    break;
+                }
+            }
+            Ok(all_fields)
         } else {
-            Ok((0, vec![]))
+            Ok(vec![])
         }
     }
 

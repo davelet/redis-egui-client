@@ -134,6 +134,8 @@ pub struct CommandLinePanel {
     pub pending_ai_command: Option<(String, String)>, // (user_input, suggested_redis_command)
     /// Pending AI chat async operation
     pub ai_chat_pending: Option<AiChatPending>,
+    /// Pending Redis command execution
+    pub redis_command_pending: Option<std::sync::mpsc::Receiver<Result<String, String>>>,
 }
 
 impl Default for CommandLinePanel {
@@ -147,6 +149,7 @@ impl Default for CommandLinePanel {
             saved_input: String::new(),
             pending_ai_command: None,
             ai_chat_pending: None,
+            redis_command_pending: None,
         }
     }
 }

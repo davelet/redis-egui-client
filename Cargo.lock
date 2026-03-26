@@ -727,7 +727,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "e-client-app"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "e-client-basics",
  "e-client-config",
@@ -741,6 +741,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wgpu",
+ "winres",
 ]
 
 [[package]]
@@ -766,7 +767,7 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
- "toml",
+ "toml 0.9.10+spec-1.1.0",
 ]
 
 [[package]]
@@ -783,7 +784,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-test",
- "toml",
+ "toml 0.9.10+spec-1.1.0",
  "tracing",
  "wiremock",
 ]
@@ -3826,6 +3827,15 @@ dependencies = [
 
 [[package]]
 name = "toml"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "toml"
 version = "0.9.10+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0825052159284a1a8b4d6c0c86cbc801f2da5afd2b225fa548c72f2e74002f48"
@@ -4869,6 +4879,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5364e9d77fcdeeaa6062ced926ee3381faa2ee02d3eb83a5c27a8825540829"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "winres"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b68db261ef59e9e52806f688020631e987592bd83619edccda9c47d42cde4f6c"
+dependencies = [
+ "toml 0.5.11",
 ]
 
 [[package]]

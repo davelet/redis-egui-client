@@ -1,7 +1,7 @@
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_basics::constants::UI_REPAINT_INTERVAL_MS;
-use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::config::Config;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use std::time::Instant;
 
@@ -14,8 +14,10 @@ pub use panels::{
 // Re-export types
 pub use types::{AiModelEditor, ElementEditDialog, NewKeyDialog, RedisTab};
 
+pub mod copy_feedback;
 mod new_connection_window;
 pub mod panels;
+pub mod shortcut_manager;
 mod types;
 
 /// Main application state
@@ -31,16 +33,11 @@ pub struct RedisApp {
     global_language: Language,
     // Track previous connection states to detect changes
     prev_connected_states: Vec<bool>,
-    // Copy button feedback: (success_time, failure_time)
-    copy_feedback: (Option<Instant>, Option<Instant>),
-    // Track which button was last clicked for per-button feedback
-    last_copy_button_id: Option<egui::Id>,
+    pub copy_feedback_manager: copy_feedback::CopyFeedbackManager,
     // Track if open connections prompt should be shown
     show_open_connections_prompt: bool,
     // Shortcut editing state
-    editing_shortcut: Option<String>, // action name being edited
-    shortcut_input_buffer: String,    // buffer for capturing new shortcut
-    shortcut_conflict_warning: Option<String>, // conflict warning message
+    pub shortcut_state: shortcut_manager::ShortcutManagerState,
     // Track if tab bar should scroll to show active tab
     scroll_to_tab: Option<usize>,
     // Track if all tabs dropdown should be shown (triggered by shortcut)
@@ -96,83 +93,8 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        use e_client_config::config::shortcuts::ParsedShortcut;
-
-        // Handle keyboard shortcuts using custom configuration
-        // Only process shortcuts when settings window is not open
-        if !self.show_settings {
-            use crate::ui::window::panels::settings_panel::SUPPORTED_KEYS;
-
-            // Collect current input state once
-            let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
-                let keys: Vec<egui::Key> = SUPPORTED_KEYS
-                    .into_iter()
-                    .filter(|k| i.key_pressed(*k))
-                    .collect();
-                (i.modifiers, keys)
-            });
-
-            // Check if any text input (TextEdit) is focused
-            let text_input_focused = ctx.wants_keyboard_input();
-
-            // Check if any pressed key is a function key (F1-F12) or ESC
-            let has_function_key = pressed_keys.iter().any(|k| {
-                matches!(
-                    k,
-                    egui::Key::F1
-                        | egui::Key::F2
-                        | egui::Key::F3
-                        | egui::Key::F4
-                        | egui::Key::F5
-                        | egui::Key::F6
-                        | egui::Key::F7
-                        | egui::Key::F8
-                        | egui::Key::F9
-                        | egui::Key::F10
-                        | egui::Key::F11
-                        | egui::Key::F12
-                )
-            });
-            let esc_pressed = pressed_keys.contains(&egui::Key::Escape);
-
-            // Only process shortcuts when:
-            // 1. No text input has focus, OR
-            // 2. ESC is pressed, OR
-            // 3. A function key is pressed
-            let should_process_shortcuts = !text_input_focused || esc_pressed || has_function_key;
-
-            if should_process_shortcuts {
-                // Check each configured shortcut
-                let is_macos = cfg!(target_os = "macos");
-                for (action, _) in ShortcutAction::all_actions() {
-                    let binding = self.config.settings.shortcuts.get_binding(&action);
-                    if let Some(parsed) = ParsedShortcut::parse(&binding) {
-                        for key in &pressed_keys {
-                            let key_str = format!("{:?}", key);
-                            let mod_pressed: bool =
-                                parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
-                            let alt_match = parsed.alt == modifiers.alt;
-                            let shift_match = parsed.shift == modifiers.shift;
-                            let key_match = parsed.key_matches(&key_str);
-
-                            // For shortcuts that need modifiers (like Cmd+N), check mod_pressed.
-                            // For shortcuts without modifiers (like "1", "2", "0"), ensure no extra modifiers are pressed.
-                            let meets_mod_requirement = if parsed.command || parsed.ctrl {
-                                mod_pressed
-                            } else {
-                                !modifiers.command && !modifiers.ctrl
-                            };
-
-                            if meets_mod_requirement && alt_match && shift_match && key_match {
-                                self.handle_shortcut_action(action.clone(), ctx);
-                                // Consume the key event to prevent further processing
-                                ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, *key));
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Handle keyboard shortcuts
+        shortcut_manager::handle_shortcuts(self, ctx);
 
         // Get the viewport information before the async block
         let viewport = ctx.input(|i| i.viewport().clone());
@@ -194,22 +116,7 @@ impl eframe::App for RedisApp {
         // Settings are saved on exit, no need to check here
 
         // Clear expired copy feedback
-        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
-        use std::time::Duration;
-        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
-        let now = std::time::Instant::now();
-
-        if let Some(time) = self.copy_feedback.0 {
-            if now.duration_since(time) >= duration {
-                self.copy_feedback.0 = None;
-            }
-        }
-
-        if let Some(time) = self.copy_feedback.1 {
-            if now.duration_since(time) >= duration {
-                self.copy_feedback.1 = None;
-            }
-        }
+        self.copy_feedback_manager.update();
 
         // Render tab bar
         render_tab_bar(self, ctx);
@@ -309,173 +216,14 @@ impl RedisApp {
             element_edit_dialog: ElementEditDialog::default(),
             global_language: language,
             prev_connected_states,
-            copy_feedback: (None, None),
-            last_copy_button_id: None,
+            copy_feedback_manager: copy_feedback::CopyFeedbackManager::default(),
             show_open_connections_prompt: false,
-            editing_shortcut: None,
-            shortcut_input_buffer: String::new(),
-            shortcut_conflict_warning: None,
+            shortcut_state: shortcut_manager::ShortcutManagerState::default(),
             scroll_to_tab: None,
             show_all_tabs_dropdown: false,
             ai_model_editor: AiModelEditor::default(),
             delete_connection_confirm: None,
             settings_expanded_section: None,
-        }
-    }
-
-    fn handle_shortcut_action(&mut self, action: ShortcutAction, ctx: &egui::Context) {
-        match action {
-            ShortcutAction::NewConnection => {
-                // Only show new connection dialog if current tab is not connected
-                if let Some(tab) = self.get_active_tab() {
-                    let connected = self.poll_bool(tab.state.connected.clone());
-                    if !connected {
-                        self.new_connection.show = true;
-                    }
-                } else {
-                    // No active tab, show new connection dialog
-                    self.new_connection.show = true;
-                }
-            }
-            ShortcutAction::ConnectAllUnclosed => {
-                let connections: Vec<_> = self
-                    .config
-                    .connections
-                    .connections
-                    .iter()
-                    .cloned()
-                    .collect();
-                let open_conn_names: Vec<_> =
-                    self.config.window.open_connections.connection_names.clone();
-
-                if !open_conn_names.is_empty() {
-                    for (i, conn_name) in open_conn_names.iter().enumerate() {
-                        if let Some(conn_idx) =
-                            connections.iter().position(|c| &c.name == conn_name)
-                        {
-                            let conn = connections[conn_idx].clone();
-                            if i == 0 {
-                                if let Some(tab) = self.get_active_tab_mut() {
-                                    let conn_clone = conn.clone();
-                                    *tab.state.connection_param.blocking_write() =
-                                        Some(conn_clone.clone());
-                                    tab.name = conn.name.clone();
-                                    tab.connected_color = conn.color.clone();
-                                    tab.selected_connection = Some(conn_idx);
-
-                                    let active_tab_idx = self.active_tab;
-                                    self.load_connection_preferences(active_tab_idx);
-                                    self.spawn_connect_with_initial_db(active_tab_idx);
-                                }
-                            } else {
-                                self.create_tab_with_connection(conn_idx, conn);
-                            }
-                        }
-                    }
-                    self.config.clear_open_connections();
-                    self.show_open_connections_prompt = false;
-                }
-            }
-            ShortcutAction::NewTab => self.create_new_tab(),
-            ShortcutAction::CloseTab => {
-                let idx = self.active_tab;
-                self.close_tab(idx, ctx);
-            }
-            ShortcutAction::RefreshKey => {
-                if let Some(tab) = self.tabs.get(self.active_tab) {
-                    if let Some(key) = tab.state.selected_key.blocking_read().clone() {
-                        tab.state.spawn_load_value(key, true);
-                    }
-                }
-            }
-            ShortcutAction::FocusFilter => {
-                ctx.memory_mut(|mem| {
-                    mem.request_focus(egui::Id::new("key_filter_input"));
-                });
-            }
-            ShortcutAction::CloseSettings => {
-                // CloseSettings is handled in top_panel.rs when settings window is open
-            }
-            ShortcutAction::OpenSettings => {
-                self.show_settings = true;
-            }
-            ShortcutAction::ToggleCommandLine => {
-                if let Some(tab) = self.tabs.get_mut(self.active_tab) {
-                    if tab.command_line_panel.show {
-                        ctx.memory_mut(|mem| {
-                            mem.request_focus(egui::Id::new("command_line_input"));
-                        });
-                    } else {
-                        tab.command_line_panel.show = true;
-                        tab.command_line_panel.scroll_to_bottom = true;
-                    }
-                }
-            }
-            ShortcutAction::CloseCommandLine => {
-                if let Some(tab) = self.tabs.get_mut(self.active_tab) {
-                    // Don't close if AI confirm dialog is open (it handles ESC itself)
-                    if tab.command_line_panel.pending_ai_command.is_none() {
-                        tab.command_line_panel.show = false;
-                    }
-                }
-            }
-            ShortcutAction::SwitchToTab1
-            | ShortcutAction::SwitchToTab2
-            | ShortcutAction::SwitchToTab3
-            | ShortcutAction::SwitchToTab4
-            | ShortcutAction::SwitchToTab5
-            | ShortcutAction::SwitchToTab6
-            | ShortcutAction::SwitchToTab7
-            | ShortcutAction::SwitchToTab8
-            | ShortcutAction::SwitchToTab9 => {
-                if let Some(tab_idx) = action.tab_index() {
-                    if tab_idx < self.tabs.len() {
-                        self.active_tab = tab_idx;
-                        self.scroll_to_tab = Some(tab_idx);
-                    }
-                }
-            }
-            ShortcutAction::ConnectConnection1
-            | ShortcutAction::ConnectConnection2
-            | ShortcutAction::ConnectConnection3
-            | ShortcutAction::ConnectConnection4
-            | ShortcutAction::ConnectConnection5
-            | ShortcutAction::ConnectConnection6
-            | ShortcutAction::ConnectConnection7
-            | ShortcutAction::ConnectConnection8
-            | ShortcutAction::ConnectConnection9 => {
-                // Only work when current tab is not connected (on welcome page)
-                if let Some(tab) = self.get_active_tab() {
-                    let connected = self.poll_bool(tab.state.connected.clone());
-                    if !connected {
-                        if let Some(conn_idx) = action.connection_index() {
-                            if conn_idx < self.config.connections.connections.len() {
-                                let conn = self.config.connections.connections[conn_idx].clone();
-                                self.create_tab_with_connection(conn_idx, conn);
-                            }
-                        }
-                    }
-                }
-            }
-            ShortcutAction::SwitchToLastTab => {
-                if !self.tabs.is_empty() {
-                    let last = self.tabs.len() - 1;
-                    self.active_tab = last;
-                    self.scroll_to_tab = Some(last);
-                }
-            }
-            ShortcutAction::RemoveDuplicateAndInvalidTabs => {
-                self.remove_duplicate_and_invalid_tabs(ctx);
-            }
-            ShortcutAction::RefreshKeys => {
-                if let Some(tab) = self.tabs.get_mut(self.active_tab) {
-                    tab.state.spawn_load_keys();
-                }
-            }
-            ShortcutAction::ExecuteAiCommand | ShortcutAction::CancelAiCommand => {
-                // These shortcuts are handled in render_ai_confirm_dialog
-                // Do nothing here to avoid conflicts
-            }
         }
     }
 
@@ -547,12 +295,9 @@ impl RedisApp {
             element_edit_dialog: ElementEditDialog::default(),
             global_language,
             prev_connected_states: vec![false],
-            copy_feedback: (None, None),
-            last_copy_button_id: None,
+            copy_feedback_manager: copy_feedback::CopyFeedbackManager::default(),
             show_open_connections_prompt: has_open_connections,
-            editing_shortcut: None,
-            shortcut_input_buffer: String::new(),
-            shortcut_conflict_warning: None,
+            shortcut_state: shortcut_manager::ShortcutManagerState::default(),
             scroll_to_tab: None,
             show_all_tabs_dropdown: false,
             ai_model_editor: AiModelEditor::default(),
@@ -734,108 +479,17 @@ impl RedisApp {
         }
     }
 
-    pub fn record_copy_success(&mut self) {
-        self.copy_feedback.0 = Some(Instant::now());
-    }
-
-    pub fn record_copy_failure(&mut self) {
-        self.copy_feedback.1 = Some(Instant::now());
-    }
-
-    pub fn record_copy_failure_with_id(&mut self, button_id: egui::Id) {
-        self.copy_feedback.1 = Some(Instant::now());
-        self.last_copy_button_id = Some(button_id);
-    }
-
-    pub fn copy_button_text_color(&self, button_id: egui::Id) -> egui::Color32 {
-        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
-        use std::time::Duration;
-
-        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
-        let (success_time, failure_time) = self.copy_feedback;
-        let now = Instant::now();
-
-        // Only show feedback if this is the button that was clicked
-        if self.last_copy_button_id == Some(button_id) {
-            if let Some(time) = success_time {
-                if now.duration_since(time) < duration {
-                    return egui::Color32::from_rgb(50, 200, 50); // Green
-                }
-            }
-
-            if let Some(time) = failure_time {
-                if now.duration_since(time) < duration {
-                    return egui::Color32::from_rgb(220, 50, 50); // Red
-                }
-            }
-        }
-
-        egui::Color32::BLACK
+    pub fn record_copy_success_with_id(&mut self, _button_id: egui::Id) {
+        self.copy_feedback_manager.record_copy_success();
     }
 
     pub fn copy_button_text(&self, button_id: egui::Id, original_text: &str) -> String {
-        use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
-        use e_client_config::translations::{keys, tr};
-        use std::time::Duration;
-
-        let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
-        let (success_time, failure_time) = self.copy_feedback;
-        let now = Instant::now();
-
-        // Only show feedback if this is the button that was clicked
-        if self.last_copy_button_id == Some(button_id) {
-            if let Some(time) = success_time {
-                if now.duration_since(time) < duration {
-                    return tr(keys::COPY_SUCCESS, self.global_language).to_string();
-                }
-            }
-
-            if let Some(time) = failure_time {
-                if now.duration_since(time) < duration {
-                    return tr(keys::COPY_FAILED, self.global_language).to_string();
-                }
-            }
-        }
-
-        original_text.to_string()
+        self.copy_feedback_manager
+            .copy_button_text(button_id, original_text, self.global_language)
     }
 
-    pub fn record_copy_success_with_id(&mut self, button_id: egui::Id) {
-        let now = Instant::now();
-        self.copy_feedback.0 = Some(now);
-        self.last_copy_button_id = Some(button_id);
-        self.copy_feedback.1 = None;
-    }
-
-    pub fn get_copy_button_text(&self, original_text: &str, button_id: Option<egui::Id>) -> String {
-        use e_client_config::translations::{keys, tr};
-
-        let duration = std::time::Duration::from_secs(2);
-        let now = Instant::now();
-
-        // Check for button-specific feedback first
-        if let (Some(failure_time), Some(last_id), Some(current_id)) =
-            (self.copy_feedback.1, self.last_copy_button_id, button_id)
-        {
-            if last_id == current_id && now.duration_since(failure_time) < duration {
-                return tr(keys::COPY_FAILED, self.global_language).to_string();
-            }
-        }
-
-        // Check general feedback
-        if let Some(time) = self.copy_feedback.0 {
-            if now.duration_since(time) < duration {
-                return tr(keys::COPY_SUCCESS, self.global_language).to_string();
-            }
-        }
-
-        if let Some(time) = self.copy_feedback.1 {
-            if now.duration_since(time) < duration {
-                return tr(keys::COPY_FAILED, self.global_language).to_string();
-            }
-        }
-
-        original_text.to_string()
+    pub fn copy_button_text_color(&self, button_id: egui::Id) -> egui::Color32 {
+        self.copy_feedback_manager.copy_button_text_color(button_id)
     }
 
     fn load_connection_preferences(&mut self, tab_idx: usize) {
@@ -934,13 +588,6 @@ impl RedisApp {
         lock: std::sync::Arc<tokio::sync::RwLock<Option<crate::core::ValueData>>>,
     ) -> Option<crate::core::ValueData> {
         lock.blocking_read().clone()
-    }
-
-    pub fn poll_vec_string(
-        &self,
-        lock: std::sync::Arc<tokio::sync::RwLock<Vec<String>>>,
-    ) -> Vec<String> {
-        lock.try_read().map(|v| v.clone()).unwrap_or_default()
     }
 
     pub fn poll_usize(&self, lock: std::sync::Arc<tokio::sync::RwLock<usize>>) -> usize {

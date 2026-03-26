@@ -1,6 +1,6 @@
 use crate::ui::icon::load_icon;
-use crate::ui::window::panels::render_error_panel;
 use crate::ui::window::RedisApp;
+use crate::ui::window::panels::render_error_panel;
 use e_client_config::config::Config;
 use e_client_config::constants::APP_NAME;
 

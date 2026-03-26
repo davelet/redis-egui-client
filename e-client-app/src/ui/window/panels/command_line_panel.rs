@@ -71,6 +71,9 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         return;
     }
 
+    // Process any pending Redis command results
+    process_redis_command_results(app, active_tab_idx);
+
     // Process any pending AI chat results
     process_ai_chat_results(app, active_tab_idx);
 
@@ -103,8 +106,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .max_height(available_height)
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        let history = app.tabs[active_tab_idx].command_line_panel.history.clone();
-                        for (cmd, result) in &history {
+                        for (cmd, result) in &app.tabs[active_tab_idx].command_line_panel.history {
                             // Command line
                             ui.horizontal(|ui| {
                                 ui.label(
@@ -414,19 +416,60 @@ fn execute_command(app: &mut RedisApp, tab_idx: usize, input: String) {
 
 /// Execute a Redis command directly
 fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
+    if app.tabs[tab_idx]
+        .command_line_panel
+        .redis_command_pending
+        .is_some()
+    {
+        return;
+    }
+
     let client = app.tabs[tab_idx].state.redis_client.clone();
-    match client.execute_raw_command_sync(&command) {
-        Ok(output) => {
-            app.tabs[tab_idx]
-                .command_line_panel
-                .history
-                .push((command, output));
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    app.tabs[tab_idx]
+        .command_line_panel
+        .history
+        .push((command.clone(), "Executing...".to_string()));
+    app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(rx);
+
+    tokio::task::spawn(async move {
+        let result = client.execute_command(&command).await;
+        let out = match result {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.to_string()),
+        };
+        let _ = tx.send(out);
+    });
+}
+
+/// Process pending Redis command results
+pub fn process_redis_command_results(app: &mut RedisApp, tab_idx: usize) {
+    let pending = match app.tabs[tab_idx]
+        .command_line_panel
+        .redis_command_pending
+        .take()
+    {
+        Some(p) => p,
+        None => return,
+    };
+
+    match pending.try_recv() {
+        Ok(result) => {
+            let last_idx = app.tabs[tab_idx].command_line_panel.history.len() - 1;
+            let final_output = match result {
+                Ok(output) => output,
+                Err(e) => format!("ERR: {}", e),
+            };
+            app.tabs[tab_idx].command_line_panel.history[last_idx].1 = final_output;
         }
-        Err(e) => {
-            app.tabs[tab_idx]
-                .command_line_panel
-                .history
-                .push((command, format!("ERR: {}", e)));
+        Err(std::sync::mpsc::TryRecvError::Empty) => {
+            app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(pending);
+        }
+        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+            let last_idx = app.tabs[tab_idx].command_line_panel.history.len() - 1;
+            app.tabs[tab_idx].command_line_panel.history[last_idx].1 =
+                "ERR: Command execution failed - channel disconnected".to_string();
         }
     }
 }

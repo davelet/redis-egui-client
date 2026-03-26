@@ -79,8 +79,10 @@ pub fn parse_api_error(status: reqwest::StatusCode, body: &str) -> String {
 
     // Authentication errors
     if status.as_u16() == 401 || status.as_u16() == 403 {
-        if body_lower.contains("invalid") || body_lower.contains("unauthorized")
-            || body_lower.contains("authentication") {
+        if body_lower.contains("invalid")
+            || body_lower.contains("unauthorized")
+            || body_lower.contains("authentication")
+        {
             return "Authentication failed. Please check your API key.".to_string();
         }
         return "Access denied. Please check your API key and permissions.".to_string();
@@ -107,7 +109,11 @@ pub struct AiClient;
 
 impl AiClient {
     /// Send a message to the AI model with optional context
-    pub async fn chat(model: &AiModel, message: &str, context: Option<&str>) -> Result<String, String> {
+    pub async fn chat(
+        model: &AiModel,
+        message: &str,
+        context: Option<&str>,
+    ) -> Result<String, String> {
         let client = reqwest::Client::new();
 
         // Build messages with optional system prompt
@@ -146,29 +152,29 @@ impl AiClient {
                     request_builder = request_builder.header("anthropic-version", "2023-06-01");
                 }
                 ApiProvider::OpenRouter => {
-                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
-                    request_builder = request_builder.header("HTTP-Referer", "https://github.com/e-client/redis-egui");
+                    request_builder =
+                        request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder = request_builder
+                        .header("HTTP-Referer", "https://github.com/e-client/redis-egui");
                 }
                 _ => {
-                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder =
+                        request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
             }
         }
 
         // Send the request with timeout
-        let response = request_builder
-            .send()
-            .await
-            .map_err(|e| {
-                let err_str = e.to_string();
-                if err_str.contains("timeout") {
-                    "Request timeout. Please check your network connection.".to_string()
-                } else if err_str.contains("connection") {
-                    "Network error. Please check your internet connection.".to_string()
-                } else {
-                    format!("Request failed: {}", err_str)
-                }
-            })?;
+        let response = request_builder.send().await.map_err(|e| {
+            let err_str = e.to_string();
+            if err_str.contains("timeout") {
+                "Request timeout. Please check your network connection.".to_string()
+            } else if err_str.contains("connection") {
+                "Network error. Please check your internet connection.".to_string()
+            } else {
+                format!("Request failed: {}", err_str)
+            }
+        })?;
 
         // Check for HTTP errors with friendly messages
         if !response.status().is_success() {
@@ -195,7 +201,11 @@ impl AiClient {
     }
 
     /// Send a message synchronously (blocking)
-    pub fn chat_sync(model: &AiModel, message: &str, context: Option<&str>) -> Result<String, String> {
+    pub fn chat_sync(
+        model: &AiModel,
+        message: &str,
+        context: Option<&str>,
+    ) -> Result<String, String> {
         let rt = tokio::runtime::Handle::try_current();
         match rt {
             Ok(handle) => {
@@ -237,28 +247,27 @@ impl AiClient {
                     request_builder = request_builder.header("anthropic-version", "2023-06-01");
                 }
                 ApiProvider::OpenRouter => {
-                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder =
+                        request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
                 _ => {
-                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder =
+                        request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
             }
         }
 
         // Send with a short timeout for testing
-        let response = request_builder
-            .send()
-            .await
-            .map_err(|e| {
-                let err_str = e.to_string();
-                if err_str.contains("timeout") {
-                    "Connection timeout. Please check the URL.".to_string()
-                } else if err_str.contains("connection refused") {
-                    "Connection refused. Please check the URL.".to_string()
-                } else {
-                    format!("Connection failed: {}", err_str)
-                }
-            })?;
+        let response = request_builder.send().await.map_err(|e| {
+            let err_str = e.to_string();
+            if err_str.contains("timeout") {
+                "Connection timeout. Please check the URL.".to_string()
+            } else if err_str.contains("connection refused") {
+                "Connection refused. Please check the URL.".to_string()
+            } else {
+                format!("Connection failed: {}", err_str)
+            }
+        })?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -276,11 +285,9 @@ impl AiClient {
     pub fn test_connection_sync(model: &AiModel) -> Result<(), String> {
         let rt = tokio::runtime::Handle::try_current();
         match rt {
-            Ok(handle) => {
-                tokio::task::block_in_place(|| {
-                    handle.block_on(async { Self::test_connection(model).await })
-                })
-            }
+            Ok(handle) => tokio::task::block_in_place(|| {
+                handle.block_on(async { Self::test_connection(model).await })
+            }),
             Err(_) => {
                 let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
                 rt.block_on(async { Self::test_connection(model).await })
@@ -333,10 +340,7 @@ mod tests {
 
     #[test]
     fn test_detect_api_provider_openrouter() {
-        let urls = vec![
-            "https://openrouter.ai/api",
-            "https://openrouter.ai/api/v1",
-        ];
+        let urls = vec!["https://openrouter.ai/api", "https://openrouter.ai/api/v1"];
         for url in urls {
             assert_eq!(
                 detect_api_provider(url),
@@ -373,10 +377,22 @@ mod tests {
 
     #[test]
     fn test_detect_api_provider_case_insensitive() {
-        assert_eq!(detect_api_provider("HTTPS://API.OPENAI.COM/V1"), ApiProvider::OpenAI);
-        assert_eq!(detect_api_provider("HTTPS://API.ANTHROPIC.COM"), ApiProvider::Anthropic);
-        assert_eq!(detect_api_provider("HTTPS://OPENROUTER.AI/API"), ApiProvider::OpenRouter);
-        assert_eq!(detect_api_provider("HTTP://LOCALHOST:11434"), ApiProvider::Ollama);
+        assert_eq!(
+            detect_api_provider("HTTPS://API.OPENAI.COM/V1"),
+            ApiProvider::OpenAI
+        );
+        assert_eq!(
+            detect_api_provider("HTTPS://API.ANTHROPIC.COM"),
+            ApiProvider::Anthropic
+        );
+        assert_eq!(
+            detect_api_provider("HTTPS://OPENROUTER.AI/API"),
+            ApiProvider::OpenRouter
+        );
+        assert_eq!(
+            detect_api_provider("HTTP://LOCALHOST:11434"),
+            ApiProvider::Ollama
+        );
     }
 
     // ==================== API Provider Header Tests ====================
@@ -424,10 +440,7 @@ mod tests {
 
     #[test]
     fn test_parse_api_error_auth_401_invalid() {
-        let result = parse_api_error(
-            reqwest::StatusCode::UNAUTHORIZED,
-            "Invalid API key",
-        );
+        let result = parse_api_error(reqwest::StatusCode::UNAUTHORIZED, "Invalid API key");
         assert!(result.contains("Authentication failed"));
     }
 
@@ -442,10 +455,7 @@ mod tests {
 
     #[test]
     fn test_parse_api_error_auth_403() {
-        let result = parse_api_error(
-            reqwest::StatusCode::FORBIDDEN,
-            "Access denied",
-        );
+        let result = parse_api_error(reqwest::StatusCode::FORBIDDEN, "Access denied");
         assert!(result.contains("Access denied"));
     }
 
@@ -488,10 +498,7 @@ mod tests {
 
     #[test]
     fn test_parse_api_error_server_error_502() {
-        let result = parse_api_error(
-            reqwest::StatusCode::BAD_GATEWAY,
-            "Bad gateway",
-        );
+        let result = parse_api_error(reqwest::StatusCode::BAD_GATEWAY, "Bad gateway");
         assert!(result.contains("Server error"));
     }
 
@@ -506,10 +513,7 @@ mod tests {
 
     #[test]
     fn test_parse_api_error_other_status() {
-        let result = parse_api_error(
-            reqwest::StatusCode::from_u16(418).unwrap(),
-            "I'm a teapot",
-        );
+        let result = parse_api_error(reqwest::StatusCode::from_u16(418).unwrap(), "I'm a teapot");
         assert!(result.contains("HTTP"));
         assert!(result.contains("418"));
     }

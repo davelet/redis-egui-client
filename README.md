@@ -37,8 +37,9 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
 - **Memory Optimization** - Large values loaded on demand, prevents memory spikes
 
 ### Cross-Platform Support
-- **macOS** - Native App Bundle support, both Apple Silicon and Intel
-- **Windows** - MSI installer with system PATH integration
+- **macOS** - Native App Bundle (.app) with Apple Silicon (M1/M2/M3) support
+  - ⚠️ **Intel Mac is not supported** in pre-built releases. Intel users need to [build from source](#build-from-source).
+- **Windows** - MSI installer with application icon and system PATH integration
 
 ## Quick Start
 
@@ -74,6 +75,15 @@ cargo install cargo-bundle
 
 # Build macOS app
 ./scripts/build-macos.sh
+```
+
+### Windows Build (with icon support)
+
+The Windows build automatically includes application icon generation. Ensure you have the necessary Rust toolchain for Windows targets:
+
+```bash
+# Build for Windows (from any platform if cross-compilation is set up)
+cargo build --release --target x86_64-pc-windows-msvc
 ```
 
 ## Usage Guide

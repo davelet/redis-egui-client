@@ -27,8 +27,8 @@ pub fn spawn_load_keys(state: &AppState) {
         *state.keys.write().await = vec![];
         *state.needs_repaint.write().await = true; // Trigger repaint to clear old keys
 
-        // Use HashSet for deduplication
-        let mut all_keys_set = std::collections::HashSet::new();
+        // Use BTreeSet for deduplication and sorting
+        let mut all_keys_set = std::collections::BTreeSet::new();
         let mut current_cursor = 0;
         let mut loaded_count = 0;
         let mut last_sort_count = 0;
@@ -52,8 +52,7 @@ pub fn spawn_load_keys(state: &AppState) {
                     // Update UI every SCAN batch with periodic sorting for display
                     // Sort and display every SORT_INTERVAL_KEYS keys
                     if loaded_count - last_sort_count >= SORT_INTERVAL_KEYS || current_cursor == 0 {
-                        let mut all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
-                        all_keys.sort();
+                        let all_keys: Vec<String> = all_keys_set.iter().cloned().collect();
                         *state.keys.write().await = all_keys;
                         *state.needs_repaint.write().await = true;
                         last_sort_count = loaded_count;
@@ -86,7 +85,8 @@ pub fn spawn_load_keys(state: &AppState) {
                         break;
                     }
                 }
-                Err(_) => {
+                Err(e) => {
+                    *state.error_message.write().await = e.to_string();
                     *state.scan_cursor.write().await = 0;
                     *state.scan_has_more.write().await = false;
                     break;
@@ -94,9 +94,8 @@ pub fn spawn_load_keys(state: &AppState) {
             }
         }
 
-        // Final sort at the end to ensure everything is sorted
-        let mut all_keys: Vec<String> = all_keys_set.into_iter().collect();
-        all_keys.sort();
+        // BTreeSet is already sorted
+        let all_keys: Vec<String> = all_keys_set.into_iter().collect();
         *state.keys.write().await = all_keys.clone();
         *state.needs_repaint.write().await = true;
 
@@ -135,8 +134,8 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
     tokio::spawn(async move {
         *state.loading.write().await = true;
 
-        // Get existing keys to avoid duplicates
-        let mut existing_keys: std::collections::HashSet<String> =
+        // Get existing keys to avoid duplicates, use BTreeSet for sorting
+        let mut existing_keys: std::collections::BTreeSet<String> =
             state.keys.read().await.iter().cloned().collect();
         let keys_at_start = existing_keys.len();
 
@@ -170,8 +169,7 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                     if batch_count - last_update_batch >= UI_UPDATE_INTERVAL_BATCHES
                         || current_cursor == 0
                     {
-                        let mut all_keys: Vec<String> = existing_keys.iter().cloned().collect();
-                        all_keys.sort();
+                        let all_keys: Vec<String> = existing_keys.iter().cloned().collect();
                         *state.keys.write().await = all_keys;
                         *state.needs_repaint.write().await = true;
                         last_update_batch = batch_count;
@@ -212,7 +210,8 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                         break;
                     }
                 }
-                Err(_e) => {
+                Err(e) => {
+                    *state.error_message.write().await = e.to_string();
                     break;
                 }
             }
@@ -221,9 +220,8 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
         *state.scan_cursor.write().await = current_cursor;
         *state.scan_has_more.write().await = current_cursor != 0;
 
-        // Final sort and update
-        let mut all_keys: Vec<String> = existing_keys.into_iter().collect();
-        all_keys.sort();
+        // Final update (BTreeSet is already sorted)
+        let all_keys: Vec<String> = existing_keys.into_iter().collect();
 
         // Update total_keys based on scan completion status
         if current_cursor == 0 {
@@ -265,9 +263,14 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
 /// # Arguments
 /// * `state` - The app state
 /// * `key` - The key to load
-/// * `reload_hash` - If true, reload hash fields and clear loaded values.
-///                   If false, preserve existing loaded hash values.
-pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
+/// * `hash_load_mode` - Reload fields vs Preserve fields
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HashLoadMode {
+    ReloadFields,
+    PreserveFields,
+}
+
+pub fn spawn_load_value(state: &AppState, key: String, hash_load_mode: HashLoadMode) {
     let state = state.clone();
     tokio::spawn(async move {
         *state.loading.write().await = true;
@@ -284,7 +287,7 @@ pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
                 // When reload_hash is false, we only update the len and preserve everything else
                 // When reload_hash is true, we replace the entire value and reload fields
                 let is_hash = matches!(&value, ValueData::Hash { .. });
-                if !reload_hash && is_hash {
+                if hash_load_mode == HashLoadMode::PreserveFields && is_hash {
                     // Get the new len from the fetched value
                     let new_len = if let ValueData::Hash { len, .. } = &value {
                         *len
@@ -317,7 +320,7 @@ pub fn spawn_load_value(state: &AppState, key: String, reload_hash: bool) {
                 // For Hash type, load field names
                 // If reload_hash is true, clear all loaded values and reload fields
                 // If reload_hash is false, fields are already preserved above, just ensure values are fresh
-                if is_hash && reload_hash {
+                if is_hash && hash_load_mode == HashLoadMode::ReloadFields {
                     state.spawn_load_hash_fields(key);
                 }
             }
@@ -431,7 +434,7 @@ pub fn spawn_create_new_key(
                 // Select new key and load its value
                 *state.selected_key.write().await = Some(key.clone());
                 state.edit_state.write().await.cancel_edit();
-                state.spawn_load_value(key, true);
+                state.spawn_load_value(key, HashLoadMode::ReloadFields);
                 state.spawn_load_keys();
             }
             Err(e) => {

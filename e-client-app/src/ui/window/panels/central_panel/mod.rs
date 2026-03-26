@@ -1,15 +1,15 @@
-pub mod edit_mode;
-pub mod element_edit_dialog;
 pub mod error_panel;
+pub mod render_edit_mode;
+pub mod render_element_edit;
 pub mod utils;
 pub mod value_renderer;
 pub mod view_mode;
 pub mod welcome_page;
 
 // Re-export main functions
-pub use edit_mode::render_edit_mode;
-pub use element_edit_dialog::render_element_edit_dialog;
 pub use error_panel::render_error_panel;
+pub use render_edit_mode::render_edit_mode;
+pub use render_element_edit::render_element_edit_dialog;
 pub use view_mode::render_view_mode;
 pub use welcome_page::render_welcome_page;
 

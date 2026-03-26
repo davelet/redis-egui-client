@@ -120,8 +120,12 @@ impl AppState {
         super::operations::keys::spawn_load_more_keys(self, load_all);
     }
 
-    pub fn spawn_load_value(&self, key: String, reload_hash: bool) {
-        super::operations::keys::spawn_load_value(self, key, reload_hash);
+    pub fn spawn_load_value(
+        &self,
+        key: String,
+        hash_load_mode: super::operations::keys::HashLoadMode,
+    ) {
+        super::operations::keys::spawn_load_value(self, key, hash_load_mode);
     }
 
     pub fn spawn_refresh_ttl_only(&self, key: String) {
