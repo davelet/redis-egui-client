@@ -1,9 +1,7 @@
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_basics::constants::UI_REPAINT_INTERVAL_MS;
 use e_client_config::config::Config;
-use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
-use std::time::Instant;
 
 // Re-export panel functions for convenient access
 pub use panels::{

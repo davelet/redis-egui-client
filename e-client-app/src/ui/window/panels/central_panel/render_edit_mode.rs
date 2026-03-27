@@ -3,7 +3,6 @@ use crate::ui::window::RedisApp;
 use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr, tr_fmt};
-use Language::*;
 
 /// Render key in edit mode
 pub fn render_edit_mode(

@@ -440,14 +440,14 @@ impl Config {
             toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))?;
 
         // Load API keys from system keyring
-        ai_config.load_api_keys_from_keyring();
+        ai_config.load_api_keys();
 
         Ok(ai_config)
     }
 
     pub fn save_ai_config(&self) -> Result<(), ConfigError> {
         // Save API keys to system keyring first
-        self.ai_config.save_api_keys_to_keyring();
+        self.ai_config.save_api_keys();
 
         // Save config to file (without API keys - they are marked with #[serde(skip)])
         let toml = toml::to_string_pretty(&self.ai_config)

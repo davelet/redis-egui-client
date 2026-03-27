@@ -3,10 +3,10 @@
 use e_client_basics::constants::{
     AI_API_KEY_LIMIT, AI_MODEL_ID_LIMIT, AI_MODEL_NAME_LIMIT, AI_MODEL_URL_LIMIT,
 };
-use e_client_config::config::ai_config::AiModel;
+use e_client_config::config::ai_config::{AiModel, AiProviderType, DEFAULT_SYSTEM_PROMPT};
 use e_client_config::language::Language;
-use e_client_config::translations::{emoji, keys, tr};
-use e_client_core::AiClient;
+use e_client_config::translations::{emoji, keys, tr, tr_fmt};
+use e_client_core::{detect_api_provider, AiClient};
 
 use super::super::super::RedisApp;
 
@@ -132,19 +132,37 @@ pub fn render_ai_settings_section(
                         );
                     });
 
-                // Save system prompt button
-                if ui
-                    .button(format!(
-                        "{} {}",
-                        emoji::action::SAVE,
-                        tr(keys::SAVE, current_lang)
-                    ))
-                    .clicked()
-                {
-                    if let Err(e) = app.config.save_ai_config() {
-                        eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                // Save and restore default buttons
+                ui.horizontal(|ui| {
+                    if ui
+                        .button(format!(
+                            "{} {}",
+                            emoji::action::SAVE,
+                            tr(keys::SAVE, current_lang)
+                        ))
+                        .clicked()
+                    {
+                        if let Err(e) = app.config.save_ai_config() {
+                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                        }
                     }
-                }
+
+                    // Show "Restore Default" button only when prompt differs from default
+                    if app.config.ai_config.system_prompt != DEFAULT_SYSTEM_PROMPT {
+                        if ui
+                            .button(tr(keys::AI_RESTORE_DEFAULT_PROMPT, current_lang))
+                            .clicked()
+                        {
+                            app.config.ai_config.system_prompt = DEFAULT_SYSTEM_PROMPT.to_string();
+                            if let Err(e) = app.config.save_ai_config() {
+                                eprintln!(
+                                    "Failed to save AI config: {}",
+                                    e.to_message(current_lang)
+                                );
+                            }
+                        }
+                    }
+                });
 
                 // Models list - collapsible with background
                 if !app.config.ai_config.models.is_empty() {
@@ -190,8 +208,8 @@ pub fn render_ai_settings_section(
                                                             model_ids_to_delete.push(model_id);
                                                         }
                                                         ui.label(&model.name);
-                                                        ui.label(&model.url);
-                                                        ui.label(&model.model_id);
+                                                        ui.label(&model.get_base_url());
+                                                        ui.label(&model.get_model_id());
                                                         ui.end_row();
                                                     }
                                                     for id in model_ids_to_delete.iter() {
@@ -259,17 +277,171 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ));
                     ui.end_row();
 
+                    ui.label(tr(keys::AI_PROVIDER, current_lang));
+                    let old_provider = app.ai_model_editor.provider.clone();
+                    let search_trimmed = app.ai_model_editor.provider_search.trim().to_lowercase();
+
+                    ui.horizontal(|ui| {
+                        // Count matching providers
+                        let matching_count = if search_trimmed.is_empty() {
+                            AiProviderType::all_providers().len()
+                        } else {
+                            AiProviderType::all_providers()
+                                .iter()
+                                .filter(|p| p.to_string().to_lowercase().contains(&search_trimmed))
+                                .count()
+                        };
+
+                        // ComboBox with provider
+                        let display_text = if app.ai_model_editor.provider == "Custom" {
+                            tr(keys::AI_PROVIDER_CUSTOM, current_lang).to_string()
+                        } else {
+                            app.ai_model_editor.provider.clone()
+                        };
+
+                        egui::ComboBox::from_id_salt("ai_provider_selector")
+                            .selected_text(&display_text)
+                            .show_ui(ui, |ui| {
+                                egui::ScrollArea::vertical()
+                                    .max_height(200.0)
+                                    .auto_shrink([false, false])
+                                    .show(ui, |ui| {
+                                        // Custom option first
+                                        ui.selectable_value(
+                                            &mut app.ai_model_editor.provider,
+                                            "Custom".to_string(),
+                                            tr(keys::AI_PROVIDER_CUSTOM, current_lang),
+                                        );
+                                        ui.separator();
+
+                                        // Other providers
+                                        for provider_type in AiProviderType::all_providers() {
+                                            if matches!(provider_type, AiProviderType::Custom) {
+                                                continue;
+                                            }
+                                            let provider_str = provider_type.to_string();
+                                            if search_trimmed.is_empty()
+                                                || provider_str
+                                                    .to_lowercase()
+                                                    .contains(&search_trimmed)
+                                            {
+                                                let provider_key = format!("{:?}", provider_type);
+                                                ui.selectable_value(
+                                                    &mut app.ai_model_editor.provider,
+                                                    provider_key,
+                                                    provider_str,
+                                                );
+                                            }
+                                        }
+                                    });
+                            });
+
+                        // Search box (second)
+                        let search_response = ui.add(
+                            egui::TextEdit::singleline(&mut app.ai_model_editor.provider_search)
+                                .hint_text(tr(keys::AI_PROVIDER_SEARCH_PLACEHOLDER, current_lang)),
+                        );
+
+                        // Auto-select first match when search filter changes
+                        if search_response.changed() {
+                            let current_search =
+                                app.ai_model_editor.provider_search.trim().to_lowercase();
+                            if !current_search.is_empty() {
+                                // Find first matching provider
+                                if let Some(first_match) =
+                                    AiProviderType::all_providers().iter().find(|p| {
+                                        p.to_string().to_lowercase().contains(&current_search)
+                                    })
+                                {
+                                    app.ai_model_editor.provider = format!("{:?}", first_match);
+                                    // Auto-fill URL
+                                    if let Some(default_url) = first_match.default_url() {
+                                        app.ai_model_editor.base_url = default_url;
+                                    } else {
+                                        app.ai_model_editor.base_url.clear();
+                                    }
+                                }
+                            }
+                        }
+
+                        search_response
+                            .on_hover_text(tr(keys::AI_PROVIDER_SEARCH_HINT, current_lang));
+                        ui.label(tr_fmt(
+                            keys::AI_PROVIDERS_COUNT,
+                            current_lang,
+                            &[&matching_count.to_string()],
+                        ));
+                    });
+
+                    // Auto-fill or clear URL when provider changes (via ComboBox selection)
+                    if old_provider != app.ai_model_editor.provider {
+                        let provider_type = match app.ai_model_editor.provider.as_str() {
+                            "OpenAi" => AiProviderType::OpenAi,
+                            "Anthropic" => AiProviderType::Anthropic,
+                            "Meta" => AiProviderType::Meta,
+                            "Mistral" => AiProviderType::Mistral,
+                            "Cohere" => AiProviderType::Cohere,
+                            "Ollama" => AiProviderType::Ollama,
+                            "LMStudio" => AiProviderType::LMStudio,
+                            "LocalAI" => AiProviderType::LocalAI,
+                            "Vllm" => AiProviderType::Vllm,
+                            "OpenRouter" => AiProviderType::OpenRouter,
+                            "Together" => AiProviderType::Together,
+                            "Replicate" => AiProviderType::Replicate,
+                            "Huggingface" => AiProviderType::Huggingface,
+                            "Groq" => AiProviderType::Groq,
+                            "Perplexity" => AiProviderType::Perplexity,
+                            "Gemini" => AiProviderType::Gemini,
+                            "Grok" => AiProviderType::Grok,
+                            "Qwen" => AiProviderType::Qwen,
+                            "Baichuan" => AiProviderType::Baichuan,
+                            "Doubao" => AiProviderType::Doubao,
+                            "Moonshot" => AiProviderType::Moonshot,
+                            "Zhipu" => AiProviderType::Zhipu,
+                            "Minimax" => AiProviderType::Minimax,
+                            _ => AiProviderType::Custom,
+                        };
+                        if let Some(default_url) = provider_type.default_url() {
+                            app.ai_model_editor.base_url = default_url;
+                        } else {
+                            // Custom provider - clear the URL
+                            app.ai_model_editor.base_url.clear();
+                        }
+                        // Note: search box is NOT cleared automatically, user can manually clear it
+                    }
+
+                    ui.end_row();
+
                     ui.label(tr(keys::AI_URL, current_lang));
                     ui.add(
-                        egui::TextEdit::singleline(&mut app.ai_model_editor.url)
+                        egui::TextEdit::singleline(&mut app.ai_model_editor.base_url)
                             .char_limit(AI_MODEL_URL_LIMIT),
                     );
                     ui.label(format!(
                         "{}/{}",
-                        app.ai_model_editor.url.len(),
+                        app.ai_model_editor.base_url.len(),
                         AI_MODEL_URL_LIMIT
                     ));
                     ui.end_row();
+
+                    // Show full path preview
+                    if !app.ai_model_editor.base_url.is_empty() {
+                        ui.label("");
+                        let provider = detect_api_provider(&app.ai_model_editor.base_url);
+                        let endpoint = provider.chat_endpoint();
+                        let full_path = format!(
+                            "{}{}",
+                            app.ai_model_editor.base_url.trim_end_matches('/'),
+                            endpoint
+                        );
+                        ui.label(
+                            egui::RichText::new(full_path)
+                                .size(11.0)
+                                .color(egui::Color32::from_rgb(100, 150, 200)),
+                        );
+                        ui.label("");
+                        ui.end_row();
+                    }
 
                     ui.label(tr(keys::AI_MODEL_ID, current_lang));
                     ui.add(
@@ -308,14 +480,12 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
             // Validation message
             ui.add_space(8.0);
             let is_valid = !app.ai_model_editor.name.is_empty()
-                && !app.ai_model_editor.url.is_empty()
+                && !app.ai_model_editor.base_url.is_empty()
                 && !app.ai_model_editor.model_id.is_empty();
 
             if !is_valid {
-                ui.colored_label(
-                    ui.visuals().error_fg_color,
-                    tr(keys::AI_MODEL_REQUIRED_FIELDS, current_lang),
-                );
+                let error_msg = tr(keys::AI_MODEL_REQUIRED_FIELDS, current_lang).to_string();
+                ui.colored_label(ui.visuals().error_fg_color, error_msg);
             }
 
             // Test connection button and result
@@ -339,19 +509,16 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                 );
 
                 if test_btn.clicked() && is_valid && !app.ai_model_editor.testing_connection {
-                    // Create test model
-                    let test_model = AiModel {
-                        id: "test".to_string(),
-                        name: app.ai_model_editor.name.clone(),
-                        url: app.ai_model_editor.url.clone(),
-                        model_id: app.ai_model_editor.model_id.clone(),
-                        api_key: if app.ai_model_editor.api_key.is_empty() {
-                            None
-                        } else {
-                            Some(app.ai_model_editor.api_key.clone())
-                        },
-                        temperature: app.ai_model_editor.temperature,
+                    let mut test_model = AiModel::default();
+                    test_model.name = app.ai_model_editor.name.clone();
+                    test_model.base_url = Some(app.ai_model_editor.base_url.clone());
+                    test_model.model_id = app.ai_model_editor.model_id.clone();
+                    test_model.api_key = if app.ai_model_editor.api_key.is_empty() {
+                        None
+                    } else {
+                        Some(app.ai_model_editor.api_key.clone())
                     };
+                    test_model.temperature = app.ai_model_editor.temperature;
 
                     // Test connection asynchronously
                     app.ai_model_editor.testing_connection = true;
@@ -400,18 +567,46 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         Some(app.ai_model_editor.api_key.clone())
                     };
 
-                    let model = AiModel {
-                        id: app
-                            .ai_model_editor
-                            .editing_model_id
-                            .clone()
-                            .unwrap_or_else(AiModel::generate_id),
-                        name: app.ai_model_editor.name.clone(),
-                        url: app.ai_model_editor.url.clone(),
-                        model_id: app.ai_model_editor.model_id.clone(),
-                        api_key,
-                        temperature: app.ai_model_editor.temperature,
+                    let provider_type = match app.ai_model_editor.provider.as_str() {
+                        "OpenAi" => AiProviderType::OpenAi,
+                        "Anthropic" => AiProviderType::Anthropic,
+                        "Meta" => AiProviderType::Meta,
+                        "Mistral" => AiProviderType::Mistral,
+                        "Cohere" => AiProviderType::Cohere,
+                        "Ollama" => AiProviderType::Ollama,
+                        "LMStudio" => AiProviderType::LMStudio,
+                        "LocalAI" => AiProviderType::LocalAI,
+                        "Vllm" => AiProviderType::Vllm,
+                        "OpenRouter" => AiProviderType::OpenRouter,
+                        "Together" => AiProviderType::Together,
+                        "Replicate" => AiProviderType::Replicate,
+                        "Huggingface" => AiProviderType::Huggingface,
+                        "Groq" => AiProviderType::Groq,
+                        "Perplexity" => AiProviderType::Perplexity,
+                        "Gemini" => AiProviderType::Gemini,
+                        "Grok" => AiProviderType::Grok,
+                        "Qwen" => AiProviderType::Qwen,
+                        "Baichuan" => AiProviderType::Baichuan,
+                        "Doubao" => AiProviderType::Doubao,
+                        "Moonshot" => AiProviderType::Moonshot,
+                        "Zhipu" => AiProviderType::Zhipu,
+                        "Minimax" => AiProviderType::Minimax,
+                        _ => AiProviderType::Custom,
                     };
+
+                    let mut model = AiModel::new_model(
+                        provider_type,
+                        app.ai_model_editor.name.clone(),
+                        Some(app.ai_model_editor.base_url.clone()),
+                        app.ai_model_editor.model_id.clone(),
+                    );
+                    model.id = app
+                        .ai_model_editor
+                        .editing_model_id
+                        .clone()
+                        .unwrap_or_else(AiModel::generate_id);
+                    model.api_key = api_key;
+                    model.temperature = app.ai_model_editor.temperature;
 
                     if app.ai_model_editor.is_editing() {
                         app.config.ai_config.update_model(model.clone());

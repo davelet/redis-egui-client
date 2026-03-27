@@ -13,6 +13,7 @@ nav:
   - Install: install.md
   - Usage: usage.md
   - AI Configuration: ai_configuration.md
+  - AI Tools: ai_tools.md
   - Changelog: changelog.md
 
 plugins:

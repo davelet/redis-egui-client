@@ -51,6 +51,10 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
         tr_en_zh("Connection failed: {}", "连接失败: {}"),
     );
     strings.insert(
+        keys::CONFIG_PARSE_FAILED,
+        tr_en_zh("Config parse failed: {}", "配置解析失败: {}"),
+    );
+    strings.insert(
         keys::SELECT_CONNECTION,
         tr_en_zh("Select Connection", "选择连接"),
     );
@@ -469,6 +473,74 @@ pub fn load_all_translations(strings: &mut HashMap<&'static str, HashMap<Languag
     strings.insert(
         keys::AI_SYSTEM_PROMPT_PLACEHOLDER,
         tr_en_zh("System prompt...", "输入系统提示词..."),
+    );
+    strings.insert(
+        keys::AI_NOT_CONFIGURED,
+        tr_en_zh("AI not configured", "AI 未配置"),
+    );
+    strings.insert(
+        keys::AI_PLEASE_CONFIGURE,
+        tr_en_zh(
+            "Please configure an AI model in Settings > AI Settings",
+            "请在 设置 > AI 设置 中配置 AI 模型",
+        ),
+    );
+    strings.insert(
+        keys::AI_DISABLED,
+        tr_en_zh(
+            "AI is disabled. Enable it in Settings.",
+            "AI 已禁用。请在设置中启用。",
+        ),
+    );
+    strings.insert(
+        keys::AI_ERROR_NO_MODEL_CONFIGURED,
+        tr_en_zh("No AI model configured", "未配置 AI 模型"),
+    );
+    strings.insert(
+        keys::AI_ERROR_MISSING_API_KEY,
+        tr_en_zh("API key is missing", "缺少 API 密钥"),
+    );
+    strings.insert(
+        keys::AI_ERROR_INVALID_URL,
+        tr_en_zh("Invalid API URL", "无效的 API 地址"),
+    );
+    strings.insert(
+        keys::AI_ERROR_SERVER_ERROR,
+        tr_en_zh("Server error: {}", "服务器错误: {}"),
+    );
+    strings.insert(
+        keys::AI_ERROR_MODEL_NOT_FOUND,
+        tr_en_zh("Model not found", "模型未找到"),
+    );
+    strings.insert(
+        keys::AI_ERROR_OTHER,
+        tr_en_zh("AI error: {}", "AI 错误: {}"),
+    );
+    strings.insert(
+        keys::AI_ERROR_AGENT_CREATION_FAILED,
+        tr_en_zh("Failed to create AI agent: {}", "创建 AI 代理失败: {}"),
+    );
+    strings.insert(keys::AI_PROVIDER, tr_en_zh("Provider", "提供商"));
+    strings.insert(keys::AI_PROVIDER_CUSTOM, tr_en_zh("Custom", "自定义"));
+    strings.insert(
+        keys::AI_PROVIDER_SEARCH_HINT,
+        tr_en_zh("Type to filter providers", "输入以过滤提供商"),
+    );
+    strings.insert(
+        keys::AI_PROVIDERS_COUNT,
+        tr_en_zh("({} providers)", "({} 个提供商)"),
+    );
+    strings.insert(
+        keys::AI_PLEASE_SELECT_PROVIDER,
+        tr_en_zh("Please select a provider", "请选择提供商"),
+    );
+    strings.insert(
+        keys::AI_PROVIDER_SEARCH_PLACEHOLDER,
+        tr_en_zh("Search provider...", "搜索提供商..."),
+    );
+    strings.insert(
+        keys::AI_RESTORE_DEFAULT_PROMPT,
+        tr_en_zh("Restore Default", "恢复默认"),
     );
 
     // Tab switching shortcuts

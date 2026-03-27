@@ -5,6 +5,7 @@ use e_client_config::config::ai_config::AiModel;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use e_client_config::translations::{keys, tr};
+use e_client_core::AiResponseError;
 
 /// Represents a single Redis connection tab
 pub struct RedisTab {
@@ -119,7 +120,10 @@ pub struct AiChatPending {
     #[allow(dead_code)]
     pub context: Option<String>,
     pub confirm_before_execute: bool,
-    pub receiver: std::sync::mpsc::Receiver<Result<String, String>>,
+    pub receiver: std::sync::mpsc::Receiver<Result<String, AiResponseError>>,
+    /// Flag to indicate if this is using rig-agent (for multi-round conversation)
+    #[allow(dead_code)]
+    pub use_rig_agent: bool,
 }
 
 /// Command line panel state
@@ -136,6 +140,9 @@ pub struct CommandLinePanel {
     pub ai_chat_pending: Option<AiChatPending>,
     /// Pending Redis command execution
     pub redis_command_pending: Option<std::sync::mpsc::Receiver<Result<String, String>>>,
+    /// Rig-based AI agent for multi-round conversation with tool calling
+    /// Uses Mutex to allow mutable access from async context
+    pub rig_agent: std::sync::Arc<tokio::sync::Mutex<Option<e_client_core::OpenAiRigAgent>>>,
 }
 
 impl Default for CommandLinePanel {
@@ -150,6 +157,7 @@ impl Default for CommandLinePanel {
             pending_ai_command: None,
             ai_chat_pending: None,
             redis_command_pending: None,
+            rig_agent: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
 }
@@ -158,19 +166,24 @@ impl Default for CommandLinePanel {
 pub struct AiModelEditor {
     pub show: bool,
     pub editing_model_id: Option<String>,
-    // Editable fields
     pub name: String,
     pub api_key: String,
-    pub url: String,
+    pub base_url: String,
     pub model_id: String,
+    pub provider: String,
+    pub provider_search: String,
     pub temperature: f32,
-    /// Whether the models list section is collapsed
     pub models_collapsed: bool,
-    /// Connection test state
     pub testing_connection: bool,
     pub test_result: Option<Result<(), String>>,
-    /// Receiver for async test connection result
     pub test_result_receiver: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
+}
+
+#[allow(deprecated)]
+impl AiModelEditor {
+    pub fn url(&self) -> &String {
+        &self.base_url
+    }
 }
 
 impl Default for AiModelEditor {
@@ -180,8 +193,10 @@ impl Default for AiModelEditor {
             editing_model_id: None,
             name: String::new(),
             api_key: String::new(),
-            url: String::new(),
+            base_url: String::new(),
             model_id: String::new(),
+            provider: "Custom".to_string(),
+            provider_search: String::new(),
             temperature: 0.7,
             models_collapsed: true,
             testing_connection: false,
@@ -192,27 +207,30 @@ impl Default for AiModelEditor {
 }
 
 impl AiModelEditor {
-    /// Open editor for creating a new model
     pub fn open_for_new(&mut self) {
         self.show = true;
         self.editing_model_id = None;
         self.name.clear();
         self.api_key.clear();
-        self.url.clear();
         self.model_id.clear();
+        self.provider = "Custom".to_string();
+        self.provider_search.clear();
+        // Custom provider - no default URL
+        self.base_url.clear();
         self.temperature = 0.7;
         self.testing_connection = false;
         self.test_result = None;
     }
 
-    /// Open editor for editing an existing model
     pub fn open_for_edit(&mut self, model: &AiModel) {
         self.show = true;
         self.editing_model_id = Some(model.id.clone());
         self.name = model.name.clone();
         self.api_key = model.api_key.clone().unwrap_or_default();
-        self.url = model.url.clone();
-        self.model_id = model.model_id.clone();
+        self.base_url = model.get_base_url();
+        self.model_id = model.get_model_id();
+        self.provider = model.provider.to_string();
+        self.provider_search.clear();
         self.temperature = model.temperature;
         self.testing_connection = false;
         self.test_result = None;

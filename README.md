@@ -41,6 +41,16 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
   - ⚠️ **Intel Mac is not supported** in pre-built releases. Intel users need to [build from source](#build-from-source).
 - **Windows** - MSI installer with application icon and system PATH integration
 
+### AI-Powered Assistant
+- **Natural Language Interface** - Control Redis using plain English commands
+- **Tool-Enabled AI** - AI can execute 18+ operations including:
+  - Query: filter keys, get key info, check existence, database stats
+  - Write: set values, set TTL, rename/delete keys
+  - Data Structures: Hash (hset/hdel), List (lset/rpush), Set (sadd/srem), ZSet (zadd/zrem)
+  - Database: execute commands, switch databases
+- **Multi-Round Conversation** - Maintains context for complex multi-step tasks
+- **Flexible Model Support** - Works with OpenAI, Claude, Ollama, OpenRouter, and any OpenAI-compatible API
+
 ## Quick Start
 
 ### Installation

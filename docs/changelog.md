@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.2] - 2026-03-30
+
+### Added
+- **AI Agent with Tool Calling** - Integrated rig-core for enhanced AI capabilities
+  - Filter keys by pattern (filter_keys tool)
+  - Get detailed key information (get_key_info tool)
+  - Delete keys (delete_keys tool)
+  - Execute Redis commands (execute_redis_command tool)
+  - Get database statistics (get_db_stats tool)
+  - And other tools up to 18
+
+### Changed
+- AI chat now uses rig-core Agent for better multi-round conversation support
+
+
 ## [0.4.1] - 2026-03-26
 
 ### Added
@@ -9,6 +24,7 @@
 
 ### Changed
 - Added apple-app installer target for macOS distribution
+- Upgraded reqwest from 0.12 to 0.13 to support rig-core dependencies
 
 ## [0.4.0] - 2026-03-25
 

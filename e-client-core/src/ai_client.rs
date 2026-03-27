@@ -33,6 +33,45 @@ struct ResponseMessage {
     content: String,
 }
 
+// ==================== Anthropic API Structures ====================
+
+/// Anthropic API request structure
+#[derive(Debug, Serialize)]
+struct AnthropicRequest {
+    model: String,
+    messages: Vec<AnthropicMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+struct AnthropicMessage {
+    role: String,
+    content: String,
+}
+
+/// Anthropic API response structure
+#[derive(Debug, Deserialize)]
+struct AnthropicResponse {
+    content: Vec<AnthropicContent>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    stop_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+enum AnthropicContent {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(other)]
+    Other,
+}
+
 /// Detect the API provider type based on URL
 pub fn detect_api_provider(url: &str) -> ApiProvider {
     let url_lower = url.to_lowercase();
@@ -62,6 +101,19 @@ impl ApiProvider {
             ApiProvider::Anthropic => "x-api-key",
             _ => "Authorization",
         }
+    }
+
+    /// Get the API endpoint path for chat completions
+    pub fn chat_endpoint(&self) -> &'static str {
+        match self {
+            ApiProvider::Anthropic => "/messages",
+            _ => "/chat/completions",
+        }
+    }
+
+    /// Check if this provider uses OpenAI-compatible response format
+    pub fn uses_openai_format(&self) -> bool {
+        !matches!(self, ApiProvider::Anthropic)
     }
 }
 
@@ -116,40 +168,66 @@ impl AiClient {
     ) -> Result<String, String> {
         let client = reqwest::Client::new();
 
-        // Build messages with optional system prompt
-        let mut messages = Vec::new();
+        // Build the request URL
+        let base_url = model.get_base_url();
+        let provider = detect_api_provider(&base_url);
+        let endpoint = provider.chat_endpoint();
+        let url = format!("{}{}", base_url.trim_end_matches('/'), endpoint);
 
-        // Add system prompt with Redis context if provided
-        if let Some(ctx) = context {
-            messages.push(ChatMessage {
-                role: "system".to_string(),
-                content: ctx.to_string(),
-            });
-        }
+        // Build request based on provider type
+        let mut request_builder = match provider {
+            ApiProvider::Anthropic => {
+                // Anthropic API format
+                let mut messages = Vec::new();
+                messages.push(AnthropicMessage {
+                    role: "user".to_string(),
+                    content: message.to_string(),
+                });
 
-        messages.push(ChatMessage {
-            role: "user".to_string(),
-            content: message.to_string(),
-        });
+                let anthropic_request = AnthropicRequest {
+                    model: model.model_id.clone(),
+                    messages,
+                    system: context.map(|s| s.to_string()),
+                    max_tokens: Some(4096),
+                    temperature: Some(model.temperature),
+                };
 
-        let chat_request = ChatCompletionRequest {
-            model: model.model_id.clone(),
-            messages,
-            temperature: Some(model.temperature),
+                client.post(&url).json(&anthropic_request)
+            }
+            _ => {
+                // OpenAI-compatible format for all other providers
+                let mut messages = Vec::new();
+
+                // Add system prompt with Redis context if provided
+                if let Some(ctx) = context {
+                    messages.push(ChatMessage {
+                        role: "system".to_string(),
+                        content: ctx.to_string(),
+                    });
+                }
+
+                messages.push(ChatMessage {
+                    role: "user".to_string(),
+                    content: message.to_string(),
+                });
+
+                let chat_request = ChatCompletionRequest {
+                    model: model.model_id.clone(),
+                    messages,
+                    temperature: Some(model.temperature),
+                };
+
+                client.post(&url).json(&chat_request)
+            }
         };
 
-        // Build the request URL
-        let url = format!("{}/chat/completions", model.url.trim_end_matches('/'));
-
-        // Build the request with appropriate headers based on provider
-        let provider = detect_api_provider(&model.url);
-        let mut request_builder = client.post(&url).json(&chat_request);
-
+        // Add appropriate headers based on provider
         if let Some(ref api_key) = model.api_key {
             match provider {
                 ApiProvider::Anthropic => {
                     request_builder = request_builder.header("x-api-key", api_key);
                     request_builder = request_builder.header("anthropic-version", "2023-06-01");
+                    request_builder = request_builder.header("Content-Type", "application/json");
                 }
                 ApiProvider::OpenRouter => {
                     request_builder =
@@ -186,18 +264,36 @@ impl AiClient {
             return Err(parse_api_error(status, &text));
         }
 
-        // Parse the response
-        let chat_response: ChatCompletionResponse = response
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
+        // Parse the response based on provider
+        match provider {
+            ApiProvider::Anthropic => {
+                let anthropic_response: AnthropicResponse = response
+                    .json()
+                    .await
+                    .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-        // Extract the content from the first choice
-        chat_response
-            .choices
-            .first()
-            .map(|choice| choice.message.content.clone())
-            .ok_or_else(|| "No response from AI".to_string())
+                // Extract text content from Anthropic response
+                for content in &anthropic_response.content {
+                    if let AnthropicContent::Text { text } = content {
+                        return Ok(text.clone());
+                    }
+                }
+                Err("No text content in response".to_string())
+            }
+            _ => {
+                let chat_response: ChatCompletionResponse = response
+                    .json()
+                    .await
+                    .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+                // Extract the content from the first choice
+                chat_response
+                    .choices
+                    .first()
+                    .map(|choice| choice.message.content.clone())
+                    .ok_or_else(|| "No response from AI".to_string())
+            }
+        }
     }
 
     /// Send a message synchronously (blocking)
@@ -225,26 +321,48 @@ impl AiClient {
     /// Test if the API connection is working
     pub async fn test_connection(model: &AiModel) -> Result<(), String> {
         let client = reqwest::Client::new();
-        let provider = detect_api_provider(&model.url);
+        let base_url = model.get_base_url();
+        let provider = detect_api_provider(&base_url);
+        let endpoint = provider.chat_endpoint();
+        let url = format!("{}{}", base_url.trim_end_matches('/'), endpoint);
 
-        // Build a simple test request
-        let test_request = ChatCompletionRequest {
-            model: model.model_id.clone(),
-            messages: vec![ChatMessage {
-                role: "user".to_string(),
-                content: "Hi".to_string(),
-            }],
-            temperature: Some(0.7),
+        // Build request based on provider type
+        let mut request_builder = match provider {
+            ApiProvider::Anthropic => {
+                // Anthropic API format
+                let anthropic_request = AnthropicRequest {
+                    model: model.get_model_id(),
+                    messages: vec![AnthropicMessage {
+                        role: "user".to_string(),
+                        content: "Hi".to_string(),
+                    }],
+                    system: None,
+                    max_tokens: Some(10),
+                    temperature: Some(0.7),
+                };
+                client.post(&url).json(&anthropic_request)
+            }
+            _ => {
+                // OpenAI-compatible format for all other providers
+                let test_request = ChatCompletionRequest {
+                    model: model.get_model_id(),
+                    messages: vec![ChatMessage {
+                        role: "user".to_string(),
+                        content: "Hi".to_string(),
+                    }],
+                    temperature: Some(0.7),
+                };
+                client.post(&url).json(&test_request)
+            }
         };
 
-        let url = format!("{}/chat/completions", model.url.trim_end_matches('/'));
-        let mut request_builder = client.post(&url).json(&test_request);
-
+        // Add appropriate headers based on provider
         if let Some(ref api_key) = model.api_key {
             match provider {
                 ApiProvider::Anthropic => {
                     request_builder = request_builder.header("x-api-key", api_key);
                     request_builder = request_builder.header("anthropic-version", "2023-06-01");
+                    request_builder = request_builder.header("Content-Type", "application/json");
                 }
                 ApiProvider::OpenRouter => {
                     request_builder =

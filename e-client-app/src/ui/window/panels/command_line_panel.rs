@@ -1,8 +1,8 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::REDIS_COMMANDS;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
-use e_client_core::AiClient;
+use e_client_config::translations::{keys, tr, tr_fmt};
+use e_client_core::{AiChatResult, AiResponseError, OpenAiRigAgent};
 
 /// Check if the input is a Redis command
 fn is_redis_command(input: &str) -> bool {
@@ -19,48 +19,6 @@ fn is_redis_command(input: &str) -> bool {
         .to_uppercase();
 
     REDIS_COMMANDS.contains(&first_word.as_str())
-}
-
-/// Build Redis context for AI system prompt
-fn build_redis_context(app: &RedisApp, tab_idx: usize) -> Option<String> {
-    let tab = app.tabs.get(tab_idx)?;
-
-    // Check if connected
-    let connected = app.poll_bool(tab.state.connected.clone());
-    if !connected {
-        return None;
-    }
-
-    // Get connection info from connection_param
-    let conn_param = tab.state.connection_param.blocking_read();
-
-    // Get current database
-    let current_db = app.poll_u32(tab.state.current_db.clone());
-
-    // Get selected key if any
-    let selected_key = app.poll_option_string(tab.state.selected_key.clone());
-
-    // Get system prompt from config
-    let system_prompt = &app.config.ai_config.system_prompt;
-
-    // Build context: system prompt + Redis connection info
-    let mut context = system_prompt.clone();
-
-    if let Some(conn) = conn_param.as_ref() {
-        context.push_str(&format!("\n\nConnection name: {}", conn.name));
-        context.push_str(&format!("\nConnection address: {}:{}", conn.url, conn.port));
-        if let Some(db) = conn.database {
-            context.push_str(&format!("\nDefault database: {}", db));
-        }
-    }
-
-    context.push_str(&format!("\nCurrent database: {}", current_db));
-
-    if let Some(key) = selected_key {
-        context.push_str(&format!("\nCurrently selected key: {}", key));
-    }
-
-    Some(context)
 }
 
 pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
@@ -486,28 +444,30 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
     // Check if AI is enabled and has an active model
     let ai_config = &app.config.ai_config.clone();
+    let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
 
     if !ai_config.enabled {
-        app.tabs[tab_idx].command_line_panel.history.push((
-            trimmed_input,
-            "ERR: AI is disabled. Enable it in settings.".to_string(),
-        ));
+        let error_msg = format!("ERR: {}", tr(keys::AI_DISABLED, current_lang));
+        app.tabs[tab_idx]
+            .command_line_panel
+            .history
+            .push((trimmed_input, error_msg));
         return;
     }
 
     let active_model = ai_config.get_active_model();
     if active_model.is_none() {
-        app.tabs[tab_idx].command_line_panel.history.push((
-            trimmed_input,
-            "ERR: No AI model configured. Please configure an AI model in settings.".to_string(),
-        ));
+        let error_msg = format!(
+            "ERR: {}. {}",
+            tr(keys::AI_NOT_CONFIGURED, current_lang),
+            tr(keys::AI_PLEASE_CONFIGURE, current_lang)
+        );
+        app.tabs[tab_idx]
+            .command_line_panel
+            .history
+            .push((trimmed_input, error_msg));
         return;
     }
-
-    let model = active_model.unwrap();
-
-    // Build Redis context
-    let context = build_redis_context(app, tab_idx);
 
     // Show thinking indicator only if configured
     if ai_config.show_ai_thinking {
@@ -524,28 +484,67 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         None
     };
 
-    // Clone model and context for the async operation
-    let model = model.clone();
-    let context_str = context.clone();
     let user_input = trimmed_input.clone();
+    let confirm_before_execute = ai_config.confirm_before_execute;
 
     // Create channel for async result
     let (tx, rx) = std::sync::mpsc::channel();
 
-    // Store pending state
+    // Store pending state with use_rig_agent flag
     app.tabs[tab_idx].command_line_panel.ai_chat_pending =
         Some(crate::ui::window::types::AiChatPending {
             thinking_idx,
             user_input: trimmed_input,
-            context: context_str.clone(),
-            confirm_before_execute: ai_config.confirm_before_execute,
+            context: None,
+            confirm_before_execute,
             receiver: rx,
+            use_rig_agent: true,
         });
 
-    // Execute AI chat asynchronously
-    tokio::task::spawn_blocking(move || {
-        let result = AiClient::chat_sync(&model, &user_input, context_str.as_deref());
-        let _ = tx.send(result);
+    // Get references needed for async task
+    let redis_client = std::sync::Arc::new(app.tabs[tab_idx].state.redis_client.clone());
+    let ai_config_clone = ai_config.clone();
+    let rig_agent_arc = app.tabs[tab_idx].command_line_panel.rig_agent.clone();
+
+    // Execute AI chat with rig agent asynchronously
+    tokio::task::spawn(async move {
+        // Try to get or create the rig agent
+        let mut agent_opt = rig_agent_arc.lock().await;
+
+        // If agent doesn't exist, try to create it first
+        if agent_opt.is_none() {
+            match OpenAiRigAgent::new(&ai_config_clone, redis_client.clone()).await {
+                Ok(new_agent) => {
+                    *agent_opt = Some(new_agent);
+                }
+                Err(e) => {
+                    // Agent creation failed, send error immediately
+                    let creation_error = AiResponseError::Other(e);
+                    let _ = tx.send(Err(creation_error));
+                    return;
+                }
+            }
+        }
+
+        // Now we have an agent (or had one), chat with it
+        let response = if let Some(ref mut agent) = *agent_opt {
+            agent.chat(&user_input).await
+        } else {
+            // This shouldn't happen, but handle it gracefully
+            let _ = tx.send(Err(AiResponseError::NoModelConfigured));
+            return;
+        };
+
+        let chat_response = match response {
+            Ok(AiChatResult::Text(text)) => Ok(text),
+            Ok(AiChatResult::ToolCall { name, result }) => {
+                Ok(format!("[Tool '{}' executed]\n{}", name, result))
+            }
+            Ok(AiChatResult::Error(e)) => Err(e),
+            Err(e) => Err(e),
+        };
+
+        let _ = tx.send(chat_response);
     });
 }
 
@@ -617,17 +616,27 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
             }
         }
         Err(e) => {
+            // Get current language for i18n
+            let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
+
+            // Format error message using i18n
+            let error_msg = if let Some(detail) = e.get_detail() {
+                format!(
+                    "ERR: {}",
+                    tr_fmt(e.get_i18n_key(), current_lang, &[&detail])
+                )
+            } else {
+                format!("ERR: {}", tr(e.get_i18n_key(), current_lang))
+            };
+
             // Update the thinking message with the error
             if let Some(idx) = pending.thinking_idx {
-                app.tabs[tab_idx].command_line_panel.history[idx] = (
-                    pending.user_input,
-                    format!("ERR: AI request failed - {}", e),
-                );
+                app.tabs[tab_idx].command_line_panel.history[idx] = (pending.user_input, error_msg);
             } else {
-                app.tabs[tab_idx].command_line_panel.history.push((
-                    pending.user_input,
-                    format!("ERR: AI request failed - {}", e),
-                ));
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .history
+                    .push((pending.user_input, error_msg));
             }
         }
     }
