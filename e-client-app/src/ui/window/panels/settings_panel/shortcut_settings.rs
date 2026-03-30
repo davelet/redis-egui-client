@@ -2,7 +2,7 @@
 
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
-use e_client_config::translations::{emoji, keys, tr, tr_fmt};
+use e_client_config::translations::{emoji, tr, tr_fmt, TranslationKey};
 
 use super::super::super::RedisApp;
 
@@ -176,7 +176,7 @@ pub fn render_shortcut_settings(
     if is_capturing {
         ui.colored_label(
             ui.visuals().warn_fg_color,
-            tr(keys::SHORTCUT_PRESS_KEYS, current_lang),
+            tr(TranslationKey::ShortcutPressKeys, current_lang),
         );
         ui.add_space(8.0);
     }
@@ -261,7 +261,7 @@ pub fn render_shortcut_settings(
                                 let conflict_name =
                                     tr(conflict_action.translation_key(), current_lang);
                                 app.shortcut_state.shortcut_conflict_warning = Some(tr_fmt(
-                                    keys::SHORTCUT_CONFLICTS_WITH,
+                                    TranslationKey::ShortcutConflictsWith,
                                     current_lang,
                                     &[conflict_name],
                                 ));
@@ -333,7 +333,7 @@ pub fn render_shortcut_settings(
                                 // Show "Not customizable" text for non-editable shortcuts
                                 ui.label(
                                     egui::RichText::new(tr(
-                                        keys::SHORTCUT_NON_EDITABLE,
+                                        TranslationKey::ShortcutNonEditable,
                                         current_lang,
                                     ))
                                     .color(ui.visuals().weak_text_color())
@@ -352,7 +352,7 @@ pub fn render_shortcut_settings(
                                 let save_text = format!(
                                     "{} {}",
                                     emoji::action::SAVE,
-                                    tr(keys::SAVE, current_lang)
+                                    tr(TranslationKey::Save, current_lang)
                                 );
                                 if ui
                                     .add_enabled(can_save, egui::Button::new(save_text))
@@ -371,7 +371,7 @@ pub fn render_shortcut_settings(
                                 let cancel_text = format!(
                                     "{} {}",
                                     emoji::action::CANCEL,
-                                    tr(keys::CANCEL, current_lang)
+                                    tr(TranslationKey::Cancel, current_lang)
                                 );
                                 if ui.button(cancel_text).clicked() {
                                     app.shortcut_state.editing_shortcut = None;
@@ -382,7 +382,7 @@ pub fn render_shortcut_settings(
                                 let edit_text = format!(
                                     "{} {}",
                                     emoji::action::EDIT,
-                                    tr(keys::EDIT, current_lang)
+                                    tr(TranslationKey::Edit, current_lang)
                                 );
                                 if ui.button(edit_text).clicked() {
                                     app.shortcut_state.editing_shortcut = Some(action_key);
@@ -403,7 +403,7 @@ pub fn render_shortcut_settings(
         let reset_text = format!(
             "{} {}",
             emoji::action::REFRESH,
-            tr(keys::SHORTCUT_RESET_DEFAULTS, current_lang)
+            tr(TranslationKey::ShortcutResetDefaults, current_lang)
         );
         if ui.button(reset_text).clicked() {
             app.config.settings.shortcuts.reset_to_default();

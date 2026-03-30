@@ -366,7 +366,7 @@ impl RedisApp {
     }
 
     pub fn close_tab(&mut self, index: usize, ctx: &egui::Context) {
-        use e_client_config::translations::{keys, tr};
+        use e_client_config::translations::{TranslationKey, keys, tr};
 
         if self.tabs.len() <= 1 {
             // Close the last tab and exit the application
@@ -397,7 +397,7 @@ impl RedisApp {
                 let lang = *tab.state.language.blocking_read();
                 tab.state.spawn_disconnect();
                 // Clear tab name and color on disconnect
-                tab.name = format!("{} {}", tr(keys::TAB, lang), tab.id);
+                tab.name = format!("{} {}", tr(TranslationKey::Tab, lang), tab.id);
                 tab.connected_color = None;
                 tab.selected_connection = None;
             }
@@ -629,14 +629,14 @@ impl RedisApp {
     }
 
     pub fn update_language(&mut self, lang: Language) {
-        use e_client_config::translations::{keys, tr};
+        use e_client_config::translations::{TranslationKey, keys, tr};
         self.global_language = lang;
         // Update all tabs' language and names
         for tab in self.tabs.iter_mut() {
             *tab.state.language.blocking_write() = lang;
             // Update tab name if it's the default name
             if tab.name.starts_with("Tab ") || tab.name.starts_with("标签页") {
-                tab.name = format!("{}{}", tr(keys::TAB, lang), tab.id);
+                tab.name = format!("{}{}", tr(TranslationKey::Tab, lang), tab.id);
             }
         }
     }
@@ -648,5 +648,6 @@ impl Drop for RedisApp {
         for tab in &self.tabs {
             tab.state.redis_client.disconnect_sync();
         }
+        e_client_logging::log_app_shutdown();
     }
 }

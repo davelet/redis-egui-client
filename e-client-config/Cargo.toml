@@ -6,9 +6,12 @@ edition = "2024"
 [dependencies]
 e-client-bilingual = { path = "../e-client-bilingual" }
 serde = { version = "1.0.228", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
+strum_macros = "0.27"
 dirs = "6.0.0"
 toml = "0.9.10"
 redis = { version = "1.0.2", features = ["json"] }
+tracing = "0.1.44"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3.6.2", features = ["apple-native"] }

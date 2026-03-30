@@ -2,7 +2,7 @@ use crate::core::EditedValue;
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr, tr_fmt};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
 
 /// Render key in edit mode
 pub fn render_edit_mode(
@@ -54,7 +54,7 @@ fn render_header(
 
     // Header row with key editing
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(tr(keys::KEY_LABEL, current_lang)).strong());
+        ui.label(egui::RichText::new(tr(TranslationKey::KeyLabel, current_lang)).strong());
         let response = ui.add_enabled(
             !edit.saving,
             egui::TextEdit::singleline(&mut edit.edited_key).desired_width(300.0),
@@ -67,7 +67,7 @@ fn render_header(
         ui.add_enabled_ui(!edit.saving, |ui| {
             if ui
                 .button(
-                    egui::RichText::new(tr(keys::SAVE, current_lang))
+                    egui::RichText::new(tr(TranslationKey::Save, current_lang))
                         .color(egui::Color32::from_rgb(50, 180, 50)),
                 )
                 .clicked()
@@ -81,7 +81,10 @@ fn render_header(
 
         // Cancel button - disabled when saving
         ui.add_enabled_ui(!edit.saving, |ui| {
-            if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+            if ui
+                .button(tr(TranslationKey::Cancel, current_lang))
+                .clicked()
+            {
                 app.tabs[active_tab_idx]
                     .state
                     .edit_state
@@ -94,7 +97,8 @@ fn render_header(
         ui.add_enabled_ui(!edit.saving, |ui| {
             if ui
                 .button(
-                    egui::RichText::new(tr(keys::DELETE, current_lang)).color(egui::Color32::RED),
+                    egui::RichText::new(tr(TranslationKey::Delete, current_lang))
+                        .color(egui::Color32::RED),
                 )
                 .clicked()
             {
@@ -145,7 +149,7 @@ fn render_value_edit(
             changed |= render_zset_edit(ui, items, editable, current_lang);
         }
         EditedValue::None => {
-            ui.label(tr(keys::NO_VALUE_TO_EDIT, current_lang));
+            ui.label(tr(TranslationKey::NoValueToEdit, current_lang));
         }
     }
 
@@ -159,7 +163,7 @@ fn render_string_edit(
     editable: bool,
     current_lang: Language,
 ) -> bool {
-    ui.label(tr(keys::TYPE_STRING, current_lang));
+    ui.label(tr(TranslationKey::TypeString, current_lang));
     let mut changed = false;
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -191,7 +195,7 @@ fn render_hash_edit(
     current_lang: Language,
 ) -> bool {
     ui.label(tr_fmt(
-        keys::TYPE_HASH,
+        TranslationKey::TypeHash,
         current_lang,
         &[&fields.len().to_string()],
     ));
@@ -210,7 +214,7 @@ fn render_hash_edit(
                         ui.add_sized(
                             [delete_button_width, 24.0],
                             egui::Button::new(
-                                egui::RichText::new(tr(keys::DELETE, current_lang))
+                                egui::RichText::new(tr(TranslationKey::Delete, current_lang))
                                     .color(egui::Color32::RED),
                             ),
                         )
@@ -230,14 +234,14 @@ fn render_hash_edit(
                     if ui.add(field_edit).changed() {
                         changed = true;
                     }
-                    ui.label(tr(keys::COLON_SEPARATOR, current_lang));
+                    ui.label(tr(TranslationKey::ColonSeparator, current_lang));
 
                     let available_for_value =
                         ui.ctx().available_rect().width() - delete_button_width;
 
                     let mut value_edit = egui::TextEdit::singleline(&mut value.value)
                         .desired_width(available_for_value)
-                        .hint_text(tr(keys::VALUE_PLACEHOLDER, current_lang));
+                        .hint_text(tr(TranslationKey::ValuePlaceholder, current_lang));
                     if !editable {
                         value_edit = value_edit.interactive(false);
                     }
@@ -248,7 +252,10 @@ fn render_hash_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button(tr(keys::ADD_FIELD, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::AddField, current_lang))
+                    .clicked()
+                {
                     fields.push((String::new(), crate::core::JsonValue::new("")));
                     changed = true;
                 }
@@ -273,7 +280,7 @@ fn render_list_edit(
     current_lang: Language,
 ) -> bool {
     ui.label(tr_fmt(
-        keys::TYPE_LIST,
+        TranslationKey::TypeList,
         current_lang,
         &[&items.len().to_string()],
     ));
@@ -292,7 +299,7 @@ fn render_list_edit(
                         ui.add_sized(
                             [delete_button_width, 24.0],
                             egui::Button::new(
-                                egui::RichText::new(tr(keys::DELETE, current_lang))
+                                egui::RichText::new(tr(TranslationKey::Delete, current_lang))
                                     .color(egui::Color32::RED),
                             ),
                         )
@@ -319,7 +326,10 @@ fn render_list_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button(tr(keys::ADD_ITEM, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::AddItem, current_lang))
+                    .clicked()
+                {
                     items.push(crate::core::JsonValue::new(""));
                     changed = true;
                 }
@@ -344,7 +354,7 @@ fn render_set_edit(
     current_lang: Language,
 ) -> bool {
     ui.label(tr_fmt(
-        keys::TYPE_SET,
+        TranslationKey::TypeSet,
         current_lang,
         &[&items.len().to_string()],
     ));
@@ -363,7 +373,7 @@ fn render_set_edit(
                         ui.add_sized(
                             [delete_button_width, 24.0],
                             egui::Button::new(
-                                egui::RichText::new(tr(keys::DELETE, current_lang))
+                                egui::RichText::new(tr(TranslationKey::Delete, current_lang))
                                     .color(egui::Color32::RED),
                             ),
                         )
@@ -390,7 +400,10 @@ fn render_set_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button(tr(keys::ADD_MEMBER, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::AddMember, current_lang))
+                    .clicked()
+                {
                     items.push(crate::core::JsonValue::new(""));
                     changed = true;
                 }
@@ -415,7 +428,7 @@ fn render_zset_edit(
     current_lang: Language,
 ) -> bool {
     ui.label(tr_fmt(
-        keys::TYPE_ZSET,
+        TranslationKey::TypeZset,
         current_lang,
         &[&items.len().to_string()],
     ));
@@ -434,7 +447,7 @@ fn render_zset_edit(
                         ui.add_sized(
                             [delete_button_width, 24.0],
                             egui::Button::new(
-                                egui::RichText::new(tr(keys::DELETE, current_lang))
+                                egui::RichText::new(tr(TranslationKey::Delete, current_lang))
                                     .color(egui::Color32::RED),
                             ),
                         )
@@ -445,7 +458,7 @@ fn render_zset_edit(
                     });
 
                     ui.label(format!("{}.", idx));
-                    ui.label(tr(keys::SCORE_LABEL, current_lang));
+                    ui.label(tr(TranslationKey::ScoreLabel, current_lang));
                     let mut score_edit = egui::TextEdit::singleline(score)
                         .desired_width(80.0)
                         .hint_text("0.0");
@@ -455,7 +468,7 @@ fn render_zset_edit(
                     if ui.add(score_edit).changed() {
                         changed = true;
                     }
-                    ui.label(tr(keys::MEMBER_LABEL, current_lang));
+                    ui.label(tr(TranslationKey::MemberLabel, current_lang));
 
                     let available_for_value =
                         ui.ctx().available_rect().width() - delete_button_width;
@@ -472,7 +485,10 @@ fn render_zset_edit(
             }
 
             ui.add_enabled_ui(editable, |ui| {
-                if ui.button(tr(keys::ADD_MEMBER, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::AddMember, current_lang))
+                    .clicked()
+                {
                     items.push((crate::core::JsonValue::new(""), "0".to_string()));
                     changed = true;
                 }

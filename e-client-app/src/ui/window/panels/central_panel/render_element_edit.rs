@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 
 /// Render element edit dialog
 pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
@@ -22,14 +22,14 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
         let content_rect = ctx.content_rect();
         let dialog_pos = content_rect.center() - dialog_size * 0.5;
 
-        egui::Window::new(tr(keys::EDIT_ELEMENT, current_lang))
+        egui::Window::new(tr(TranslationKey::EditElement, current_lang))
             .open(&mut open)
             .collapsible(false)
             .resizable(false)
             .fixed_size(dialog_size)
             .default_pos(dialog_pos)
     } else {
-        egui::Window::new(tr(keys::EDIT_ELEMENT, current_lang))
+        egui::Window::new(tr(TranslationKey::EditElement, current_lang))
             .open(&mut open)
             .collapsible(false)
             .resizable(false)
@@ -79,7 +79,7 @@ fn render_context_info(
     key_type: &str,
 ) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(tr(keys::KEY_LABEL, current_lang)).strong());
+        ui.label(egui::RichText::new(tr(TranslationKey::KeyLabel, current_lang)).strong());
         egui::ScrollArea::horizontal()
             .max_height(20.0)
             .show(ui, |ui| {
@@ -126,7 +126,7 @@ fn render_action_buttons(
         // Save button
         if ui
             .button(
-                egui::RichText::new(tr(keys::SAVE, current_lang))
+                egui::RichText::new(tr(TranslationKey::Save, current_lang))
                     .color(egui::Color32::from_rgb(50, 180, 50)),
             )
             .clicked()
@@ -147,7 +147,7 @@ fn render_action_buttons(
             .button(
                 egui::RichText::new(app.copy_button_text(
                     egui::Id::new("copy_edit_dialog_value"),
-                    tr(keys::COPY_VALUE, current_lang),
+                    tr(TranslationKey::CopyValue, current_lang),
                 ))
                 .color(app.copy_button_text_color(egui::Id::new("copy_edit_dialog_value"))),
             )
@@ -158,7 +158,10 @@ fn render_action_buttons(
         }
 
         // Cancel button
-        if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+        if ui
+            .button(tr(TranslationKey::Cancel, current_lang))
+            .clicked()
+        {
             app.element_edit_dialog.show = false;
         }
     });

@@ -1,5 +1,6 @@
 use e_client_config::config::ai_config::AiModel;
 use serde::{Deserialize, Serialize};
+use tracing::{error, info};
 
 /// AI chat message
 #[derive(Debug, Serialize)]
@@ -166,6 +167,7 @@ impl AiClient {
         message: &str,
         context: Option<&str>,
     ) -> Result<String, String> {
+        info!(model = %model.model_id, "Sending chat request to AI");
         let client = reqwest::Client::new();
 
         // Build the request URL
@@ -243,24 +245,30 @@ impl AiClient {
         }
 
         // Send the request with timeout
+        info!(url = %url, "Sending HTTP request");
         let response = request_builder.send().await.map_err(|e| {
             let err_str = e.to_string();
             if err_str.contains("timeout") {
+                error!(error = %err_str, "Request timeout");
                 "Request timeout. Please check your network connection.".to_string()
             } else if err_str.contains("connection") {
+                error!(error = %err_str, "Network error");
                 "Network error. Please check your internet connection.".to_string()
             } else {
+                error!(error = %err_str, "Request failed");
                 format!("Request failed: {}", err_str)
             }
         })?;
 
         // Check for HTTP errors with friendly messages
-        if !response.status().is_success() {
-            let status = response.status();
+        let status = response.status();
+        info!(status = %status, "Received HTTP response");
+        if !status.is_success() {
             let text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
+            error!(status = %status, error = %text, "API request failed");
             return Err(parse_api_error(status, &text));
         }
 

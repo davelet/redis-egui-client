@@ -2,7 +2,7 @@
 
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 
 use super::super::super::RedisApp;
 
@@ -14,7 +14,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::LANGUAGE, current_lang));
+            ui.label(tr(TranslationKey::Language, current_lang));
             let lang = current_lang;
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 egui::ComboBox::from_id_salt("settings_lang_select")
@@ -48,7 +48,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::AUTO_CONNECT, current_lang));
+            ui.label(tr(TranslationKey::AutoConnect, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut auto_connect = app.config.settings.auto_connect;
                 if ui.checkbox(&mut auto_connect, "").changed() {
@@ -66,7 +66,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::SHOW_UNCLOSED_CONNECTIONS, current_lang));
+            ui.label(tr(TranslationKey::ShowUnclosedConnections, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut show_unclosed = app.config.settings.show_unclosed_connections;
                 if ui.checkbox(&mut show_unclosed, "").changed() {
@@ -85,7 +85,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::ALLOW_DUPLICATE_CONNECTIONS, current_lang));
+            ui.label(tr(TranslationKey::AllowDuplicateConnections, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut allow_duplicate = app.config.settings.allow_duplicate_connections;
                 if ui.checkbox(&mut allow_duplicate, "").changed() {
@@ -104,7 +104,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::GROUP_KEYS_BY_COLON, current_lang));
+            ui.label(tr(TranslationKey::GroupKeysByColon, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut group_keys = app.config.settings.group_keys_by_colon;
                 if ui.checkbox(&mut group_keys, "").changed() {
@@ -123,7 +123,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::AUTO_REFRESH_TTL, current_lang));
+            ui.label(tr(TranslationKey::AutoRefreshTtl, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut auto_refresh_ttl = app.config.settings.auto_refresh_ttl;
                 if ui.checkbox(&mut auto_refresh_ttl, "").changed() {
@@ -142,7 +142,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
         .spacing([40.0, 12.0])
         .min_col_width(120.0)
         .show(ui, |ui| {
-            ui.label(tr(keys::AUTO_EXPAND, current_lang));
+            ui.label(tr(TranslationKey::AutoExpand, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let mut auto_expand = app.config.settings.auto_expand;
                 if ui.checkbox(&mut auto_expand, "").changed() {
@@ -155,7 +155,7 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
             // Threshold slider (only effective when auto_expand is enabled)
             let threshold_enabled = app.config.settings.auto_expand;
             let mut threshold = app.config.settings.auto_expand_threshold as f32;
-            ui.label(tr(keys::AUTO_EXPAND_THRESHOLD, current_lang));
+            ui.label(tr(TranslationKey::AutoExpandThreshold, current_lang));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_enabled(
                     threshold_enabled,

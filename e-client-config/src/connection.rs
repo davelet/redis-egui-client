@@ -1,10 +1,7 @@
 use crate::constants::{CONNECTION_AUTH_LIMIT, CONNECTION_NAME_LIMIT, CONNECTION_URL_LIMIT};
 use crate::error::ConfigError;
 use e_client_bilingual::language::Language;
-use e_client_bilingual::translations::keys::{
-    CONNECTION_NAME, CONNECTION_PASSWORD, CONNECTION_PORT, CONNECTION_URL, CONNECTION_USERNAME,
-};
-use e_client_bilingual::translations::tr;
+use e_client_bilingual::translations::{tr, TranslationKey};
 
 use redis::{
     ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo, RedisError,
@@ -73,14 +70,14 @@ impl RedisConnectionConfig {
         if self.name.len() > CONNECTION_NAME_LIMIT {
             return Err(ConfigError::HugeParam([
                 self.name.len().to_string(),
-                tr(CONNECTION_NAME, lang).to_string(),
+                tr(TranslationKey::ConnectionName, lang).to_string(),
                 CONNECTION_NAME_LIMIT.to_string(),
             ]));
         }
         if self.url.len() > CONNECTION_URL_LIMIT {
             return Err(ConfigError::HugeParam([
                 self.url.len().to_string(),
-                tr(CONNECTION_URL, lang).to_string(),
+                tr(TranslationKey::ConnectionUrl, lang).to_string(),
                 CONNECTION_URL_LIMIT.to_string(),
             ]));
         }
@@ -88,7 +85,7 @@ impl RedisConnectionConfig {
         if port.is_err() {
             return Err(ConfigError::HugeParam([
                 self.port.to_string(),
-                tr(CONNECTION_PORT, lang).to_string(),
+                tr(TranslationKey::ConnectionPort, lang).to_string(),
                 u16::MAX.to_string(),
             ]));
         }
@@ -96,7 +93,7 @@ impl RedisConnectionConfig {
             if user.len() > CONNECTION_AUTH_LIMIT {
                 return Err(ConfigError::HugeParam([
                     user.len().to_string(),
-                    tr(CONNECTION_USERNAME, lang).to_string(),
+                    tr(TranslationKey::ConnectionUsername, lang).to_string(),
                     CONNECTION_AUTH_LIMIT.to_string(),
                 ]));
             }
@@ -105,7 +102,7 @@ impl RedisConnectionConfig {
             if pass.len() > CONNECTION_AUTH_LIMIT {
                 return Err(ConfigError::HugeParam([
                     pass.len().to_string(),
-                    tr(CONNECTION_PASSWORD, lang).to_string(),
+                    tr(TranslationKey::ConnectionPassword, lang).to_string(),
                     CONNECTION_AUTH_LIMIT.to_string(),
                 ]));
             }

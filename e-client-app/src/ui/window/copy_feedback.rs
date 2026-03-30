@@ -80,7 +80,7 @@ impl CopyFeedbackManager {
         global_language: Language,
     ) -> String {
         use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
-        use e_client_config::translations::{keys, tr};
+        use e_client_config::translations::{tr, TranslationKey};
         use std::time::Duration;
 
         let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
@@ -90,13 +90,13 @@ impl CopyFeedbackManager {
         if self.last_copy_button_id == Some(button_id) {
             if let Some(time) = success_time {
                 if now.duration_since(time) < duration {
-                    return tr(keys::COPY_SUCCESS, global_language).to_string();
+                    return tr(TranslationKey::CopySuccess, global_language).to_string();
                 }
             }
 
             if let Some(time) = failure_time {
                 if now.duration_since(time) < duration {
-                    return tr(keys::COPY_FAILED, global_language).to_string();
+                    return tr(TranslationKey::CopyFailed, global_language).to_string();
                 }
             }
         }

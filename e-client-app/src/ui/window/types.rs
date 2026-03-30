@@ -4,7 +4,7 @@ use e_client_basics::constants::DEFAULT_SIDE_PANEL_WIDTH;
 use e_client_config::config::ai_config::AiModel;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 use e_client_core::AiResponseError;
 
 /// Represents a single Redis connection tab
@@ -26,7 +26,7 @@ impl RedisTab {
 
         Self {
             id,
-            name: format!("{}{}", tr(keys::TAB, language), id),
+            name: format!("{}{}", tr(TranslationKey::Tab, language), id),
             state,
             selected_connection: None,
             connected_color: None,

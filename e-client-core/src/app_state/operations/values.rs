@@ -111,7 +111,8 @@ pub fn spawn_save_edits(state: &AppState, original_key: String) {
             .unwrap_or(false);
         if !key_exists && new_key == original_key {
             let lang = *state.language.read().await;
-            state.edit_state.write().await.save_message = tr(keys::KEY_EXPIRED, lang).to_string();
+            state.edit_state.write().await.save_message =
+                tr(keys::TranslationKey::KeyExpired, lang).to_string();
             state.edit_state.write().await.saving = false;
             return;
         }

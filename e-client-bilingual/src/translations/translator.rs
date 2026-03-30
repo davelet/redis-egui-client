@@ -1,8 +1,9 @@
 use crate::language::Language;
+use crate::translations::keys::TranslationKey;
 use std::collections::HashMap;
 
 pub struct Translator {
-    strings: HashMap<&'static str, HashMap<Language, &'static str>>,
+    strings: HashMap<TranslationKey, HashMap<Language, &'static str>>,
 }
 
 impl Default for Translator {
@@ -14,21 +15,23 @@ impl Default for Translator {
 }
 
 impl Translator {
-    pub fn get<'a>(&'a self, key: &'a str, lang: Language) -> &'a str {
+    pub fn get(&self, key: &TranslationKey, lang: Language) -> &str {
         self.strings
             .get(key)
             .and_then(|m| m.get(&lang))
             .map(|s| s.as_ref())
-            .unwrap_or_else(move || {
+            .unwrap_or_else(|| {
                 eprintln!(
-                    "Missing translation for key: {} in language: {:?}",
+                    "Missing translation for key: {:?} in language: {:?}",
                     key, lang
                 );
-                key
+                // Return a fallback - this is a temporary solution
+                // In a real implementation, we'd need a mapping from enum to string
+                "MISSING_TRANSLATION"
             })
     }
 
-    pub fn format(&self, key: &str, lang: Language, args: &[&str]) -> String {
+    pub fn format(&self, key: &TranslationKey, lang: Language, args: &[&str]) -> String {
         let template = self.get(key, lang);
         let mut result = template.to_string();
 
@@ -41,15 +44,15 @@ impl Translator {
 }
 
 // Convenience function to get a translation
-pub fn tr(key: &'static str, lang: Language) -> &'static str {
+pub fn tr(key: TranslationKey, lang: Language) -> &'static str {
     static TRANSLATOR: std::sync::OnceLock<Translator> = std::sync::OnceLock::new();
     let translator = TRANSLATOR.get_or_init(Translator::default);
-    translator.get(key, lang)
+    translator.get(&key, lang)
 }
 
 // Convenience function to get a formatted translation
-pub fn tr_fmt(key: &'static str, lang: Language, args: &[&str]) -> String {
+pub fn tr_fmt(key: TranslationKey, lang: Language, args: &[&str]) -> String {
     static TRANSLATOR: std::sync::OnceLock<Translator> = std::sync::OnceLock::new();
     let translator = TRANSLATOR.get_or_init(Translator::default);
-    translator.format(key, lang, args)
+    translator.format(&key, lang, args)
 }

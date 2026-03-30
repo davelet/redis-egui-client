@@ -1,22 +1,20 @@
 use crate::ui::start_app;
+use e_client_logging::{LoggingConfig, init_logging, log_app_shutdown, log_app_start};
 use tokio::runtime::Runtime;
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
 
 mod core;
 mod ui;
 
 fn main() -> Result<(), eframe::Error> {
+    // Initialize logging with default configuration
+    let logging_config = LoggingConfig::default();
+    init_logging(&logging_config).expect("Failed to initialize logging");
+
+    log_app_start();
+
     let runtime = Runtime::new().unwrap();
     let _guard = runtime.enter();
-    let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::INFO)
-        // completes the builder.
-        .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     std::thread::spawn(move || {
         runtime.block_on(async {
             loop {
@@ -25,5 +23,8 @@ fn main() -> Result<(), eframe::Error> {
         });
     });
 
-    start_app()
+    let result = start_app();
+
+    log_app_shutdown();
+    result
 }

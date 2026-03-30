@@ -3,8 +3,7 @@ use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::emoji;
-use e_client_config::translations::keys;
-use e_client_config::translations::tr;
+use e_client_config::translations::{tr, TranslationKey};
 use std::collections::BTreeMap;
 
 /// Represents a node in the key tree structure
@@ -102,11 +101,11 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             let total_display = if is_full_scan || !scan_has_more {
                 total_keys.to_string()
             } else {
-                tr(keys::UNKNOWN, current_lang).to_string()
+                tr(TranslationKey::Unknown, current_lang).to_string()
             };
             let heading_text = format!(
                 "{} ({}/{})",
-                tr(keys::KEYS, current_lang),
+                tr(TranslationKey::Keys, current_lang),
                 keys.len(),
                 total_display
             );
@@ -121,7 +120,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             });
 
             ui.horizontal(|ui| {
-                ui.label(tr(keys::FILTER, current_lang));
+                ui.label(tr(TranslationKey::Filter, current_lang));
                 let tab = &mut app.tabs[active_tab_idx];
                 let available_width = ui.available_width() - 30.0; // Reserve space for refresh button
                 let changed = ui
@@ -174,17 +173,23 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
                 if keys.len() >= MAX_LOADED_KEYS {
                     ui.label(
-                        egui::RichText::new(tr(keys::TOO_MANY_KEYS, current_lang))
+                        egui::RichText::new(tr(TranslationKey::TooManyKeys, current_lang))
                             .color(egui::Color32::PURPLE),
                     );
                 } else if scan_has_more {
                     ui.horizontal(|ui| {
                         if remaining_keys > LOAD_MORE_BATCH_SIZE {
-                            if ui.button(tr(keys::LOAD_MORE_KEYS, current_lang)).clicked() {
+                            if ui
+                                .button(tr(TranslationKey::LoadMoreKeys, current_lang))
+                                .clicked()
+                            {
                                 app.tabs[active_tab_idx].state.spawn_load_more_keys(false);
                             }
                         }
-                        if ui.button(tr(keys::LOAD_ALL_KEYS, current_lang)).clicked() {
+                        if ui
+                            .button(tr(TranslationKey::LoadAllKeys, current_lang))
+                            .clicked()
+                        {
                             app.tabs[active_tab_idx].state.spawn_load_more_keys(true);
                         }
                     });
@@ -237,7 +242,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
 fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
     let mut open = true;
-    egui::Window::new(tr(keys::NEW_KEY, current_lang))
+    egui::Window::new(tr(TranslationKey::NewKey, current_lang))
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -249,7 +254,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                 .min_col_width(80.0)
                 .show(ui, |ui| {
                     // Key name
-                    ui.label(tr(keys::KEY_NAME_LABEL, current_lang));
+                    ui.label(tr(TranslationKey::KeyNameLabel, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.new_key_dialog.key_name)
                             .desired_width(250.0)
@@ -258,7 +263,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     ui.end_row();
 
                     // Type selector
-                    ui.label(tr(keys::TYPE_LABEL, current_lang));
+                    ui.label(tr(TranslationKey::TypeLabel, current_lang));
                     egui::ComboBox::from_id_salt("new_key_type")
                         .selected_text(&app.new_key_dialog.key_type)
                         .width(250.0)
@@ -292,11 +297,11 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     ui.end_row();
 
                     // TTL
-                    ui.label(tr(keys::TTL_LABEL, current_lang));
+                    ui.label(tr(TranslationKey::TtlLabel, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.new_key_dialog.ttl)
                             .desired_width(250.0)
-                            .hint_text(tr(keys::TTL_NO_EXPIRATION_HINT, current_lang)),
+                            .hint_text(tr(TranslationKey::TtlNoExpirationHint, current_lang)),
                     );
                     ui.end_row();
                 });
@@ -305,16 +310,16 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
 
             // Value input with hint based on type
             let hint = match app.new_key_dialog.key_type.as_str() {
-                "string" => tr(keys::VALUE_HINT_STRING, current_lang),
-                "list" => tr(keys::VALUE_HINT_LIST, current_lang),
-                "set" => tr(keys::VALUE_HINT_SET, current_lang),
-                "hash" => tr(keys::VALUE_HINT_HASH, current_lang),
-                "zset" => tr(keys::VALUE_HINT_ZSET, current_lang),
-                _ => tr(keys::VALUE_HINT_STRING, current_lang),
+                "string" => tr(TranslationKey::ValueHintString, current_lang),
+                "list" => tr(TranslationKey::ValueHintList, current_lang),
+                "set" => tr(TranslationKey::ValueHintSet, current_lang),
+                "hash" => tr(TranslationKey::ValueHintHash, current_lang),
+                "zset" => tr(TranslationKey::ValueHintZset, current_lang),
+                _ => tr(TranslationKey::ValueHintString, current_lang),
             };
             ui.label(format!(
                 "{} ({})",
-                tr(keys::VALUE_LABEL, current_lang),
+                tr(TranslationKey::ValueLabel, current_lang),
                 hint
             ));
             ui.add_sized(
@@ -333,7 +338,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
             ui.horizontal(|ui| {
                 if ui
                     .button(
-                        egui::RichText::new(tr(keys::SAVE, current_lang))
+                        egui::RichText::new(tr(TranslationKey::Save, current_lang))
                             .color(egui::Color32::from_rgb(50, 180, 50)),
                     )
                     .clicked()
@@ -341,7 +346,7 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     let key_name = app.new_key_dialog.key_name.trim().to_string();
                     if key_name.is_empty() {
                         app.new_key_dialog.error_message =
-                            tr(keys::KEY_NAME_EMPTY_ERROR, current_lang).to_string();
+                            tr(TranslationKey::KeyNameEmptyError, current_lang).to_string();
                     } else {
                         let key_type = app.new_key_dialog.key_type.clone();
                         let value = app.new_key_dialog.value.clone();
@@ -354,7 +359,10 @@ fn render_new_key_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: 
                     }
                 }
 
-                if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::Cancel, current_lang))
+                    .clicked()
+                {
                     app.new_key_dialog.show = false;
                 }
             });

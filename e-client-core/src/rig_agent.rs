@@ -9,6 +9,57 @@ use rig::{agent::Agent, client::CompletionClient, completion::Prompt, providers:
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// Built-in system prompt for the Redis GUI Client AI assistant.
+pub const SYSTEM_PROMPT: &str = r#"You are an AI assistant for Redis GUI Client. You can help users:
+1. Browse and search Redis keys
+2. View and edit key values
+3. Execute Redis commands
+4. Filter and organize keys
+5. Manage database and data structures
+
+You have access to tools that can:
+- filter_keys: List Redis keys matching a pattern (pattern supports * wildcard)
+- get_key_info: Get detailed information about a specific key (type, TTL, value preview)
+- delete_keys: Delete one or more keys
+- execute_redis_command: Execute any Redis command
+- get_db_stats: Get database statistics
+- set_string: Set a string value for a key
+- set_ttl: Set expiration time for a key (-1 to remove expiration)
+- rename_key: Rename a key (fails if new key already exists)
+- key_exists: Check if a key exists
+- hset: Set a field-value pair in a Hash
+- hdel: Delete a field from a Hash
+- lset: Set an element in a List by index
+- sadd: Add a member to a Set
+- srem: Remove a member from a Set
+- zadd: Add a member with score to a Sorted Set
+- zrem: Remove a member from a Sorted Set
+- rpush: Push a value to the right end of a List
+- select_db: Switch to a different Redis database
+
+When responding:
+- Use tools to fetch actual data from Redis
+- Format your responses clearly
+- Show Redis output in a readable format
+- For key lists, show count and samples
+- For errors, explain what went wrong and suggest fixes
+
+Example interactions:
+- User: "Show me all user keys"
+  You: Use filter_keys with pattern "user:*"
+
+- User: "What's in key 'session:123'?"
+  You: Use get_key_info with key "session:123"
+
+- User: "Delete old cache keys"
+  You: First find them with filter_keys, then delete with delete_keys
+
+- User: "Set session:abc to expire in 1 hour"
+  You: Use set_ttl with key "session:abc" and ttl 3600
+
+- User: "Add user:100 to my users set"
+  You: Use sadd with key "my_users" and member "user:100""#;
+
 pub type OpenAiAgent = Agent<openai::responses_api::ResponsesCompletionModel>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,18 +114,18 @@ impl AiResponseError {
         }
     }
 
-    pub fn get_i18n_key(&self) -> &'static str {
-        use e_client_bilingual::translations::keys;
+    pub fn get_i18n_key(&self) -> e_client_bilingual::translations::TranslationKey {
+        use e_client_bilingual::translations::TranslationKey;
         match self {
-            AiResponseError::NoModelConfigured => keys::AI_ERROR_NO_MODEL_CONFIGURED,
-            AiResponseError::MissingApiKey => keys::AI_ERROR_MISSING_API_KEY,
-            AiResponseError::AuthFailed => keys::AI_ERROR_AUTH_FAILED,
-            AiResponseError::RateLimitExceeded => keys::AI_ERROR_RATE_LIMIT,
-            AiResponseError::NetworkError => keys::AI_ERROR_NETWORK,
-            AiResponseError::InvalidUrl => keys::AI_ERROR_INVALID_URL,
-            AiResponseError::ServerError(_) => keys::AI_ERROR_SERVER_ERROR,
-            AiResponseError::ModelNotFound => keys::AI_ERROR_MODEL_NOT_FOUND,
-            AiResponseError::Other(_) => keys::AI_ERROR_OTHER,
+            AiResponseError::NoModelConfigured => TranslationKey::AiErrorNoModelConfigured,
+            AiResponseError::MissingApiKey => TranslationKey::AiErrorMissingApiKey,
+            AiResponseError::AuthFailed => TranslationKey::AiErrorAuthFailed,
+            AiResponseError::RateLimitExceeded => TranslationKey::AiErrorRateLimit,
+            AiResponseError::NetworkError => TranslationKey::AiErrorNetwork,
+            AiResponseError::InvalidUrl => TranslationKey::AiErrorInvalidUrl,
+            AiResponseError::ServerError(_) => TranslationKey::AiErrorServerError,
+            AiResponseError::ModelNotFound => TranslationKey::AiErrorModelNotFound,
+            AiResponseError::Other(_) => TranslationKey::AiErrorOther,
         }
     }
 
@@ -158,55 +209,6 @@ impl OpenAiRigAgent {
     }
 
     fn build_system_prompt() -> String {
-        r#"You are an AI assistant for Redis GUI Client. You can help users:
-1. Browse and search Redis keys
-2. View and edit key values
-3. Execute Redis commands
-4. Filter and organize keys
-5. Manage database and data structures
-
-You have access to tools that can:
-- filter_keys: List Redis keys matching a pattern (pattern supports * wildcard)
-- get_key_info: Get detailed information about a specific key (type, TTL, value preview)
-- delete_keys: Delete one or more keys
-- execute_redis_command: Execute any Redis command
-- get_db_stats: Get database statistics
-- set_string: Set a string value for a key
-- set_ttl: Set expiration time for a key (-1 to remove expiration)
-- rename_key: Rename a key (fails if new key already exists)
-- key_exists: Check if a key exists
-- hset: Set a field-value pair in a Hash
-- hdel: Delete a field from a Hash
-- lset: Set an element in a List by index
-- sadd: Add a member to a Set
-- srem: Remove a member from a Set
-- zadd: Add a member with score to a Sorted Set
-- zrem: Remove a member from a Sorted Set
-- rpush: Push a value to the right end of a List
-- select_db: Switch to a different Redis database
-
-When responding:
-- Use tools to fetch actual data from Redis
-- Format your responses clearly
-- Show Redis output in a readable format
-- For key lists, show count and samples
-- For errors, explain what went wrong and suggest fixes
-
-Example interactions:
-- User: "Show me all user keys"
-  You: Use filter_keys with pattern "user:*"
-
-- User: "What's in key 'session:123'?"
-  You: Use get_key_info with key "session:123"
-
-- User: "Delete old cache keys"
-  You: First find them with filter_keys, then delete with delete_keys
-
-- User: "Set session:abc to expire in 1 hour"
-  You: Use set_ttl with key "session:abc" and ttl 3600
-
-- User: "Add user:100 to my users set"
-  You: Use sadd with key "my_users" and member "user:100""#
-            .to_string()
+        SYSTEM_PROMPT.to_string()
     }
 }

@@ -1,7 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::constants::WILD_KEY_FILTER;
-use e_client_config::translations::keys;
-use e_client_config::translations::tr;
+use e_client_config::translations::{tr, TranslationKey};
 
 pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if no active tab
@@ -28,23 +27,23 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
             ui.spacing_mut().item_spacing.x = 8.0;
 
             // Connection status
-            ui.label(tr(keys::STATUS_BAR, current_lang));
+            ui.label(tr(TranslationKey::StatusBar, current_lang));
             ui.separator();
 
             if !connected {
-                ui.label(tr(keys::DISCONNECTED, current_lang));
+                ui.label(tr(TranslationKey::Disconnected, current_lang));
             } else if loading {
-                ui.label(tr(keys::LOADING, current_lang));
+                ui.label(tr(TranslationKey::Loading, current_lang));
                 ui.spinner();
             } else {
-                ui.label(tr(keys::READY, current_lang));
+                ui.label(tr(TranslationKey::Ready, current_lang));
             }
 
             ui.separator();
 
             if connected {
                 // Total keys - only show exact count if it's a full scan OR scan is complete
-                ui.label(tr(keys::TOTAL_KEYS, current_lang));
+                ui.label(tr(TranslationKey::TotalKeys, current_lang));
                 let key_filter = app.poll_string(app.tabs[active_tab_idx].state.key_filter.clone());
                 let key_filter = key_filter.trim();
                 let is_full_scan =
@@ -52,12 +51,12 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 if is_full_scan || !scan_has_more {
                     ui.label(format!("{}", total_keys));
                 } else {
-                    ui.label(tr(keys::UNKNOWN, current_lang));
+                    ui.label(tr(TranslationKey::Unknown, current_lang));
                 }
                 ui.separator();
 
                 // Loaded keys
-                ui.label(tr(keys::LOADED_KEYS, current_lang));
+                ui.label(tr(TranslationKey::LoadedKeys, current_lang));
                 if scan_has_more {
                     ui.label(
                         egui::RichText::new(format!("{}", loaded_keys)).color(egui::Color32::RED),

@@ -1,214 +1,213 @@
-/// Translation key constants
-pub const CONNECT: &str = "connect";
-pub const NEW_CONNECTION: &str = "new_connection";
-pub const EDIT_CONNECTION: &str = "edit_connection";
-pub const OPEN_IN_NEW_TAB: &str = "open_in_new_tab";
-pub const DISCONNECT: &str = "disconnect";
-pub const CONNECTION_URL: &str = "connection_url";
-pub const DATABASE: &str = "database";
-pub const TAB: &str = "tab";
-pub const KEYS: &str = "keys";
-pub const FILTER: &str = "filter";
-pub const COMMAND: &str = "command";
-pub const EXECUTE: &str = "execute";
-pub const VALUE: &str = "value";
-pub const LANGUAGE: &str = "language";
-pub const SETTINGS: &str = "settings";
-pub const AUTO_CONNECT: &str = "auto_connect";
-pub const NEW_KEY: &str = "new_key";
-pub const EDIT_ELEMENT: &str = "edit_element";
-pub const CLOSE: &str = "close";
-pub const CLOSE_OTHERS: &str = "close_others";
-pub const DUPLICATE: &str = "duplicate";
-pub const CONNECTION_FAILED: &str = "connection_failed";
-pub const CONNECTION_FAILED_MSG: &str = "connection_failed_msg";
-pub const SELECT_CONNECTION: &str = "select_connection";
-pub const PLEASE_SELECT_CONNECTION: &str = "please_select_connection";
-pub const SAVE: &str = "save";
-pub const CANCEL: &str = "cancel";
-pub const CONNECTION_NAME: &str = "connection_name";
-pub const CONNECTION_ADDRESS: &str = "connection_address";
-pub const CONNECTION_PORT: &str = "connection_port";
-pub const CONNECTION_USERNAME: &str = "connection_username";
-pub const CONNECTION_PASSWORD: &str = "connection_password";
-pub const CONNECTION_COLOR: &str = "connection_color";
-pub const PLEASE_ENTER_CONNECTION_NAME: &str = "please_enter_connection_name";
-pub const PLEASE_ENTER_CONNECTION_ADDRESS: &str = "please_enter_connection_address";
-pub const NEW_CONNECTION_DIALOG: &str = "new_connection_dialog";
-pub const EDIT_CONNECTION_DIALOG: &str = "edit_connection_dialog";
-pub const COMMAND_LABEL: &str = "command_label";
-pub const OUTPUT: &str = "output";
-pub const SELECT_KEY_PROMPT: &str = "select_key_prompt";
-pub const KEY_NOT_EXIST: &str = "key_not_exist";
-pub const KEY_HEADING: &str = "key_heading";
-pub const KEY_EXPIRED: &str = "key_expired";
-pub const KEY_NAME_LABEL: &str = "key_name_label";
-pub const TYPE_LABEL: &str = "type_label";
-pub const TTL_LABEL: &str = "ttl_label";
-pub const TTL_NO_EXPIRATION_HINT: &str = "ttl_no_expiration_hint";
-pub const VALUE_LABEL: &str = "value_label";
-pub const VALUE_HINT_STRING: &str = "value_hint_string";
-pub const VALUE_HINT_LIST: &str = "value_hint_list";
-pub const VALUE_HINT_SET: &str = "value_hint_set";
-pub const VALUE_HINT_HASH: &str = "value_hint_hash";
-pub const VALUE_HINT_ZSET: &str = "value_hint_zset";
-pub const KEY_NAME_EMPTY_ERROR: &str = "key_name_empty_error";
-pub const TYPE_STRING: &str = "type_string";
-pub const TYPE_LIST: &str = "type_list";
-pub const TYPE_HASH: &str = "type_hash";
-pub const TYPE_SET: &str = "type_set";
-pub const TYPE_ZSET: &str = "type_zset";
-pub const LOAD_FIRST_100: &str = "load_first_100";
-pub const LOAD_FIELDS: &str = "load_fields";
-pub const LOAD_MEMBERS: &str = "load_members";
-pub const LOAD_MORE_KEYS: &str = "load_more_keys";
-pub const LOAD_ALL_KEYS: &str = "load_all_keys";
-pub const TOO_MANY_KEYS: &str = "too_many_keys";
-pub const COPY_KEY: &str = "copy_key";
-pub const COPY_VALUE: &str = "copy_value";
-pub const COPY_SUCCESS: &str = "copy_success";
-pub const COPY_FAILED: &str = "copy_failed";
-pub const EDIT: &str = "edit";
-pub const DELETE: &str = "delete";
-pub const REFRESH: &str = "refresh";
-pub const ADD_FIELD: &str = "add_field";
-pub const ADD_ITEM: &str = "add_item";
-pub const EDIT_TTL: &str = "edit_ttl";
-pub const HASH_FIELD: &str = "hash_field";
-pub const HASH_VALUE: &str = "hash_value";
-pub const NO_VALUE_TO_EDIT: &str = "no_value_to_edit";
-pub const VALUE_PLACEHOLDER: &str = "value_placeholder";
-pub const ADD_MEMBER: &str = "add_member";
-pub const SCORE_LABEL: &str = "score_label";
-pub const MEMBER_LABEL: &str = "member_label";
-pub const KEY_LABEL: &str = "key_label";
-pub const COLON_SEPARATOR: &str = "colon_separator";
-pub const RESET_CONFIG_FILE: &str = "reset_config_file";
-pub const WELL_DONE: &str = "well_done";
-pub const RESTART_APP: &str = "restart_app";
-pub const OK: &str = "ok";
-pub const CONFIG_PARAM_TOO_BIG: &str = "config_param_too_huge";
-pub const CONFIG_HOME_DIR_MISSING: &str = "config_home_dir_missing";
-pub const CONFIG_READ_FAILED: &str = "config_read_failed";
-pub const CONFIG_PARSE_FAILED: &str = "config_parse_failed";
-pub const CONFIG_CREATE_DIR_FAILED: &str = "config_create_dir_failed";
-pub const CONFIG_WRITE_FAILED: &str = "config_write_failed";
-pub const CONNECTION_NAME_EXISTS: &str = "connection_name_exists";
-pub const CONNECTION_NOT_FOUND: &str = "connection_not_found";
-pub const EMPTY_COMMAND: &str = "empty_command";
-pub const GENERIC_ERROR: &str = "generic_error";
-pub const GET_VALUE_FAILED: &str = "get_value_failed";
-pub const STATUS_BAR: &str = "status_bar";
-pub const UNKNOWN: &str = "unknown";
-pub const TOTAL_KEYS: &str = "total_keys";
-pub const LOADED_KEYS: &str = "loaded_keys";
-pub const LOADING: &str = "loading";
-pub const READY: &str = "ready";
-pub const DISCONNECTED: &str = "disconnected";
-pub const WELCOME_TITLE: &str = "welcome_title";
-pub const WELCOME_MESSAGE: &str = "welcome_message";
-pub const WELCOME_INSTRUCTION: &str = "welcome_instruction";
-pub const OPEN_CONNECTIONS_PROMPT_TITLE: &str = "open_connections_prompt_title";
-pub const OPEN_CONNECTIONS_PROMPT_MESSAGE: &str = "open_connections_prompt_message";
-pub const CONNECT_ALL: &str = "connect_all";
-pub const SAVED_CONNECTIONS: &str = "saved_connections";
-pub const NUMBER: &str = "number";
-pub const ACTION: &str = "action";
-pub const CONFIRM_DELETE: &str = "confirm_delete";
-pub const SHORTCUT_NEW_CONNECTION: &str = "shortcut_new_connection";
-pub const SHORTCUT_CONNECT_ALL_UNCLOSED: &str = "shortcut_connect_all_unclosed";
-pub const SHORTCUT_CONNECT_CONNECTION_1: &str = "shortcut_connect_connection_1";
-pub const SHORTCUT_CONNECT_CONNECTION_2: &str = "shortcut_connect_connection_2";
-pub const SHORTCUT_CONNECT_CONNECTION_3: &str = "shortcut_connect_connection_3";
-pub const SHORTCUT_CONNECT_CONNECTION_4: &str = "shortcut_connect_connection_4";
-pub const SHORTCUT_CONNECT_CONNECTION_5: &str = "shortcut_connect_connection_5";
-pub const SHORTCUT_CONNECT_CONNECTION_6: &str = "shortcut_connect_connection_6";
-pub const SHORTCUT_CONNECT_CONNECTION_7: &str = "shortcut_connect_connection_7";
-pub const SHORTCUT_CONNECT_CONNECTION_8: &str = "shortcut_connect_connection_8";
-pub const SHORTCUT_CONNECT_CONNECTION_9: &str = "shortcut_connect_connection_9";
-// Keyboard shortcuts
-pub const KEYBOARD_SHORTCUTS: &str = "keyboard_shortcuts";
-pub const SHORTCUT_NEW_TAB: &str = "shortcut_new_tab";
-pub const SHORTCUT_CLOSE_TAB: &str = "shortcut_close_tab";
-pub const SHORTCUT_REFRESH_KEY: &str = "shortcut_refresh_key";
-pub const SHORTCUT_FOCUS_FILTER: &str = "shortcut_focus_filter";
-pub const SHORTCUT_PRESS_KEYS: &str = "shortcut_press_keys";
-pub const SHORTCUT_CONFLICTS_WITH: &str = "shortcut_conflicts_with";
-pub const SHORTCUT_RESET_DEFAULTS: &str = "shortcut_reset_defaults";
-pub const SHORTCUT_CLOSE_SETTINGS: &str = "shortcut_close_settings";
-pub const SHORTCUT_OPEN_SETTINGS: &str = "shortcut_open_settings";
-pub const SHORTCUT_TOGGLE_COMMAND_LINE: &str = "shortcut_toggle_command_line";
-pub const SHORTCUT_CLOSE_COMMAND_LINE: &str = "shortcut_close_command_line";
-pub const AI_SETTINGS: &str = "ai_settings";
-pub const AI_MODELS: &str = "ai_models";
-pub const AI_ADD_MODEL: &str = "ai_add_model";
-pub const AI_EDIT_MODEL: &str = "ai_edit_model";
-pub const AI_DELETE_MODEL: &str = "ai_delete_model";
-pub const AI_MODEL_NAME: &str = "ai_model_name";
-pub const AI_MODEL_ID: &str = "ai_model_id";
-pub const AI_API_KEY: &str = "ai_api_key";
-pub const AI_URL: &str = "ai_url";
-pub const AI_TEMPERATURE: &str = "ai_temperature";
-pub const AI_ACTIVE_MODEL: &str = "ai_active_model";
-pub const AI_CONFIRM_BEFORE_EXECUTE: &str = "ai_confirm_before_execute";
-pub const AI_SHOW_THINKING: &str = "ai_show_thinking";
-pub const AI_DISABLE: &str = "ai_disable";
-pub const AI_ENABLE: &str = "ai_enable";
-pub const AI_SELECT_MODEL: &str = "ai_select_model";
-pub const AI_MODEL_REQUIRED_FIELDS: &str = "ai_model_required_fields";
-pub const AI_CONFIRM_DIALOG_TITLE: &str = "ai_confirm_dialog_title";
-pub const AI_CONFIRM_DIALOG_MESSAGE: &str = "ai_confirm_dialog_message";
-pub const AI_EXECUTE: &str = "ai_execute";
-pub const AI_TEST_CONNECTION: &str = "ai_test_connection";
-pub const AI_TESTING_CONNECTION: &str = "ai_testing_connection";
-pub const AI_TEST_SUCCESS: &str = "ai_test_success";
-pub const AI_TEST_FAILED: &str = "ai_test_failed";
-pub const AI_ERROR_RATE_LIMIT: &str = "ai_error_rate_limit";
-pub const AI_ERROR_AUTH_FAILED: &str = "ai_error_auth_failed";
-pub const AI_ERROR_NETWORK: &str = "ai_error_network";
-pub const AI_ERROR_TIMEOUT: &str = "ai_error_timeout";
-pub const AI_SYSTEM_PROMPT: &str = "ai_system_prompt";
-pub const AI_SYSTEM_PROMPT_HINT: &str = "ai_system_prompt_hint";
-pub const AI_SYSTEM_PROMPT_PLACEHOLDER: &str = "ai_system_prompt_placeholder";
-pub const AI_NOT_CONFIGURED: &str = "ai_not_configured";
-pub const AI_PLEASE_CONFIGURE: &str = "ai_please_configure";
-pub const AI_DISABLED: &str = "ai_disabled";
-pub const AI_ERROR_NO_MODEL_CONFIGURED: &str = "ai_error_no_model_configured";
-pub const AI_ERROR_MISSING_API_KEY: &str = "ai_error_missing_api_key";
-pub const AI_ERROR_INVALID_URL: &str = "ai_error_invalid_url";
-pub const AI_ERROR_SERVER_ERROR: &str = "ai_error_server_error";
-pub const AI_ERROR_MODEL_NOT_FOUND: &str = "ai_error_model_not_found";
-pub const AI_ERROR_OTHER: &str = "ai_error_other";
-pub const AI_ERROR_AGENT_CREATION_FAILED: &str = "ai_error_agent_creation_failed";
-pub const AI_PROVIDER: &str = "ai_provider";
-pub const AI_PROVIDER_CUSTOM: &str = "ai_provider_custom";
-pub const AI_PROVIDER_SEARCH_HINT: &str = "ai_provider_search_hint";
-pub const AI_PROVIDERS_COUNT: &str = "ai_providers_count";
-pub const AI_PLEASE_SELECT_PROVIDER: &str = "ai_please_select_provider";
-pub const AI_PROVIDER_SEARCH_PLACEHOLDER: &str = "ai_provider_search_placeholder";
-pub const AI_RESTORE_DEFAULT_PROMPT: &str = "ai_restore_default_prompt";
-pub const SHORTCUT_SWITCH_TO_TAB_1: &str = "shortcut_switch_to_tab_1";
-pub const SHORTCUT_SWITCH_TO_TAB_2: &str = "shortcut_switch_to_tab_2";
-pub const SHORTCUT_SWITCH_TO_TAB_3: &str = "shortcut_switch_to_tab_3";
-pub const SHORTCUT_SWITCH_TO_TAB_4: &str = "shortcut_switch_to_tab_4";
-pub const SHORTCUT_SWITCH_TO_TAB_5: &str = "shortcut_switch_to_tab_5";
-pub const SHORTCUT_SWITCH_TO_TAB_6: &str = "shortcut_switch_to_tab_6";
-pub const SHORTCUT_SWITCH_TO_TAB_7: &str = "shortcut_switch_to_tab_7";
-pub const SHORTCUT_SWITCH_TO_TAB_8: &str = "shortcut_switch_to_tab_8";
-pub const SHORTCUT_SWITCH_TO_TAB_9: &str = "shortcut_switch_to_tab_9";
-pub const SHORTCUT_SWITCH_TO_LAST_TAB: &str = "shortcut_switch_to_last_tab";
-pub const SHORTCUT_NON_EDITABLE: &str = "shortcut_non_editable";
-pub const ALL_TABS: &str = "all_tabs";
-pub const REMOVE_DUPLICATE_AND_INVALID_TABS: &str = "remove_duplicate_and_invalid_tabs";
-pub const SHORTCUT_REMOVE_DUPLICATE_AND_INVALID_TABS: &str =
-    "shortcut_remove_duplicate_and_invalid_tabs";
-pub const SHOW_UNCLOSED_CONNECTIONS: &str = "show_unclosed_connections";
-pub const ALLOW_DUPLICATE_CONNECTIONS: &str = "allow_duplicate_connections";
-pub const GROUP_KEYS_BY_COLON: &str = "group_keys_by_colon";
-pub const AUTO_REFRESH_TTL: &str = "auto_refresh_ttl";
-pub const AUTO_EXPAND: &str = "auto_expand";
-pub const AUTO_EXPAND_THRESHOLD: &str = "auto_expand_threshold";
-pub const COMMAND_LINE_HINT: &str = "command_line_hint";
-pub const SHORTCUT_REFRESH_KEYS: &str = "shortcut_refresh_keys";
-pub const SHORTCUT_EXECUTE_AI_COMMAND: &str = "shortcut_execute_ai_command";
-pub const SHORTCUT_CANCEL_AI_COMMAND: &str = "shortcut_cancel_ai_command";
+/// Translation key enum for type safety
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum TranslationKey {
+    Connect,
+    NewConnection,
+    EditConnection,
+    OpenInNewTab,
+    Disconnect,
+    ConnectionUrl,
+    Database,
+    Tab,
+    Keys,
+    Filter,
+    Command,
+    Execute,
+    Value,
+    Language,
+    Settings,
+    AutoConnect,
+    NewKey,
+    EditElement,
+    Close,
+    CloseOthers,
+    Duplicate,
+    ConnectionFailed,
+    ConnectionFailedMsg,
+    SelectConnection,
+    PleaseSelectConnection,
+    Save,
+    Cancel,
+    ConnectionName,
+    ConnectionAddress,
+    ConnectionPort,
+    ConnectionUsername,
+    ConnectionPassword,
+    ConnectionColor,
+    PleaseEnterConnectionName,
+    PleaseEnterConnectionAddress,
+    NewConnectionDialog,
+    EditConnectionDialog,
+    CommandLabel,
+    Output,
+    SelectKeyPrompt,
+    KeyNotExist,
+    KeyHeading,
+    KeyExpired,
+    KeyNameLabel,
+    TypeLabel,
+    TtlLabel,
+    TtlNoExpirationHint,
+    ValueLabel,
+    ValueHintString,
+    ValueHintList,
+    ValueHintSet,
+    ValueHintHash,
+    ValueHintZset,
+    KeyNameEmptyError,
+    TypeString,
+    TypeList,
+    TypeHash,
+    TypeSet,
+    TypeZset,
+    LoadFirst100,
+    LoadFields,
+    LoadMembers,
+    LoadMoreKeys,
+    LoadAllKeys,
+    TooManyKeys,
+    CopyKey,
+    CopyValue,
+    CopySuccess,
+    CopyFailed,
+    Edit,
+    Delete,
+    Refresh,
+    AddField,
+    AddItem,
+    EditTtl,
+    HashField,
+    HashValue,
+    NoValueToEdit,
+    ValuePlaceholder,
+    AddMember,
+    ScoreLabel,
+    MemberLabel,
+    KeyLabel,
+    ColonSeparator,
+    ResetConfigFile,
+    WellDone,
+    RestartApp,
+    Ok,
+    ConfigParamTooBig,
+    ConfigHomeDirMissing,
+    ConfigReadFailed,
+    ConfigParseFailed,
+    ConfigCreateDirFailed,
+    ConfigWriteFailed,
+    ConnectionNameExists,
+    ConnectionNotFound,
+    EmptyCommand,
+    GenericError,
+    GetValueFailed,
+    StatusBar,
+    Unknown,
+    TotalKeys,
+    LoadedKeys,
+    Loading,
+    Ready,
+    Disconnected,
+    WelcomeTitle,
+    WelcomeMessage,
+    WelcomeInstruction,
+    OpenConnectionsPromptTitle,
+    OpenConnectionsPromptMessage,
+    ConnectAll,
+    SavedConnections,
+    Number,
+    Action,
+    ConfirmDelete,
+    ShortcutNewConnection,
+    ShortcutConnectAllUnclosed,
+    ShortcutConnectConnection1,
+    ShortcutConnectConnection2,
+    ShortcutConnectConnection3,
+    ShortcutConnectConnection4,
+    ShortcutConnectConnection5,
+    ShortcutConnectConnection6,
+    ShortcutConnectConnection7,
+    ShortcutConnectConnection8,
+    ShortcutConnectConnection9,
+    KeyboardShortcuts,
+    ShortcutNewTab,
+    ShortcutCloseTab,
+    ShortcutRefreshKey,
+    ShortcutFocusFilter,
+    ShortcutPressKeys,
+    ShortcutConflictsWith,
+    ShortcutResetDefaults,
+    ShortcutCloseSettings,
+    ShortcutOpenSettings,
+    ShortcutToggleCommandLine,
+    ShortcutCloseCommandLine,
+    AiSettings,
+    AiModels,
+    AiAddModel,
+    AiEditModel,
+    AiDeleteModel,
+    AiModelName,
+    AiModelId,
+    AiApiKey,
+    AiUrl,
+    AiTemperature,
+    AiActiveModel,
+    AiConfirmBeforeExecute,
+    AiShowThinking,
+    AiDisable,
+    AiEnable,
+    AiSelectModel,
+    AiModelRequiredFields,
+    AiConfirmDialogTitle,
+    AiConfirmDialogMessage,
+    AiExecute,
+    AiTestConnection,
+    AiTestingConnection,
+    AiTestSuccess,
+    AiTestFailed,
+    AiErrorRateLimit,
+    AiErrorAuthFailed,
+    AiErrorNetwork,
+    AiErrorTimeout,
+    AiSystemPrompt,
+    AiNotConfigured,
+    AiPleaseConfigure,
+    AiDisabled,
+    AiErrorNoModelConfigured,
+    AiErrorMissingApiKey,
+    AiErrorInvalidUrl,
+    AiErrorServerError,
+    AiErrorModelNotFound,
+    AiErrorOther,
+    AiErrorAgentCreationFailed,
+    AiProvider,
+    AiProviderCustom,
+    AiProviderSearchHint,
+    AiProvidersCount,
+    AiPleaseSelectProvider,
+    AiProviderSearchPlaceholder,
+    AiCopyPrompt,
+    ShortcutSwitchToTab1,
+    ShortcutSwitchToTab2,
+    ShortcutSwitchToTab3,
+    ShortcutSwitchToTab4,
+    ShortcutSwitchToTab5,
+    ShortcutSwitchToTab6,
+    ShortcutSwitchToTab7,
+    ShortcutSwitchToTab8,
+    ShortcutSwitchToTab9,
+    ShortcutSwitchToLastTab,
+    ShortcutNonEditable,
+    AllTabs,
+    RemoveDuplicateAndInvalidTabs,
+    ShortcutRemoveDuplicateAndInvalidTabs,
+    ShowUnclosedConnections,
+    AllowDuplicateConnections,
+    GroupKeysByColon,
+    AutoRefreshTtl,
+    AutoExpand,
+    AutoExpandThreshold,
+    CommandLineHint,
+    ShortcutRefreshKeys,
+    ShortcutExecuteAiCommand,
+    ShortcutCancelAiCommand,
+}

@@ -1,7 +1,7 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::REDIS_COMMANDS;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr, tr_fmt};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use e_client_core::{AiChatResult, AiResponseError, OpenAiRigAgent};
 
 /// Check if the input is a Redis command
@@ -129,7 +129,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         &mut app.tabs[active_tab_idx].command_line_panel.input,
                     )
                     .font(egui::TextStyle::Monospace)
-                    .hint_text(tr(keys::COMMAND_LINE_HINT, current_lang))
+                    .hint_text(tr(TranslationKey::CommandLineHint, current_lang))
                     .id(egui::Id::new("command_line_input")),
                 );
 
@@ -271,7 +271,7 @@ fn render_ai_confirm_dialog(
         return;
     }
 
-    egui::Window::new(tr(keys::AI_CONFIRM_DIALOG_TITLE, current_lang))
+    egui::Window::new(tr(TranslationKey::AiConfirmDialogTitle, current_lang))
         .title_bar(false)
         .resizable(false)
         .collapsible(false)
@@ -284,9 +284,12 @@ fn render_ai_confirm_dialog(
                     ui.vertical(|ui| {
                         // Title
                         ui.label(
-                            egui::RichText::new(tr(keys::AI_CONFIRM_DIALOG_TITLE, current_lang))
-                                .size(16.0)
-                                .strong(),
+                            egui::RichText::new(tr(
+                                TranslationKey::AiConfirmDialogTitle,
+                                current_lang,
+                            ))
+                            .size(16.0)
+                            .strong(),
                         );
 
                         ui.add_space(4.0);
@@ -320,7 +323,7 @@ fn render_ai_confirm_dialog(
                         // Buttons
                         ui.horizontal(|ui| {
                             let execute_btn = ui.button(
-                                egui::RichText::new(tr(keys::AI_EXECUTE, current_lang))
+                                egui::RichText::new(tr(TranslationKey::AiExecute, current_lang))
                                     .color(ui.visuals().text_color()),
                             );
 
@@ -333,7 +336,7 @@ fn render_ai_confirm_dialog(
 
                             ui.add_space(8.0);
 
-                            let cancel_btn = ui.button(tr(keys::CANCEL, current_lang));
+                            let cancel_btn = ui.button(tr(TranslationKey::Cancel, current_lang));
                             if cancel_btn.clicked() {
                                 app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
                             }
@@ -447,7 +450,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
 
     if !ai_config.enabled {
-        let error_msg = format!("ERR: {}", tr(keys::AI_DISABLED, current_lang));
+        let error_msg = format!("ERR: {}", tr(TranslationKey::AiDisabled, current_lang));
         app.tabs[tab_idx]
             .command_line_panel
             .history
@@ -459,8 +462,8 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     if active_model.is_none() {
         let error_msg = format!(
             "ERR: {}. {}",
-            tr(keys::AI_NOT_CONFIGURED, current_lang),
-            tr(keys::AI_PLEASE_CONFIGURE, current_lang)
+            tr(TranslationKey::AiNotConfigured, current_lang),
+            tr(TranslationKey::AiPleaseConfigure, current_lang)
         );
         app.tabs[tab_idx]
             .command_line_panel

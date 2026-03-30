@@ -2,7 +2,7 @@ use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_REDIS_PORT;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{keys, tr, TranslationKey};
 use egui::Context;
 
 // Predefined high-contrast colors for connections
@@ -69,9 +69,9 @@ impl NewConnectionWindowWindow {
         current_lang: Language,
     ) {
         let title = if self.edit_mode {
-            tr(keys::EDIT_CONNECTION_DIALOG, current_lang)
+            tr(TranslationKey::EditConnectionDialog, current_lang)
         } else {
-            tr(keys::NEW_CONNECTION_DIALOG, current_lang)
+            tr(TranslationKey::NewConnectionDialog, current_lang)
         };
 
         egui::Window::new(title)
@@ -80,12 +80,12 @@ impl NewConnectionWindowWindow {
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_NAME, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionName, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_name);
                     });
 
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_ADDRESS, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionAddress, current_lang));
                         let url_id = ui.make_persistent_id("new_connection_url");
                         let res = ui.add(
                             egui::TextEdit::singleline(&mut self.new_connection_url).id(url_id),
@@ -101,19 +101,19 @@ impl NewConnectionWindowWindow {
                         }
                     });
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_PORT, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionPort, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_port);
                     });
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_USERNAME, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionUsername, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_username);
                     });
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_PASSWORD, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionPassword, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_password);
                     });
                     ui.horizontal(|ui| {
-                        ui.label(tr(keys::CONNECTION_COLOR, current_lang));
+                        ui.label(tr(TranslationKey::ConnectionColor, current_lang));
                         ui.horizontal_wrapped(|ui| {
                             for (hex, rgb) in PREDEFINED_COLORS {
                                 let color = egui::Color32::from_rgb(
@@ -143,16 +143,16 @@ impl NewConnectionWindowWindow {
                     }
 
                     ui.horizontal(|ui| {
-                        let save_btn = tr(keys::SAVE, current_lang);
+                        let save_btn = tr(TranslationKey::Save, current_lang);
                         if ui.button(save_btn).clicked() {
                             if self.new_connection_name.trim().is_empty() {
                                 self.error_message = Some(
-                                    tr(keys::PLEASE_ENTER_CONNECTION_NAME, current_lang)
+                                    tr(TranslationKey::PleaseEnterConnectionName, current_lang)
                                         .to_string(),
                                 );
                             } else if self.new_connection_url.trim().is_empty() {
                                 self.error_message = Some(
-                                    tr(keys::PLEASE_ENTER_CONNECTION_ADDRESS, current_lang)
+                                    tr(TranslationKey::PleaseEnterConnectionAddress, current_lang)
                                         .to_string(),
                                 );
                             } else {
@@ -182,7 +182,10 @@ impl NewConnectionWindowWindow {
                             }
                         }
 
-                        if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                        if ui
+                            .button(tr(TranslationKey::Cancel, current_lang))
+                            .clicked()
+                        {
                             self.clear();
                         }
                     });

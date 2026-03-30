@@ -1,162 +1,131 @@
+use e_client_bilingual::translations::TranslationKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use strum::IntoEnumIterator;
+use strum_macros::{AsRefStr, Display, EnumIter, EnumString};
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    EnumIter,
+    EnumString,
+    Display,
+    AsRefStr,
+)]
 pub enum ShortcutAction {
     #[serde(rename = "new_connection")]
+    #[strum(serialize = "NewConnection")]
     NewConnection,
     #[serde(rename = "connect_all_unclosed")]
+    #[strum(serialize = "ConnectAllUnclosed")]
     ConnectAllUnclosed,
     #[serde(rename = "connect_connection_1")]
+    #[strum(serialize = "ConnectConnection1")]
     ConnectConnection1,
     #[serde(rename = "connect_connection_2")]
+    #[strum(serialize = "ConnectConnection2")]
     ConnectConnection2,
     #[serde(rename = "connect_connection_3")]
+    #[strum(serialize = "ConnectConnection3")]
     ConnectConnection3,
     #[serde(rename = "connect_connection_4")]
+    #[strum(serialize = "ConnectConnection4")]
     ConnectConnection4,
     #[serde(rename = "connect_connection_5")]
+    #[strum(serialize = "ConnectConnection5")]
     ConnectConnection5,
     #[serde(rename = "connect_connection_6")]
+    #[strum(serialize = "ConnectConnection6")]
     ConnectConnection6,
     #[serde(rename = "connect_connection_7")]
+    #[strum(serialize = "ConnectConnection7")]
     ConnectConnection7,
     #[serde(rename = "connect_connection_8")]
+    #[strum(serialize = "ConnectConnection8")]
     ConnectConnection8,
     #[serde(rename = "connect_connection_9")]
+    #[strum(serialize = "ConnectConnection9")]
     ConnectConnection9,
     #[serde(rename = "new_tab")]
+    #[strum(serialize = "NewTab")]
     NewTab,
     #[serde(rename = "close_tab")]
+    #[strum(serialize = "CloseTab")]
     CloseTab,
     #[serde(rename = "refresh_key")]
+    #[strum(serialize = "RefreshKey")]
     RefreshKey,
     #[serde(rename = "focus_filter")]
+    #[strum(serialize = "FocusFilter")]
     FocusFilter,
     #[serde(rename = "close_settings")]
+    #[strum(serialize = "CloseSettings")]
     CloseSettings,
     #[serde(rename = "open_settings")]
+    #[strum(serialize = "OpenSettings")]
     OpenSettings,
     #[serde(rename = "toggle_command_line")]
+    #[strum(serialize = "ToggleCommandLine")]
     ToggleCommandLine,
     #[serde(rename = "close_command_line")]
+    #[strum(serialize = "CloseCommandLine")]
     CloseCommandLine,
     #[serde(rename = "switch_to_tab_1")]
+    #[strum(serialize = "SwitchToTab1")]
     SwitchToTab1,
     #[serde(rename = "switch_to_tab_2")]
+    #[strum(serialize = "SwitchToTab2")]
     SwitchToTab2,
     #[serde(rename = "switch_to_tab_3")]
+    #[strum(serialize = "SwitchToTab3")]
     SwitchToTab3,
     #[serde(rename = "switch_to_tab_4")]
+    #[strum(serialize = "SwitchToTab4")]
     SwitchToTab4,
     #[serde(rename = "switch_to_tab_5")]
+    #[strum(serialize = "SwitchToTab5")]
     SwitchToTab5,
     #[serde(rename = "switch_to_tab_6")]
+    #[strum(serialize = "SwitchToTab6")]
     SwitchToTab6,
     #[serde(rename = "switch_to_tab_7")]
+    #[strum(serialize = "SwitchToTab7")]
     SwitchToTab7,
     #[serde(rename = "switch_to_tab_8")]
+    #[strum(serialize = "SwitchToTab8")]
     SwitchToTab8,
     #[serde(rename = "switch_to_tab_9")]
+    #[strum(serialize = "SwitchToTab9")]
     SwitchToTab9,
     #[serde(rename = "switch_to_last_tab")]
+    #[strum(serialize = "SwitchToLastTab")]
     SwitchToLastTab,
     #[serde(rename = "remove_duplicate_and_invalid_tabs")]
+    #[strum(serialize = "RemoveDuplicateAndInvalidTabs")]
     RemoveDuplicateAndInvalidTabs,
     #[serde(rename = "refresh_keys")]
+    #[strum(serialize = "RefreshKeys")]
     RefreshKeys,
     #[serde(rename = "execute_ai_command")]
+    #[strum(serialize = "ExecuteAiCommand")]
     ExecuteAiCommand,
     #[serde(rename = "cancel_ai_command")]
+    #[strum(serialize = "CancelAiCommand")]
     CancelAiCommand,
 }
 
 impl ShortcutAction {
     /// Returns all actions with their translation keys
-    pub fn all_actions() -> Vec<(ShortcutAction, &'static str)> {
-        vec![
-            (ShortcutAction::OpenSettings, "shortcut_open_settings"),
-            (ShortcutAction::NewConnection, "shortcut_new_connection"),
-            (
-                ShortcutAction::ConnectAllUnclosed,
-                "shortcut_connect_all_unclosed",
-            ),
-            (
-                ShortcutAction::ConnectConnection1,
-                "shortcut_connect_connection_1",
-            ),
-            (
-                ShortcutAction::ConnectConnection2,
-                "shortcut_connect_connection_2",
-            ),
-            (
-                ShortcutAction::ConnectConnection3,
-                "shortcut_connect_connection_3",
-            ),
-            (
-                ShortcutAction::ConnectConnection4,
-                "shortcut_connect_connection_4",
-            ),
-            (
-                ShortcutAction::ConnectConnection5,
-                "shortcut_connect_connection_5",
-            ),
-            (
-                ShortcutAction::ConnectConnection6,
-                "shortcut_connect_connection_6",
-            ),
-            (
-                ShortcutAction::ConnectConnection7,
-                "shortcut_connect_connection_7",
-            ),
-            (
-                ShortcutAction::ConnectConnection8,
-                "shortcut_connect_connection_8",
-            ),
-            (
-                ShortcutAction::ConnectConnection9,
-                "shortcut_connect_connection_9",
-            ),
-            (ShortcutAction::NewTab, "shortcut_new_tab"),
-            (ShortcutAction::CloseTab, "shortcut_close_tab"),
-            (ShortcutAction::RefreshKey, "shortcut_refresh_key"),
-            (ShortcutAction::FocusFilter, "shortcut_focus_filter"),
-            (ShortcutAction::CloseSettings, "shortcut_close_settings"),
-            (
-                ShortcutAction::ToggleCommandLine,
-                "shortcut_toggle_command_line",
-            ),
-            (
-                ShortcutAction::CloseCommandLine,
-                "shortcut_close_command_line",
-            ),
-            (ShortcutAction::SwitchToTab1, "shortcut_switch_to_tab_1"),
-            (ShortcutAction::SwitchToTab2, "shortcut_switch_to_tab_2"),
-            (ShortcutAction::SwitchToTab3, "shortcut_switch_to_tab_3"),
-            (ShortcutAction::SwitchToTab4, "shortcut_switch_to_tab_4"),
-            (ShortcutAction::SwitchToTab5, "shortcut_switch_to_tab_5"),
-            (ShortcutAction::SwitchToTab6, "shortcut_switch_to_tab_6"),
-            (ShortcutAction::SwitchToTab7, "shortcut_switch_to_tab_7"),
-            (ShortcutAction::SwitchToTab8, "shortcut_switch_to_tab_8"),
-            (ShortcutAction::SwitchToTab9, "shortcut_switch_to_tab_9"),
-            (
-                ShortcutAction::SwitchToLastTab,
-                "shortcut_switch_to_last_tab",
-            ),
-            (
-                ShortcutAction::RemoveDuplicateAndInvalidTabs,
-                "shortcut_remove_duplicate_and_invalid_tabs",
-            ),
-            (ShortcutAction::RefreshKeys, "shortcut_refresh_keys"),
-            (
-                ShortcutAction::ExecuteAiCommand,
-                "shortcut_execute_ai_command",
-            ),
-            (
-                ShortcutAction::CancelAiCommand,
-                "shortcut_cancel_ai_command",
-            ),
-        ]
+    pub fn all_actions() -> Vec<(ShortcutAction, TranslationKey)> {
+        use strum::IntoEnumIterator;
+        ShortcutAction::iter()
+            .map(|action| (action.clone(), action.translation_key()))
+            .collect()
     }
 
     pub fn default_key(&self) -> String {
@@ -204,43 +173,43 @@ impl ShortcutAction {
     }
 
     /// Returns the translation key for this action
-    pub fn translation_key(&self) -> &'static str {
+    pub fn translation_key(&self) -> TranslationKey {
         match self {
-            ShortcutAction::NewConnection => "shortcut_new_connection",
-            ShortcutAction::ConnectAllUnclosed => "shortcut_connect_all_unclosed",
-            ShortcutAction::ConnectConnection1 => "shortcut_connect_connection_1",
-            ShortcutAction::ConnectConnection2 => "shortcut_connect_connection_2",
-            ShortcutAction::ConnectConnection3 => "shortcut_connect_connection_3",
-            ShortcutAction::ConnectConnection4 => "shortcut_connect_connection_4",
-            ShortcutAction::ConnectConnection5 => "shortcut_connect_connection_5",
-            ShortcutAction::ConnectConnection6 => "shortcut_connect_connection_6",
-            ShortcutAction::ConnectConnection7 => "shortcut_connect_connection_7",
-            ShortcutAction::ConnectConnection8 => "shortcut_connect_connection_8",
-            ShortcutAction::ConnectConnection9 => "shortcut_connect_connection_9",
-            ShortcutAction::NewTab => "shortcut_new_tab",
-            ShortcutAction::CloseTab => "shortcut_close_tab",
-            ShortcutAction::RefreshKey => "shortcut_refresh_key",
-            ShortcutAction::FocusFilter => "shortcut_focus_filter",
-            ShortcutAction::CloseSettings => "shortcut_close_settings",
-            ShortcutAction::OpenSettings => "shortcut_open_settings",
-            ShortcutAction::ToggleCommandLine => "shortcut_toggle_command_line",
-            ShortcutAction::CloseCommandLine => "shortcut_close_command_line",
-            ShortcutAction::SwitchToTab1 => "shortcut_switch_to_tab_1",
-            ShortcutAction::SwitchToTab2 => "shortcut_switch_to_tab_2",
-            ShortcutAction::SwitchToTab3 => "shortcut_switch_to_tab_3",
-            ShortcutAction::SwitchToTab4 => "shortcut_switch_to_tab_4",
-            ShortcutAction::SwitchToTab5 => "shortcut_switch_to_tab_5",
-            ShortcutAction::SwitchToTab6 => "shortcut_switch_to_tab_6",
-            ShortcutAction::SwitchToTab7 => "shortcut_switch_to_tab_7",
-            ShortcutAction::SwitchToTab8 => "shortcut_switch_to_tab_8",
-            ShortcutAction::SwitchToTab9 => "shortcut_switch_to_tab_9",
-            ShortcutAction::SwitchToLastTab => "shortcut_switch_to_last_tab",
+            ShortcutAction::NewConnection => TranslationKey::ShortcutNewConnection,
+            ShortcutAction::ConnectAllUnclosed => TranslationKey::ShortcutConnectAllUnclosed,
+            ShortcutAction::ConnectConnection1 => TranslationKey::ShortcutConnectConnection1,
+            ShortcutAction::ConnectConnection2 => TranslationKey::ShortcutConnectConnection2,
+            ShortcutAction::ConnectConnection3 => TranslationKey::ShortcutConnectConnection3,
+            ShortcutAction::ConnectConnection4 => TranslationKey::ShortcutConnectConnection4,
+            ShortcutAction::ConnectConnection5 => TranslationKey::ShortcutConnectConnection5,
+            ShortcutAction::ConnectConnection6 => TranslationKey::ShortcutConnectConnection6,
+            ShortcutAction::ConnectConnection7 => TranslationKey::ShortcutConnectConnection7,
+            ShortcutAction::ConnectConnection8 => TranslationKey::ShortcutConnectConnection8,
+            ShortcutAction::ConnectConnection9 => TranslationKey::ShortcutConnectConnection9,
+            ShortcutAction::NewTab => TranslationKey::ShortcutNewTab,
+            ShortcutAction::CloseTab => TranslationKey::ShortcutCloseTab,
+            ShortcutAction::RefreshKey => TranslationKey::ShortcutRefreshKey,
+            ShortcutAction::FocusFilter => TranslationKey::ShortcutFocusFilter,
+            ShortcutAction::CloseSettings => TranslationKey::ShortcutCloseSettings,
+            ShortcutAction::OpenSettings => TranslationKey::ShortcutOpenSettings,
+            ShortcutAction::ToggleCommandLine => TranslationKey::ShortcutToggleCommandLine,
+            ShortcutAction::CloseCommandLine => TranslationKey::ShortcutCloseCommandLine,
+            ShortcutAction::SwitchToTab1 => TranslationKey::ShortcutSwitchToTab1,
+            ShortcutAction::SwitchToTab2 => TranslationKey::ShortcutSwitchToTab2,
+            ShortcutAction::SwitchToTab3 => TranslationKey::ShortcutSwitchToTab3,
+            ShortcutAction::SwitchToTab4 => TranslationKey::ShortcutSwitchToTab4,
+            ShortcutAction::SwitchToTab5 => TranslationKey::ShortcutSwitchToTab5,
+            ShortcutAction::SwitchToTab6 => TranslationKey::ShortcutSwitchToTab6,
+            ShortcutAction::SwitchToTab7 => TranslationKey::ShortcutSwitchToTab7,
+            ShortcutAction::SwitchToTab8 => TranslationKey::ShortcutSwitchToTab8,
+            ShortcutAction::SwitchToTab9 => TranslationKey::ShortcutSwitchToTab9,
+            ShortcutAction::SwitchToLastTab => TranslationKey::ShortcutSwitchToLastTab,
             ShortcutAction::RemoveDuplicateAndInvalidTabs => {
-                "shortcut_remove_duplicate_and_invalid_tabs"
+                TranslationKey::ShortcutRemoveDuplicateAndInvalidTabs
             }
-            ShortcutAction::RefreshKeys => "shortcut_refresh_keys",
-            ShortcutAction::ExecuteAiCommand => "shortcut_execute_ai_command",
-            ShortcutAction::CancelAiCommand => "shortcut_cancel_ai_command",
+            ShortcutAction::RefreshKeys => TranslationKey::ShortcutRefreshKeys,
+            ShortcutAction::ExecuteAiCommand => TranslationKey::ShortcutExecuteAiCommand,
+            ShortcutAction::CancelAiCommand => TranslationKey::ShortcutCancelAiCommand,
         }
     }
 
@@ -387,42 +356,7 @@ impl ShortcutConfig {
 
     /// Parse action key string to ShortcutAction enum
     fn parse_action_key(key: &str) -> Option<ShortcutAction> {
-        match key {
-            "NewConnection" => Some(ShortcutAction::NewConnection),
-            "ConnectAllUnclosed" => Some(ShortcutAction::ConnectAllUnclosed),
-            "ConnectConnection1" => Some(ShortcutAction::ConnectConnection1),
-            "ConnectConnection2" => Some(ShortcutAction::ConnectConnection2),
-            "ConnectConnection3" => Some(ShortcutAction::ConnectConnection3),
-            "ConnectConnection4" => Some(ShortcutAction::ConnectConnection4),
-            "ConnectConnection5" => Some(ShortcutAction::ConnectConnection5),
-            "ConnectConnection6" => Some(ShortcutAction::ConnectConnection6),
-            "ConnectConnection7" => Some(ShortcutAction::ConnectConnection7),
-            "ConnectConnection8" => Some(ShortcutAction::ConnectConnection8),
-            "ConnectConnection9" => Some(ShortcutAction::ConnectConnection9),
-            "NewTab" => Some(ShortcutAction::NewTab),
-            "CloseTab" => Some(ShortcutAction::CloseTab),
-            "RefreshKey" => Some(ShortcutAction::RefreshKey),
-            "FocusFilter" => Some(ShortcutAction::FocusFilter),
-            "CloseSettings" => Some(ShortcutAction::CloseSettings),
-            "OpenSettings" => Some(ShortcutAction::OpenSettings),
-            "ToggleCommandLine" => Some(ShortcutAction::ToggleCommandLine),
-            "CloseCommandLine" => Some(ShortcutAction::CloseCommandLine),
-            "SwitchToTab1" => Some(ShortcutAction::SwitchToTab1),
-            "SwitchToTab2" => Some(ShortcutAction::SwitchToTab2),
-            "SwitchToTab3" => Some(ShortcutAction::SwitchToTab3),
-            "SwitchToTab4" => Some(ShortcutAction::SwitchToTab4),
-            "SwitchToTab5" => Some(ShortcutAction::SwitchToTab5),
-            "SwitchToTab6" => Some(ShortcutAction::SwitchToTab6),
-            "SwitchToTab7" => Some(ShortcutAction::SwitchToTab7),
-            "SwitchToTab8" => Some(ShortcutAction::SwitchToTab8),
-            "SwitchToTab9" => Some(ShortcutAction::SwitchToTab9),
-            "SwitchToLastTab" => Some(ShortcutAction::SwitchToLastTab),
-            "RemoveDuplicateAndInvalidTabs" => Some(ShortcutAction::RemoveDuplicateAndInvalidTabs),
-            "RefreshKeys" => Some(ShortcutAction::RefreshKeys),
-            "ExecuteAiCommand" => Some(ShortcutAction::ExecuteAiCommand),
-            "CancelAiCommand" => Some(ShortcutAction::CancelAiCommand),
-            _ => None,
-        }
+        key.parse().ok()
     }
 }
 

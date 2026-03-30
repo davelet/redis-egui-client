@@ -2,7 +2,7 @@ use crate::core::ValueData;
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr, tr_fmt};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
 
 use super::utils::truncate_with_ellipsis;
 
@@ -43,14 +43,14 @@ pub fn render_value_view(
             render_zset_value(app, ui, ctx, active_tab_idx, key, len, items, current_lang)
         }
         ValueData::None => {
-            ui.label(tr(keys::KEY_NOT_EXIST, current_lang));
+            ui.label(tr(TranslationKey::KeyNotExist, current_lang));
         }
     }
 }
 
 /// Render string value
 fn render_string_value(ui: &mut egui::Ui, s: &str, current_lang: Language) {
-    ui.label(tr(keys::TYPE_STRING, current_lang));
+    ui.label(tr(TranslationKey::TypeString, current_lang));
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -77,7 +77,11 @@ fn render_list_value(
     items: &[String],
     current_lang: Language,
 ) {
-    ui.label(tr_fmt(keys::TYPE_LIST, current_lang, &[&len.to_string()]));
+    ui.label(tr_fmt(
+        TranslationKey::TypeList,
+        current_lang,
+        &[&len.to_string()],
+    ));
 
     if items.is_empty() && *len > 0 {
         let auto_expand = app.config.settings.auto_expand;
@@ -89,7 +93,10 @@ fn render_list_value(
                 0,
                 ((*len).saturating_sub(1)) as isize,
             );
-        } else if ui.button(tr(keys::LOAD_FIRST_100, current_lang)).clicked() {
+        } else if ui
+            .button(tr(TranslationKey::LoadFirst100, current_lang))
+            .clicked()
+        {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_list_range(key.to_string(), 0, 99);
@@ -133,11 +140,15 @@ fn render_hash_value(
         }
     };
 
-    ui.label(tr_fmt(keys::TYPE_HASH, current_lang, &[&len.to_string()]));
+    ui.label(tr_fmt(
+        TranslationKey::TypeHash,
+        current_lang,
+        &[&len.to_string()],
+    ));
 
     // Field filter input
     ui.horizontal(|ui| {
-        ui.label(tr(keys::FILTER, current_lang));
+        ui.label(tr(TranslationKey::Filter, current_lang));
         let mut filter_text = app.poll_string_hash_field_filter();
         if ui.text_edit_singleline(&mut filter_text).changed() {
             app.set_hash_field_filter(filter_text);
@@ -154,7 +165,10 @@ fn render_hash_value(
                 app.tabs[active_tab_idx]
                     .state
                     .spawn_load_hash_fields(key.to_string());
-            } else if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked() {
+            } else if ui
+                .button(tr(TranslationKey::LoadFields, current_lang))
+                .clicked()
+            {
                 app.tabs[active_tab_idx]
                     .state
                     .spawn_load_hash_fields(key.to_string());
@@ -199,10 +213,10 @@ fn render_hash_value(
                     .min_scrolled_height(0.0)
                     .header(24.0, |mut header| {
                         header.col(|ui| {
-                            ui.strong(tr(keys::HASH_FIELD, current_lang));
+                            ui.strong(tr(TranslationKey::HashField, current_lang));
                         });
                         header.col(|ui| {
-                            ui.strong(tr(keys::HASH_VALUE, current_lang));
+                            ui.strong(tr(TranslationKey::HashValue, current_lang));
                         });
                         header.col(|_ui| {});
                     })
@@ -236,7 +250,9 @@ fn render_hash_value(
                                         }
                                     }
                                     None => {
-                                        if ui.button(tr(keys::LOAD_FIELDS, current_lang)).clicked()
+                                        if ui
+                                            .button(tr(TranslationKey::LoadFields, current_lang))
+                                            .clicked()
                                         {
                                             app.tabs[active_tab_idx]
                                                 .state
@@ -260,7 +276,7 @@ fn render_hash_value(
                                                 app.copy_button_text_color(copy_field_id);
                                             let copy_field_text = app.copy_button_text(
                                                 copy_field_id,
-                                                tr(keys::COPY_KEY, current_lang),
+                                                tr(TranslationKey::CopyKey, current_lang),
                                             );
                                             if ui
                                                 .button(
@@ -293,7 +309,11 @@ fn render_set_value(
     items: &[String],
     current_lang: Language,
 ) {
-    ui.label(tr_fmt(keys::TYPE_SET, current_lang, &[&len.to_string()]));
+    ui.label(tr_fmt(
+        TranslationKey::TypeSet,
+        current_lang,
+        &[&len.to_string()],
+    ));
 
     if items.is_empty() && *len > 0 {
         let auto_expand = app.config.settings.auto_expand;
@@ -303,7 +323,10 @@ fn render_set_value(
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_set_members(key.to_string());
-        } else if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+        } else if ui
+            .button(tr(TranslationKey::LoadMembers, current_lang))
+            .clicked()
+        {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_set_members(key.to_string());
@@ -333,7 +356,11 @@ fn render_zset_value(
     items: &[(String, f64)],
     current_lang: Language,
 ) {
-    ui.label(tr_fmt(keys::TYPE_ZSET, current_lang, &[&len.to_string()]));
+    ui.label(tr_fmt(
+        TranslationKey::TypeZset,
+        current_lang,
+        &[&len.to_string()],
+    ));
 
     if items.is_empty() && *len > 0 {
         let auto_expand = app.config.settings.auto_expand;
@@ -345,7 +372,10 @@ fn render_zset_value(
                 0,
                 ((*len).saturating_sub(1)) as isize,
             );
-        } else if ui.button(tr(keys::LOAD_MEMBERS, current_lang)).clicked() {
+        } else if ui
+            .button(tr(TranslationKey::LoadMembers, current_lang))
+            .clicked()
+        {
             app.tabs[active_tab_idx]
                 .state
                 .spawn_load_zset_range(key.to_string(), 0, 99);

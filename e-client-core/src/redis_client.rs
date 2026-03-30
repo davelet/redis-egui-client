@@ -4,7 +4,7 @@ use redis::aio::ConnectionManagerConfig;
 use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::instrument;
+use tracing::{error, info, instrument};
 
 #[derive(Clone, Debug)]
 pub struct RedisClient {
@@ -18,14 +18,23 @@ impl RedisClient {
         }
     }
 
-    #[instrument]
+    #[instrument(skip(redis))]
     pub async fn connect(&self, redis: RedisConnectionConfig) -> Result<(), RedisError> {
+        info!(url = %redis.url, port = %redis.port, "Connecting to Redis");
         let client = Client::open(redis)?;
         let config =
             ConnectionManagerConfig::default().set_number_of_retries(CONNECTION_RETRY_COUNT);
-        let manager = ConnectionManager::new_with_config(client, config).await?;
-        *self.manager.write().await = Some(manager);
-        Ok(())
+        match ConnectionManager::new_with_config(client, config).await {
+            Ok(manager) => {
+                *self.manager.write().await = Some(manager);
+                info!("Redis connection established");
+                Ok(())
+            }
+            Err(e) => {
+                error!(error = %e, "Failed to connect to Redis");
+                Err(e)
+            }
+        }
     }
 
     pub async fn is_connected(&self) -> bool {
@@ -33,10 +42,12 @@ impl RedisClient {
     }
 
     pub async fn disconnect(&self) {
+        info!("Disconnecting from Redis");
         *self.manager.write().await = None;
     }
 
     pub fn disconnect_sync(&self) {
+        info!("Disconnecting from Redis (sync)");
         if let Ok(mut manager) = self.manager.try_write() {
             *manager = None;
         }

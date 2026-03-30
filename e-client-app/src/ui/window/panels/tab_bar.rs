@@ -2,8 +2,7 @@ use crate::ui::window::RedisApp;
 use e_client_basics::constants::ACTIVE_TAB_BACKGROUND_COLOR;
 use e_client_config::language::Language;
 use e_client_config::translations::emoji;
-use e_client_config::translations::keys;
-use e_client_config::translations::tr;
+use e_client_config::translations::{tr, TranslationKey};
 use std::collections::HashSet;
 
 pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
@@ -97,7 +96,10 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                         ui.menu_button("⋮", |ui| {
                                             // Copy button - show if has connection
                                             if *has_connection {
-                                                if ui.button(tr(keys::DUPLICATE, lang)).clicked() {
+                                                if ui
+                                                    .button(tr(TranslationKey::Duplicate, lang))
+                                                    .clicked()
+                                                {
                                                     duplicate_tab = Some(*idx);
                                                 }
                                             }
@@ -105,7 +107,9 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                             // Close others button - show if more than 2 tabs
                                             if app.tabs.len() > 2 {
                                                 ui.separator();
-                                                if ui.button(tr(keys::CLOSE_OTHERS, lang)).clicked()
+                                                if ui
+                                                    .button(tr(TranslationKey::CloseOthers, lang))
+                                                    .clicked()
                                                 {
                                                     close_other_tabs = Some(*idx);
                                                 }
@@ -162,7 +166,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
 
                     // Title and remove button in horizontal layout
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new(tr(keys::ALL_TABS, lang)).strong());
+                        ui.label(egui::RichText::new(tr(TranslationKey::AllTabs, lang)).strong());
 
                         // Show remove duplicate button if needed
                         if has_duplicates || has_invalid {
@@ -172,7 +176,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                     if ui
                                         .small_button(emoji::action::DELETE)
                                         .on_hover_text(tr(
-                                            keys::REMOVE_DUPLICATE_AND_INVALID_TABS,
+                                            TranslationKey::RemoveDuplicateAndInvalidTabs,
                                             lang,
                                         ))
                                         .clicked()

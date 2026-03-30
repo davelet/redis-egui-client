@@ -16,6 +16,7 @@ use crate::config::connections::ConfigOnConnections;
 use crate::config::user_config::ConfigOfUser;
 use std::fs;
 use std::path::PathBuf;
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -80,11 +81,13 @@ impl Config {
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_path()?;
         if !path.exists() {
+            info!(path = %path.display(), "Config directory does not exist, creating default config");
             let default_config = Config::default();
             default_config.init()?;
             return Ok(default_config);
         }
 
+        info!(path = %path.display(), "Loading configuration from disk");
         let settings = Self::load_user_settings()?;
         let connections = Self::load_connections()?;
         let window = Self::load_window_params()?;
@@ -102,11 +105,13 @@ impl Config {
             dirty_preferences: false,
             dirty_ai_config: false,
         };
+        info!("Configuration loaded successfully");
         Ok(config)
     }
 
     pub fn init(&self) -> Result<(), ConfigError> {
         let config_path = Self::config_path()?;
+        info!(path = %config_path.display(), "Initializing config directory");
         fs::create_dir_all(&config_path)
             .map_err(|e| ConfigError::CreateDirFailed(e.to_string()))?;
 
@@ -115,7 +120,7 @@ impl Config {
         self.save_window_config()?;
         self.save_connected_preferences()?;
         self.save_ai_config()?;
-
+        info!("Config directory initialized");
         Ok(())
     }
 }
@@ -136,6 +141,7 @@ impl Config {
 
     pub fn save_connections(&self) -> Result<(), ConfigError> {
         if self.connections.is_empty() {
+            info!("No connections to save");
             return Ok(());
         }
 
@@ -143,11 +149,12 @@ impl Config {
             connection.check_param(&self.settings.language)?;
         }
 
+        let path = Self::connections_file_path()?;
+        info!(path = %path.display(), "Saving connections");
         let toml = toml::to_string_pretty(&self.connections)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        fs::write(Self::connections_file_path()?, toml)
-            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-
+        fs::write(path, toml).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        info!("Connections saved");
         Ok(())
     }
 
@@ -232,11 +239,12 @@ impl Config {
     }
 
     pub fn save_window_config(&self) -> Result<(), ConfigError> {
+        let path = Self::window_config_file_path()?;
+        info!(path = %path.display(), "Saving window config");
         let toml = toml::to_string_pretty(&self.window)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        fs::write(Self::window_config_file_path()?, toml)
-            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-
+        fs::write(path, toml).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        info!("Window config saved");
         Ok(())
     }
     pub fn update_window_size(&mut self, width: f32, height: f32) {
@@ -277,11 +285,12 @@ impl Config {
     }
 
     pub fn save_connected_preferences(&self) -> Result<(), ConfigError> {
+        let path = Self::connected_preferences_file_path()?;
+        info!(path = %path.display(), "Saving connected preferences");
         let toml = toml::to_string_pretty(&self.connected_preferences)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        fs::write(Self::connected_preferences_file_path()?, toml)
-            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-
+        fs::write(path, toml).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        info!("Connected preferences saved");
         Ok(())
     }
 
@@ -370,11 +379,13 @@ impl Config {
     }
 
     pub fn update_language(&mut self, language: &str) {
+        info!(language = %language, "Updating language setting");
         self.settings.language = language.to_string();
         self.dirty_settings = true;
     }
 
     pub fn update_auto_connect(&mut self, auto_connect: bool) {
+        info!(auto_connect = auto_connect, "Updating auto-connect setting");
         self.settings.auto_connect = auto_connect;
         self.dirty_settings = true;
     }
@@ -391,6 +402,13 @@ impl Config {
 
     /// Save all dirty configurations (call on app exit)
     pub fn save_all_if_dirty(&mut self) -> Result<(), ConfigError> {
+        info!(
+            dirty_window = self.dirty_window,
+            dirty_settings = self.dirty_settings,
+            dirty_preferences = self.dirty_preferences,
+            dirty_ai_config = self.dirty_ai_config,
+            "Saving dirty configurations"
+        );
         if self.dirty_window {
             self.save_window_config()?;
             self.dirty_window = false;
@@ -411,11 +429,12 @@ impl Config {
     }
 
     pub fn save_user_settings(&self) -> Result<(), ConfigError> {
+        let path = Self::user_settings_file_path()?;
+        info!(path = %path.display(), "Saving user settings");
         let toml = toml::to_string_pretty(&self.settings)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        fs::write(Self::user_settings_file_path()?, toml)
-            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-
+        fs::write(path, toml).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        info!("User settings saved");
         Ok(())
     }
 
@@ -436,11 +455,8 @@ impl Config {
 
         let content =
             fs::read_to_string(&path).map_err(|e| ConfigError::ReadFailed(format!("{}", e)))?;
-        let mut ai_config: AiConfig =
+        let ai_config: AiConfig =
             toml::from_str(&content).map_err(|e| ConfigError::ParseFailed(format!("{}", e)))?;
-
-        // Load API keys from system keyring
-        ai_config.load_api_keys();
 
         Ok(ai_config)
     }
@@ -450,11 +466,12 @@ impl Config {
         self.ai_config.save_api_keys();
 
         // Save config to file (without API keys - they are marked with #[serde(skip)])
+        let path = Self::ai_config_file_path()?;
+        info!(path = %path.display(), "Saving AI config");
         let toml = toml::to_string_pretty(&self.ai_config)
             .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-        fs::write(Self::ai_config_file_path()?, toml)
-            .map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
-
+        fs::write(path, toml).map_err(|e| ConfigError::WriteFailed(e.to_string()))?;
+        info!("AI config saved");
         Ok(())
     }
 

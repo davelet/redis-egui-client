@@ -10,7 +10,7 @@ pub use shortcut_settings::{parse_key_from_str, render_shortcut_settings, SUPPOR
 
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 
 use super::super::{RedisApp, SettingsSection};
 
@@ -83,7 +83,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
         screen_rect.min.y + 40.0,
     );
 
-    egui::Window::new(tr(keys::SETTINGS, current_lang))
+    egui::Window::new(tr(TranslationKey::Settings, current_lang))
         .collapsible(false)
         .resizable(true)
         .default_pos(top_right)
@@ -99,7 +99,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ui.separator();
 
                     // AI settings (collapsible) - mutually exclusive with shortcuts
-                    let ai_header_text = tr(keys::AI_SETTINGS, current_lang);
+                    let ai_header_text = tr(TranslationKey::AiSettings, current_lang);
                     let ai_open = app.settings_expanded_section == Some(SettingsSection::Ai);
                     let ai_response = egui::CollapsingHeader::new(ai_header_text)
                         .id_salt("settings_ai_collapsible")
@@ -123,7 +123,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ui.separator();
 
                     // Keyboard shortcuts (collapsible) - mutually exclusive with AI
-                    let shortcuts_header_text = tr(keys::KEYBOARD_SHORTCUTS, current_lang);
+                    let shortcuts_header_text = tr(TranslationKey::KeyboardShortcuts, current_lang);
                     let shortcuts_open =
                         app.settings_expanded_section == Some(SettingsSection::Shortcuts);
                     let shortcuts_response = egui::CollapsingHeader::new(shortcuts_header_text)
@@ -149,7 +149,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                     // Close button
                     ui.horizontal(|ui| {
-                        if ui.button(tr(keys::CLOSE, current_lang)).clicked() {
+                        if ui.button(tr(TranslationKey::Close, current_lang)).clicked() {
                             app.show_settings = false;
                             app.shortcut_state.editing_shortcut = None;
                             app.shortcut_state.shortcut_input_buffer.clear();

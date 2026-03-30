@@ -1,6 +1,6 @@
 use super::super::AppState;
 use e_client_basics::constants::WILD_KEY_FILTER;
-use e_client_bilingual::translations::{keys, tr_fmt};
+use e_client_bilingual::translations::{TranslationKey, tr_fmt};
 
 /// Spawn connection with optional initial database
 pub fn spawn_connect_with_db(state: &AppState, initial_db: Option<i64>) {
@@ -42,7 +42,7 @@ pub fn spawn_connect_with_db(state: &AppState, initial_db: Option<i64>) {
                     *state.loading.write().await = false;
                     let lang = *state.language.read().await;
                     *state.error_message.write().await =
-                        tr_fmt(keys::CONNECTION_FAILED_MSG, lang, &[&e.to_string()]);
+                        tr_fmt(TranslationKey::ConnectionFailedMsg, lang, &[&e.to_string()]);
                 }
             }
         } else {

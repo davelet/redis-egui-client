@@ -3,10 +3,11 @@
 use e_client_basics::constants::{
     AI_API_KEY_LIMIT, AI_MODEL_ID_LIMIT, AI_MODEL_NAME_LIMIT, AI_MODEL_URL_LIMIT,
 };
-use e_client_config::config::ai_config::{AiModel, AiProviderType, DEFAULT_SYSTEM_PROMPT};
+use e_client_config::config::ai_config::{AiModel, AiProviderType};
 use e_client_config::language::Language;
-use e_client_config::translations::{emoji, keys, tr, tr_fmt};
-use e_client_core::{detect_api_provider, AiClient};
+use e_client_config::translations::{emoji, tr, tr_fmt, TranslationKey};
+use e_client_core::{detect_api_provider, AiClient, SYSTEM_PROMPT};
+use std::str::FromStr;
 
 use super::super::super::RedisApp;
 
@@ -26,7 +27,7 @@ pub fn render_ai_settings_section(
                 ui.horizontal(|ui| {
                     ui.checkbox(
                         &mut app.config.ai_config.enabled,
-                        tr(keys::AI_ENABLE, current_lang),
+                        tr(TranslationKey::AiEnable, current_lang),
                     );
                 });
 
@@ -34,14 +35,14 @@ pub fn render_ai_settings_section(
 
                 // Active model selector and add button in one row
                 ui.horizontal(|ui| {
-                    ui.label(tr(keys::AI_ACTIVE_MODEL, current_lang));
+                    ui.label(tr(TranslationKey::AiActiveModel, current_lang));
                     ui.add_space(5.0);
                     let active_model_name = app
                         .config
                         .ai_config
                         .get_active_model()
                         .map(|m| m.name.as_str())
-                        .unwrap_or(tr(keys::AI_SELECT_MODEL, current_lang));
+                        .unwrap_or(tr(TranslationKey::AiSelectModel, current_lang));
                     egui::ComboBox::from_id_salt("ai_active_model")
                         .selected_text(active_model_name)
                         .show_ui(ui, |ui| {
@@ -69,7 +70,10 @@ pub fn render_ai_settings_section(
                     ui.add_space(10.0);
 
                     if ui
-                        .button(format!("+ {}", tr(keys::AI_ADD_MODEL, current_lang)))
+                        .button(format!(
+                            "+ {}",
+                            tr(TranslationKey::AiAddModel, current_lang)
+                        ))
                         .clicked()
                     {
                         app.ai_model_editor.open_for_new();
@@ -83,7 +87,7 @@ pub fn render_ai_settings_section(
                     if ui
                         .checkbox(
                             &mut app.config.ai_config.confirm_before_execute,
-                            tr(keys::AI_CONFIRM_BEFORE_EXECUTE, current_lang),
+                            tr(TranslationKey::AiConfirmBeforeExecute, current_lang),
                         )
                         .changed()
                     {
@@ -98,7 +102,7 @@ pub fn render_ai_settings_section(
                     if ui
                         .checkbox(
                             &mut app.config.ai_config.show_ai_thinking,
-                            tr(keys::AI_SHOW_THINKING, current_lang),
+                            tr(TranslationKey::AiShowThinking, current_lang),
                         )
                         .changed()
                     {
@@ -110,65 +114,39 @@ pub fn render_ai_settings_section(
 
                 ui.add_space(8.0);
 
-                // System prompt label and hint
-                ui.label(tr(keys::AI_SYSTEM_PROMPT, current_lang));
+                // System prompt label with copy button
+                ui.horizontal(|ui| {
+                    ui.label(tr(TranslationKey::AiSystemPrompt, current_lang));
+                    if ui
+                        .button(tr(TranslationKey::AiCopyPrompt, current_lang))
+                        .clicked()
+                    {
+                        ui.ctx().copy_text(SYSTEM_PROMPT.to_string());
+                    }
+                });
                 ui.add_space(2.0);
-                ui.label(
-                    egui::RichText::new(tr(keys::AI_SYSTEM_PROMPT_HINT, current_lang))
-                        .small()
-                        .color(ui.visuals().weak_text_color()),
-                );
 
-                // System prompt text area
-                let system_prompt = &mut app.config.ai_config.system_prompt;
+                // System prompt read-only preview
                 egui::Frame::group(ui.style())
                     .fill(ui.visuals().code_bg_color)
                     .show(ui, |ui| {
-                        ui.add(
-                            egui::TextEdit::multiline(system_prompt)
-                                .desired_width(f32::INFINITY)
-                                .font(egui::TextStyle::Monospace)
-                                .hint_text(tr(keys::AI_SYSTEM_PROMPT_PLACEHOLDER, current_lang)),
-                        );
-                    });
-
-                // Save and restore default buttons
-                ui.horizontal(|ui| {
-                    if ui
-                        .button(format!(
-                            "{} {}",
-                            emoji::action::SAVE,
-                            tr(keys::SAVE, current_lang)
-                        ))
-                        .clicked()
-                    {
-                        if let Err(e) = app.config.save_ai_config() {
-                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
-                        }
-                    }
-
-                    // Show "Restore Default" button only when prompt differs from default
-                    if app.config.ai_config.system_prompt != DEFAULT_SYSTEM_PROMPT {
-                        if ui
-                            .button(tr(keys::AI_RESTORE_DEFAULT_PROMPT, current_lang))
-                            .clicked()
-                        {
-                            app.config.ai_config.system_prompt = DEFAULT_SYSTEM_PROMPT.to_string();
-                            if let Err(e) = app.config.save_ai_config() {
-                                eprintln!(
-                                    "Failed to save AI config: {}",
-                                    e.to_message(current_lang)
+                        egui::ScrollArea::vertical()
+                            .max_height(200.0)
+                            .show(ui, |ui| {
+                                ui.add(
+                                    egui::Label::new(
+                                        egui::RichText::new(SYSTEM_PROMPT).monospace(),
+                                    )
+                                    .wrap(),
                                 );
-                            }
-                        }
-                    }
-                });
+                            });
+                    });
 
                 // Models list - collapsible with background
                 if !app.config.ai_config.models.is_empty() {
                     ui.add_space(12.0);
 
-                    egui::CollapsingHeader::new(tr(keys::AI_MODELS, current_lang))
+                    egui::CollapsingHeader::new(tr(TranslationKey::AiModels, current_lang))
                         .id_salt("ai_models_collapsible")
                         .default_open(!app.ai_model_editor.models_collapsed)
                         .show(ui, |ui| {
@@ -185,11 +163,26 @@ pub fn render_ai_settings_section(
                                                 .spacing([8.0, 4.0])
                                                 .striped(true)
                                                 .show(ui, |ui| {
-                                                    ui.label(tr(keys::EDIT, current_lang));
-                                                    ui.label(tr(keys::DELETE, current_lang));
-                                                    ui.label(tr(keys::AI_MODEL_NAME, current_lang));
-                                                    ui.label(tr(keys::AI_URL, current_lang));
-                                                    ui.label(tr(keys::AI_MODEL_ID, current_lang));
+                                                    ui.label(tr(
+                                                        TranslationKey::Edit,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::Delete,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiModelName,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiUrl,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiModelId,
+                                                        current_lang,
+                                                    ));
                                                     ui.end_row();
 
                                                     let mut model_ids_to_delete: Vec<String> =
@@ -245,9 +238,9 @@ pub fn render_ai_settings_section(
 /// Render AI model editor dialog
 pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
     let window_title = if app.ai_model_editor.is_editing() {
-        tr(keys::AI_EDIT_MODEL, current_lang)
+        tr(TranslationKey::AiEditModel, current_lang)
     } else {
-        tr(keys::AI_ADD_MODEL, current_lang)
+        tr(TranslationKey::AiAddModel, current_lang)
     };
 
     let screen_rect = ctx
@@ -265,7 +258,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                 .num_columns(3)
                 .spacing([10.0, 8.0])
                 .show(ui, |ui| {
-                    ui.label(tr(keys::AI_MODEL_NAME, current_lang));
+                    ui.label(tr(TranslationKey::AiModelName, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.ai_model_editor.name)
                             .char_limit(AI_MODEL_NAME_LIMIT),
@@ -277,7 +270,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ));
                     ui.end_row();
 
-                    ui.label(tr(keys::AI_PROVIDER, current_lang));
+                    ui.label(tr(TranslationKey::AiProvider, current_lang));
                     let old_provider = app.ai_model_editor.provider.clone();
                     let search_trimmed = app.ai_model_editor.provider_search.trim().to_lowercase();
 
@@ -294,7 +287,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                         // ComboBox with provider
                         let display_text = if app.ai_model_editor.provider == "Custom" {
-                            tr(keys::AI_PROVIDER_CUSTOM, current_lang).to_string()
+                            tr(TranslationKey::AiProviderCustom, current_lang).to_string()
                         } else {
                             app.ai_model_editor.provider.clone()
                         };
@@ -310,7 +303,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                                         ui.selectable_value(
                                             &mut app.ai_model_editor.provider,
                                             "Custom".to_string(),
-                                            tr(keys::AI_PROVIDER_CUSTOM, current_lang),
+                                            tr(TranslationKey::AiProviderCustom, current_lang),
                                         );
                                         ui.separator();
 
@@ -339,7 +332,10 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         // Search box (second)
                         let search_response = ui.add(
                             egui::TextEdit::singleline(&mut app.ai_model_editor.provider_search)
-                                .hint_text(tr(keys::AI_PROVIDER_SEARCH_PLACEHOLDER, current_lang)),
+                                .hint_text(tr(
+                                    TranslationKey::AiProviderSearchPlaceholder,
+                                    current_lang,
+                                )),
                         );
 
                         // Auto-select first match when search filter changes
@@ -365,9 +361,9 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         }
 
                         search_response
-                            .on_hover_text(tr(keys::AI_PROVIDER_SEARCH_HINT, current_lang));
+                            .on_hover_text(tr(TranslationKey::AiProviderSearchHint, current_lang));
                         ui.label(tr_fmt(
-                            keys::AI_PROVIDERS_COUNT,
+                            TranslationKey::AiProvidersCount,
                             current_lang,
                             &[&matching_count.to_string()],
                         ));
@@ -375,32 +371,8 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                     // Auto-fill or clear URL when provider changes (via ComboBox selection)
                     if old_provider != app.ai_model_editor.provider {
-                        let provider_type = match app.ai_model_editor.provider.as_str() {
-                            "OpenAi" => AiProviderType::OpenAi,
-                            "Anthropic" => AiProviderType::Anthropic,
-                            "Meta" => AiProviderType::Meta,
-                            "Mistral" => AiProviderType::Mistral,
-                            "Cohere" => AiProviderType::Cohere,
-                            "Ollama" => AiProviderType::Ollama,
-                            "LMStudio" => AiProviderType::LMStudio,
-                            "LocalAI" => AiProviderType::LocalAI,
-                            "Vllm" => AiProviderType::Vllm,
-                            "OpenRouter" => AiProviderType::OpenRouter,
-                            "Together" => AiProviderType::Together,
-                            "Replicate" => AiProviderType::Replicate,
-                            "Huggingface" => AiProviderType::Huggingface,
-                            "Groq" => AiProviderType::Groq,
-                            "Perplexity" => AiProviderType::Perplexity,
-                            "Gemini" => AiProviderType::Gemini,
-                            "Grok" => AiProviderType::Grok,
-                            "Qwen" => AiProviderType::Qwen,
-                            "Baichuan" => AiProviderType::Baichuan,
-                            "Doubao" => AiProviderType::Doubao,
-                            "Moonshot" => AiProviderType::Moonshot,
-                            "Zhipu" => AiProviderType::Zhipu,
-                            "Minimax" => AiProviderType::Minimax,
-                            _ => AiProviderType::Custom,
-                        };
+                        let provider_type = AiProviderType::from_str(&app.ai_model_editor.provider)
+                            .unwrap_or(AiProviderType::Custom);
                         if let Some(default_url) = provider_type.default_url() {
                             app.ai_model_editor.base_url = default_url;
                         } else {
@@ -412,7 +384,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
 
                     ui.end_row();
 
-                    ui.label(tr(keys::AI_URL, current_lang));
+                    ui.label(tr(TranslationKey::AiUrl, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.ai_model_editor.base_url)
                             .char_limit(AI_MODEL_URL_LIMIT),
@@ -443,7 +415,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         ui.end_row();
                     }
 
-                    ui.label(tr(keys::AI_MODEL_ID, current_lang));
+                    ui.label(tr(TranslationKey::AiModelId, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.ai_model_editor.model_id)
                             .char_limit(AI_MODEL_ID_LIMIT),
@@ -455,7 +427,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ));
                     ui.end_row();
 
-                    ui.label(tr(keys::AI_API_KEY, current_lang));
+                    ui.label(tr(TranslationKey::AiApiKey, current_lang));
                     ui.add(
                         egui::TextEdit::singleline(&mut app.ai_model_editor.api_key)
                             .char_limit(AI_API_KEY_LIMIT)
@@ -468,7 +440,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ));
                     ui.end_row();
 
-                    ui.label(tr(keys::AI_TEMPERATURE, current_lang));
+                    ui.label(tr(TranslationKey::AiTemperature, current_lang));
                     ui.add(egui::Slider::new(
                         &mut app.ai_model_editor.temperature,
                         0.0..=1.0,
@@ -484,7 +456,7 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                 && !app.ai_model_editor.model_id.is_empty();
 
             if !is_valid {
-                let error_msg = tr(keys::AI_MODEL_REQUIRED_FIELDS, current_lang).to_string();
+                let error_msg = tr(TranslationKey::AiModelRequiredFields, current_lang).to_string();
                 ui.colored_label(ui.visuals().error_fg_color, error_msg);
             }
 
@@ -502,9 +474,9 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                 let test_btn = ui.add_enabled(
                     is_valid && !app.ai_model_editor.testing_connection,
                     egui::Button::new(if app.ai_model_editor.testing_connection {
-                        tr(keys::AI_TESTING_CONNECTION, current_lang)
+                        tr(TranslationKey::AiTestingConnection, current_lang)
                     } else {
-                        tr(keys::AI_TEST_CONNECTION, current_lang)
+                        tr(TranslationKey::AiTestConnection, current_lang)
                     }),
                 );
 
@@ -537,15 +509,18 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     match result {
                         Ok(()) => {
                             ui.label(
-                                egui::RichText::new(tr(keys::AI_TEST_SUCCESS, current_lang))
-                                    .color(egui::Color32::from_rgb(50, 200, 50)),
+                                egui::RichText::new(tr(
+                                    TranslationKey::AiTestSuccess,
+                                    current_lang,
+                                ))
+                                .color(egui::Color32::from_rgb(50, 200, 50)),
                             );
                         }
                         Err(e) => {
                             ui.label(
                                 egui::RichText::new(format!(
                                     "{}: {}",
-                                    tr(keys::AI_TEST_FAILED, current_lang),
+                                    tr(TranslationKey::AiTestFailed, current_lang),
                                     e
                                 ))
                                 .color(egui::Color32::from_rgb(255, 100, 100)),
@@ -558,8 +533,10 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                let save_btn =
-                    ui.add_enabled(is_valid, egui::Button::new(tr(keys::SAVE, current_lang)));
+                let save_btn = ui.add_enabled(
+                    is_valid,
+                    egui::Button::new(tr(TranslationKey::Save, current_lang)),
+                );
                 if save_btn.clicked() && is_valid {
                     let api_key = if app.ai_model_editor.api_key.is_empty() {
                         None
@@ -567,32 +544,8 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                         Some(app.ai_model_editor.api_key.clone())
                     };
 
-                    let provider_type = match app.ai_model_editor.provider.as_str() {
-                        "OpenAi" => AiProviderType::OpenAi,
-                        "Anthropic" => AiProviderType::Anthropic,
-                        "Meta" => AiProviderType::Meta,
-                        "Mistral" => AiProviderType::Mistral,
-                        "Cohere" => AiProviderType::Cohere,
-                        "Ollama" => AiProviderType::Ollama,
-                        "LMStudio" => AiProviderType::LMStudio,
-                        "LocalAI" => AiProviderType::LocalAI,
-                        "Vllm" => AiProviderType::Vllm,
-                        "OpenRouter" => AiProviderType::OpenRouter,
-                        "Together" => AiProviderType::Together,
-                        "Replicate" => AiProviderType::Replicate,
-                        "Huggingface" => AiProviderType::Huggingface,
-                        "Groq" => AiProviderType::Groq,
-                        "Perplexity" => AiProviderType::Perplexity,
-                        "Gemini" => AiProviderType::Gemini,
-                        "Grok" => AiProviderType::Grok,
-                        "Qwen" => AiProviderType::Qwen,
-                        "Baichuan" => AiProviderType::Baichuan,
-                        "Doubao" => AiProviderType::Doubao,
-                        "Moonshot" => AiProviderType::Moonshot,
-                        "Zhipu" => AiProviderType::Zhipu,
-                        "Minimax" => AiProviderType::Minimax,
-                        _ => AiProviderType::Custom,
-                    };
+                    let provider_type = AiProviderType::from_str(&app.ai_model_editor.provider)
+                        .unwrap_or(AiProviderType::Custom);
 
                     let mut model = AiModel::new_model(
                         provider_type,
@@ -625,7 +578,10 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     app.ai_model_editor.close();
                 }
 
-                if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::Cancel, current_lang))
+                    .clicked()
+                {
                     app.ai_model_editor.close();
                 }
             });

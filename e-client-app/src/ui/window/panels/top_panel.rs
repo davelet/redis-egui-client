@@ -3,8 +3,7 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::WILD_KEY_FILTER;
 use e_client_config::translations::emoji;
-use e_client_config::translations::keys;
-use e_client_config::translations::tr;
+use e_client_config::translations::{tr, TranslationKey};
 
 use super::settings_panel::render_settings_window;
 
@@ -43,13 +42,13 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             }
 
-            ui.label(tr(keys::CONNECTION_URL, current_lang));
+            ui.label(tr(TranslationKey::ConnectionUrl, current_lang));
 
             // Connection dropdown - disabled when connected
             let selected_name = selected_connection
                 .and_then(|idx| app.config.connections.get(idx))
                 .map(|c| c.name.clone())
-                .unwrap_or_else(|| tr(keys::SELECT_CONNECTION, current_lang).to_string());
+                .unwrap_or_else(|| tr(TranslationKey::SelectConnection, current_lang).to_string());
 
             ui.add_enabled_ui(!connected, |ui| {
                 egui::ComboBox::from_id_salt("connection_select")
@@ -81,11 +80,14 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             });
 
             if connected {
-                if ui.button(tr(keys::DISCONNECT, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::Disconnect, current_lang))
+                    .clicked()
+                {
                     app.tabs[active_tab_idx].state.spawn_disconnect();
                     // Clear tab name, color, and filter on disconnect, but keep selected_connection
                     let tab = &mut app.tabs[active_tab_idx];
-                    tab.name = format!("{} {}", tr(keys::TAB, current_lang), tab.id);
+                    tab.name = format!("{} {}", tr(TranslationKey::Tab, current_lang), tab.id);
                     tab.connected_color = None;
                     tab.key_filter_input.clear();
 
@@ -94,7 +96,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
 
                 ui.separator();
-                ui.label(tr(keys::DATABASE, current_lang));
+                ui.label(tr(TranslationKey::Database, current_lang));
 
                 egui::ComboBox::from_id_salt("db_select")
                     .selected_text(format!("DB {}", current_db))
@@ -118,7 +120,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     });
             } else {
-                if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
+                if ui
+                    .button(tr(TranslationKey::Connect, current_lang))
+                    .clicked()
+                {
                     let tab = &mut app.tabs[active_tab_idx];
                     if let Some(idx) = tab.selected_connection {
                         if let Some(conn) = app.config.connections.get(idx) {
@@ -137,7 +142,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     } else {
                         // No connection selected - show error
                         *tab.state.error_message.blocking_write() =
-                            tr(keys::PLEASE_SELECT_CONNECTION, current_lang).to_string();
+                            tr(TranslationKey::PleaseSelectConnection, current_lang).to_string();
                     }
                 }
 
@@ -147,7 +152,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         .button(format!(
                             "{} {}",
                             emoji::navigation::NEW_TAB,
-                            tr(keys::OPEN_IN_NEW_TAB, current_lang)
+                            tr(TranslationKey::OpenInNewTab, current_lang)
                         ))
                         .clicked()
                     {
@@ -168,7 +173,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         .button(format!(
                             "{} {}",
                             emoji::action::EDIT,
-                            tr(keys::EDIT_CONNECTION, current_lang)
+                            tr(TranslationKey::EditConnection, current_lang)
                         ))
                         .clicked()
                     {
@@ -179,7 +184,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
                 // Add new connection button
                 if ui
-                    .button(format!("+ {}", tr(keys::NEW_CONNECTION, current_lang)))
+                    .button(format!(
+                        "+ {}",
+                        tr(TranslationKey::NewConnection, current_lang)
+                    ))
                     .clicked()
                 {
                     app.new_connection.show = true;

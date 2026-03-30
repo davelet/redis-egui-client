@@ -2,7 +2,7 @@ use e_client_config::config::Config;
 use e_client_config::constants::{APP_NAME, LOAD_ERROR_TITLE};
 use e_client_config::error::ConfigError;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 
 /// Render error panel when configuration fails to load
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
@@ -21,20 +21,23 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
             });
             ui.separator();
 
-            if ui.button(tr(keys::RESET_CONFIG_FILE, lang)).clicked() {
+            if ui
+                .button(tr(TranslationKey::ResetConfigFile, lang))
+                .clicked()
+            {
                 reset_config_files();
                 SHOW_POPUP.set(true);
             }
         });
         SHOW_POPUP.with(|popup| {
             if popup.get() {
-                egui::Window::new(tr(keys::WELL_DONE, lang))
+                egui::Window::new(tr(TranslationKey::WellDone, lang))
                     .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
                     .collapsible(false)
                     .resizable(false)
                     .show(ctx, |ui| {
-                        ui.label(tr(keys::RESTART_APP, lang));
-                        if ui.button(tr(keys::OK, lang)).clicked() {
+                        ui.label(tr(TranslationKey::RestartApp, lang));
+                        if ui.button(tr(TranslationKey::Ok, lang)).clicked() {
                             std::process::exit(0);
                         }
                     });

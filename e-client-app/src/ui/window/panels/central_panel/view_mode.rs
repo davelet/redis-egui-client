@@ -2,7 +2,7 @@ use crate::core::ValueData;
 use crate::ui::window::RedisApp;
 use e_client_config::language::Language;
 use e_client_config::translations::emoji;
-use e_client_config::translations::{keys, tr, tr_fmt};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
 
 use super::utils::{format_ttl, truncate_key, value_to_copy_text};
 
@@ -68,11 +68,16 @@ fn render_header(
 ) {
     ui.horizontal(|ui| {
         let display_key = truncate_key(key);
-        ui.heading(tr_fmt(keys::KEY_HEADING, current_lang, &[&display_key]));
+        ui.heading(tr_fmt(
+            TranslationKey::KeyHeading,
+            current_lang,
+            &[&display_key],
+        ));
 
         let copy_key_id = egui::Id::new("copy_key").with(key);
         let copy_key_color = app.copy_button_text_color(copy_key_id);
-        let copy_key_text = app.copy_button_text(copy_key_id, tr(keys::COPY_KEY, current_lang));
+        let copy_key_text =
+            app.copy_button_text(copy_key_id, tr(TranslationKey::CopyKey, current_lang));
 
         // Copy key
         if ui
@@ -89,8 +94,8 @@ fn render_header(
             if !is_hash {
                 let copy_value_id = egui::Id::new("copy_value").with(key);
                 let copy_value_color = app.copy_button_text_color(copy_value_id);
-                let copy_value_text =
-                    app.copy_button_text(copy_value_id, tr(keys::COPY_VALUE, current_lang));
+                let copy_value_text = app
+                    .copy_button_text(copy_value_id, tr(TranslationKey::CopyValue, current_lang));
                 if ui
                     .button(egui::RichText::new(copy_value_text).color(copy_value_color))
                     .clicked()
@@ -122,7 +127,7 @@ fn render_header(
         let edit_button_text = if loading_for_edit {
             "Loading..."
         } else {
-            tr(keys::EDIT, current_lang)
+            tr(TranslationKey::Edit, current_lang)
         };
 
         let edit_button_enabled = !loading_for_edit;
@@ -156,7 +161,10 @@ fn render_header(
 
         // Delete button (always visible)
         if ui
-            .button(egui::RichText::new(tr(keys::DELETE, current_lang)).color(egui::Color32::RED))
+            .button(
+                egui::RichText::new(tr(TranslationKey::Delete, current_lang))
+                    .color(egui::Color32::RED),
+            )
             .clicked()
         {
             app.tabs[active_tab_idx]
@@ -217,7 +225,7 @@ fn render_ttl_controls(
                 // Input changed, value is stored in ttl_edit_value
             }
 
-            if ui.button(tr(keys::SAVE, current_lang)).clicked() {
+            if ui.button(tr(TranslationKey::Save, current_lang)).clicked() {
                 if let Ok(new_ttl) = ttl_edit_value.parse::<i64>() {
                     app.tabs[active_tab_idx]
                         .state
@@ -227,13 +235,19 @@ fn render_ttl_controls(
                 *ttl_edit_mode = false;
                 *ttl_edit_key = None;
             }
-            if ui.button(tr(keys::CANCEL, current_lang)).clicked() {
+            if ui
+                .button(tr(TranslationKey::Cancel, current_lang))
+                .clicked()
+            {
                 *ttl_edit_value = String::new();
                 *ttl_edit_mode = false;
                 *ttl_edit_key = None;
             }
         } else {
-            if ui.button(tr(keys::EDIT_TTL, current_lang)).clicked() {
+            if ui
+                .button(tr(TranslationKey::EditTtl, current_lang))
+                .clicked()
+            {
                 *ttl_edit_value = ttl.to_string();
                 *ttl_edit_mode = true;
                 *ttl_edit_key = Some(key.to_string());

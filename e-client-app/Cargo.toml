@@ -1,6 +1,6 @@
 [package]
 name = "e-client-app"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 repository = "https://github.com/davelet/redis-egui-client"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
@@ -13,6 +13,7 @@ keywords = ["redis", "egui", "eframe", "gui"]
 e-client-core = { path = "../e-client-core" }
 e-client-config = { path = "../e-client-config" }
 e-client-basics = { path = "../e-client-basics" }
+e-client-logging = { path = "../e-client-logging" }
 egui = "0.33.3"
 egui_extras = { version = "0.33.3", features = ["default"] }
 eframe = { version = "0.33.3", default-features = false, features = [

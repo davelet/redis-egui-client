@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr};
+use e_client_config::translations::{tr, TranslationKey};
 
 use super::utils::parse_color_hex;
 
@@ -16,11 +16,11 @@ pub fn render_welcome_page(
         ui.add_space(50.0);
 
         // Welcome title
-        ui.heading(egui::RichText::new(tr(keys::WELCOME_TITLE, current_lang)).size(32.0));
+        ui.heading(egui::RichText::new(tr(TranslationKey::WelcomeTitle, current_lang)).size(32.0));
         ui.add_space(20.0);
 
         // Welcome message
-        ui.label(egui::RichText::new(tr(keys::WELCOME_MESSAGE, current_lang)).size(16.0));
+        ui.label(egui::RichText::new(tr(TranslationKey::WelcomeMessage, current_lang)).size(16.0));
         ui.add_space(30.0);
 
         // Get started button
@@ -30,7 +30,7 @@ pub fn render_welcome_page(
 
         // Instructions
         ui.label(
-            egui::RichText::new(tr(keys::WELCOME_INSTRUCTION, current_lang))
+            egui::RichText::new(tr(TranslationKey::WelcomeInstruction, current_lang))
                 .weak()
                 .size(14.0),
         );
@@ -44,7 +44,7 @@ pub fn render_welcome_page(
 fn render_new_connection_button(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
     if ui
         .button(
-            egui::RichText::new(tr(keys::NEW_CONNECTION, current_lang))
+            egui::RichText::new(tr(TranslationKey::NewConnection, current_lang))
                 .size(18.0)
                 .color(egui::Color32::WHITE),
         )
@@ -73,7 +73,7 @@ fn render_saved_connections(
     ui.add_space(20.0);
 
     // Section title
-    ui.heading(egui::RichText::new(tr(keys::SAVED_CONNECTIONS, current_lang)).size(20.0));
+    ui.heading(egui::RichText::new(tr(TranslationKey::SavedConnections, current_lang)).size(20.0));
     ui.add_space(10.0);
 
     // Show open connections prompt and Connect All button if there are any
@@ -103,14 +103,20 @@ fn render_open_connections_prompt(
     connections: &Vec<e_client_config::connection::RedisConnectionConfig>,
 ) {
     ui.label(
-        egui::RichText::new(tr(keys::OPEN_CONNECTIONS_PROMPT_MESSAGE, current_lang))
-            .size(12.0)
-            .color(egui::Color32::BLUE),
+        egui::RichText::new(tr(
+            TranslationKey::OpenConnectionsPromptMessage,
+            current_lang,
+        ))
+        .size(12.0)
+        .color(egui::Color32::BLUE),
     );
     ui.add_space(10.0);
 
     // Connect All button - connect first connection in current tab, others in new tabs
-    if ui.button(tr(keys::CONNECT_ALL, current_lang)).clicked() {
+    if ui
+        .button(tr(TranslationKey::ConnectAll, current_lang))
+        .clicked()
+    {
         for (i, conn_name) in open_conn_names.iter().enumerate() {
             if let Some(conn_idx) = connections.iter().position(|c| &c.name == conn_name) {
                 let conn = connections[conn_idx].clone();
@@ -146,10 +152,19 @@ fn render_connection_table(
         // Table header
         ui.horizontal(|ui| {
             ui.set_width(table_width);
-            ui.colored_label(egui::Color32::GRAY, tr(keys::NUMBER, current_lang));
-            ui.colored_label(egui::Color32::GRAY, tr(keys::CONNECTION_NAME, current_lang));
+            ui.colored_label(
+                egui::Color32::GRAY,
+                tr(TranslationKey::Number, current_lang),
+            );
+            ui.colored_label(
+                egui::Color32::GRAY,
+                tr(TranslationKey::ConnectionName, current_lang),
+            );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.colored_label(egui::Color32::GRAY, tr(keys::ACTION, current_lang));
+                ui.colored_label(
+                    egui::Color32::GRAY,
+                    tr(TranslationKey::Action, current_lang),
+                );
             });
         });
         ui.separator();
@@ -202,7 +217,7 @@ fn render_connection_row(
             if is_confirming {
                 if ui
                     .button(
-                        egui::RichText::new(tr(keys::CONFIRM_DELETE, current_lang))
+                        egui::RichText::new(tr(TranslationKey::ConfirmDelete, current_lang))
                             .color(egui::Color32::RED),
                     )
                     .clicked()
@@ -213,7 +228,7 @@ fn render_connection_row(
             } else {
                 if ui
                     .button(
-                        egui::RichText::new(tr(keys::DELETE, current_lang))
+                        egui::RichText::new(tr(TranslationKey::Delete, current_lang))
                             .color(egui::Color32::RED),
                     )
                     .clicked()
@@ -225,7 +240,10 @@ fn render_connection_row(
             ui.add_space(10.0);
 
             // Connect button
-            if ui.button(tr(keys::CONNECT, current_lang)).clicked() {
+            if ui
+                .button(tr(TranslationKey::Connect, current_lang))
+                .clicked()
+            {
                 connect_in_current_tab(app, idx, conn);
             }
         });

@@ -13,4 +13,4 @@ pub use app_state::{
     AppState, EditState, EditedValue, JsonValue, compact_json_if_single_line, format_json_for_edit,
 };
 pub use redis_client::{RedisClient, ValueData};
-pub use rig_agent::{AiChatResult, AiResponseError, OpenAiRigAgent};
+pub use rig_agent::{AiChatResult, AiResponseError, OpenAiRigAgent, SYSTEM_PROMPT};

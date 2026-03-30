@@ -1,5 +1,5 @@
 use e_client_bilingual::language::Language;
-use e_client_bilingual::translations::keys::*;
+use e_client_bilingual::translations::TranslationKey;
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -18,17 +18,25 @@ impl ConfigError {
         use e_client_bilingual::translations::{tr, tr_fmt};
         match self {
             ConfigError::HugeParam(e) => tr_fmt(
-                CONFIG_PARAM_TOO_BIG,
+                TranslationKey::ConfigParamTooBig,
                 lang,
                 &(e.iter().map(|s| s.as_str()).collect::<Vec<_>>()[..]),
             ),
-            ConfigError::HomeDirMissing => tr(CONFIG_HOME_DIR_MISSING, lang).to_string(),
-            ConfigError::ReadFailed(e) => tr_fmt(CONFIG_READ_FAILED, lang, &[e]),
-            ConfigError::ParseFailed(e) => tr_fmt(CONFIG_PARSE_FAILED, lang, &[e]),
-            ConfigError::CreateDirFailed(e) => tr_fmt(CONFIG_CREATE_DIR_FAILED, lang, &[e]),
-            ConfigError::WriteFailed(e) => tr_fmt(CONFIG_WRITE_FAILED, lang, &[e]),
-            ConfigError::ConnectionNameExists => tr(CONNECTION_NAME_EXISTS, lang).to_string(),
-            ConfigError::ConnectionNotFound => tr(CONNECTION_NOT_FOUND, lang).to_string(),
+            ConfigError::HomeDirMissing => {
+                tr(TranslationKey::ConfigHomeDirMissing, lang).to_string()
+            }
+            ConfigError::ReadFailed(e) => tr_fmt(TranslationKey::ConfigReadFailed, lang, &[e]),
+            ConfigError::ParseFailed(e) => tr_fmt(TranslationKey::ConfigParseFailed, lang, &[e]),
+            ConfigError::CreateDirFailed(e) => {
+                tr_fmt(TranslationKey::ConfigCreateDirFailed, lang, &[e])
+            }
+            ConfigError::WriteFailed(e) => tr_fmt(TranslationKey::ConfigWriteFailed, lang, &[e]),
+            ConfigError::ConnectionNameExists => {
+                tr(TranslationKey::ConnectionNameExists, lang).to_string()
+            }
+            ConfigError::ConnectionNotFound => {
+                tr(TranslationKey::ConnectionNotFound, lang).to_string()
+            }
         }
     }
 }
