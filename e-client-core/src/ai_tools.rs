@@ -4,6 +4,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 
+/// Empty args struct that correctly deserializes from an empty JSON object `{}`
+/// Using `()` as Args fails because serde cannot deserialize `{}` into unit type.
+#[derive(Debug, Deserialize)]
+pub struct EmptyArgs {}
+
 /// Response type for tool calls
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ToolResponse {
@@ -358,7 +363,7 @@ impl Tool for GetDbStatsTool {
     const NAME: &'static str = "get_db_stats";
 
     type Error = RedisToolError;
-    type Args = ();
+    type Args = EmptyArgs;
     type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
@@ -375,7 +380,7 @@ impl Tool for GetDbStatsTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        let _ = args; // Consume the unit value (from empty JSON object {})
+        let _ = args; // Consume the empty args struct
         let db_size = self.redis_client.get_db_size().await?;
 
         let result = json!({

@@ -141,6 +141,7 @@ pub enum TranslationKey {
     ShortcutOpenSettings,
     ShortcutToggleCommandLine,
     ShortcutCloseCommandLine,
+    ChatMode,
     AiSettings,
     AiModels,
     AiAddModel,

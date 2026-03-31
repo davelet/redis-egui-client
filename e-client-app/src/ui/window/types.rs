@@ -1,7 +1,7 @@
 //! Window types - data structures for the main application window
 use crate::core::AppState;
 use e_client_basics::constants::DEFAULT_SIDE_PANEL_WIDTH;
-use e_client_config::config::ai_config::AiModel;
+use e_client_config::config::ai_config::{AiMode, AiModel};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
 use e_client_config::translations::{tr, TranslationKey};
@@ -143,6 +143,10 @@ pub struct CommandLinePanel {
     /// Rig-based AI agent for multi-round conversation with tool calling
     /// Uses Mutex to allow mutable access from async context
     pub rig_agent: std::sync::Arc<tokio::sync::Mutex<Option<e_client_core::OpenAiRigAgent>>>,
+    /// Current AI mode (Chat or Agent) - per-tab, not persisted
+    pub current_mode: AiMode,
+    /// Current model ID for this tab - per-tab, not persisted
+    pub current_model_id: Option<String>,
 }
 
 impl Default for CommandLinePanel {
@@ -158,6 +162,8 @@ impl Default for CommandLinePanel {
             ai_chat_pending: None,
             redis_command_pending: None,
             rig_agent: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
+            current_mode: AiMode::Agent,
+            current_model_id: None,
         }
     }
 }

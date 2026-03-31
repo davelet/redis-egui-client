@@ -1,8 +1,18 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::REDIS_COMMANDS;
+use e_client_config::config::ai_config::AiMode;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use e_client_core::{AiChatResult, AiResponseError, OpenAiRigAgent};
+
+/// Helper to clear rig_agent when mode/model changes
+fn clear_agent(app: &mut RedisApp, tab_idx: usize) {
+    let rig_agent = app.tabs[tab_idx].command_line_panel.rig_agent.clone();
+    tokio::task::spawn(async move {
+        let mut agent = rig_agent.lock().await;
+        *agent = None;
+    });
+}
 
 /// Check if the input is a Redis command
 fn is_redis_command(input: &str) -> bool {
@@ -56,6 +66,73 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
     egui::TopBottomPanel::bottom("command_line_panel")
         .exact_height(ctx.screen_rect().height() / 4.0)
         .show(ctx, |ui| {
+            // Mode toggle and model selector row
+            ui.horizontal(|ui| {
+                // Mode toggle
+                ui.label(
+                    egui::RichText::new(tr(TranslationKey::ChatMode, current_lang))
+                        .small()
+                        .color(egui::Color32::GRAY),
+                );
+                let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
+                if ui
+                    .selectable_label(current_mode == AiMode::Chat, "Chat")
+                    .on_hover_text("Stateless - translates natural language to Redis commands (no context, no tools)")
+                    .clicked()
+                    && current_mode != AiMode::Chat
+                {
+                    app.tabs[active_tab_idx].command_line_panel.current_mode = AiMode::Chat;
+                    clear_agent(app, active_tab_idx);
+                }
+                if ui
+                    .selectable_label(current_mode == AiMode::Agent, "Agent")
+                    .on_hover_text("Stateful - has access to Redis tools for direct operations (requires tool-calling capable models)")
+                    .clicked()
+                    && current_mode != AiMode::Agent
+                {
+                    app.tabs[active_tab_idx].command_line_panel.current_mode = AiMode::Agent;
+                    clear_agent(app, active_tab_idx);
+                }
+
+                ui.separator();
+
+                // Model selector (per-tab, not persisted)
+                ui.label(
+                    egui::RichText::new(tr(TranslationKey::AiSelectModel, current_lang))
+                        .small()
+                        .color(egui::Color32::GRAY),
+                );
+                let current_model_id = app.tabs[active_tab_idx].command_line_panel.current_model_id.clone();
+                let active_model_name = current_model_id
+                    .as_ref()
+                    .and_then(|id| app.config.ai_config.models.iter().find(|m| &m.id == id))
+                    .map(|m| m.name.as_str())
+                    .or_else(|| app.config.ai_config.get_active_model().map(|m| m.name.as_str()))
+                    .unwrap_or("--");
+                egui::ComboBox::from_id_salt("cli_ai_model_selector")
+                    .selected_text(active_model_name)
+                    .width(150.0)
+                    .show_ui(ui, |ui| {
+                        let mut new_model_id: Option<String> = None;
+                        for model in &app.config.ai_config.models {
+                            let is_selected = current_model_id.as_deref() == Some(&model.id)
+                                || (current_model_id.is_none()
+                                    && app.config.ai_config.active_model_id.as_deref() == Some(&model.id));
+                            ui.selectable_label(is_selected, &model.name)
+                                .clicked()
+                                .then(|| {
+                                    new_model_id = Some(model.id.clone());
+                                });
+                        }
+                        if let Some(id) = new_model_id {
+                            app.tabs[active_tab_idx].command_line_panel.current_model_id = Some(id);
+                            clear_agent(app, active_tab_idx);
+                        }
+                    });
+            });
+
+            ui.separator();
+
             // Command history output area
             let available_height = ui.available_height() - 40.0; // Reserve space for input
             egui::ScrollArea::vertical()
@@ -489,11 +566,12 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
     let user_input = trimmed_input.clone();
     let confirm_before_execute = ai_config.confirm_before_execute;
+    let current_mode = app.tabs[tab_idx].command_line_panel.current_mode;
 
     // Create channel for async result
     let (tx, rx) = std::sync::mpsc::channel();
 
-    // Store pending state with use_rig_agent flag
+    // Store pending state
     app.tabs[tab_idx].command_line_panel.ai_chat_pending =
         Some(crate::ui::window::types::AiChatPending {
             thinking_idx,
@@ -508,6 +586,8 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     let redis_client = std::sync::Arc::new(app.tabs[tab_idx].state.redis_client.clone());
     let ai_config_clone = ai_config.clone();
     let rig_agent_arc = app.tabs[tab_idx].command_line_panel.rig_agent.clone();
+    let mode_for_task = current_mode;
+    let per_tab_model_id = app.tabs[tab_idx].command_line_panel.current_model_id.clone();
 
     // Execute AI chat with rig agent asynchronously
     tokio::task::spawn(async move {
@@ -516,12 +596,21 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
         // If agent doesn't exist, try to create it first
         if agent_opt.is_none() {
-            // Load API key from keyring before building the agent
-            let mut active_model_with_key = ai_config_clone
-                .get_active_model()
-                .cloned()
-                .unwrap_or_default();
-            if let Err(e) = active_model_with_key.load_api_key() {
+            // Determine which model to use: per-tab > global active
+            let model_id = per_tab_model_id
+                .or_else(|| ai_config_clone.active_model_id.clone());
+
+            let mut model_with_key = match model_id {
+                Some(id) => ai_config_clone
+                    .models
+                    .iter()
+                    .find(|m| m.id == id)
+                    .cloned()
+                    .unwrap_or_default(),
+                None => Default::default(),
+            };
+
+            if let Err(e) = model_with_key.load_api_key() {
                 let _ = tx.send(Err(AiResponseError::Other(format!(
                     "Failed to load API key from keyring: {}",
                     e
@@ -529,19 +618,16 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
                 return;
             }
 
-            // Temporarily set the API key on the config so the agent builder can read it
+            // Build a config with the selected model's API key
             let mut config_with_key = ai_config_clone.clone();
-            if let Some(model_id) = config_with_key.active_model_id.clone() {
-                config_with_key
-                    .models
-                    .iter_mut()
-                    .find(|m| m.id == model_id)
-                    .map(|m| {
-                        m.api_key = active_model_with_key.api_key.clone();
-                    });
+            config_with_key.active_model_id = Some(model_with_key.id.clone());
+            if let Some(m) = config_with_key.models.iter_mut().find(|m| m.id == model_with_key.id) {
+                m.api_key = model_with_key.api_key.clone();
+            } else {
+                config_with_key.models.push(model_with_key.clone());
             }
 
-            match OpenAiRigAgent::new(&config_with_key, redis_client.clone()).await {
+            match OpenAiRigAgent::new(&config_with_key, redis_client.clone(), mode_for_task).await {
                 Ok(new_agent) => {
                     *agent_opt = Some(new_agent);
                 }
@@ -571,6 +657,11 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
             Ok(AiChatResult::Error(e)) => Err(e),
             Err(e) => Err(e),
         };
+
+        // For Chat mode, clear the agent after each request to enforce statelessness
+        if mode_for_task == AiMode::Chat {
+            *agent_opt = None;
+        }
 
         let _ = tx.send(chat_response);
     });

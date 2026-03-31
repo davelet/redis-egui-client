@@ -4,13 +4,13 @@ use crate::ai_tools::{
     SetStringTool, SetTtlTool, SremTool, ZaddTool, ZremTool,
 };
 use crate::redis_client::RedisClient;
-use e_client_config::config::ai_config::{AiConfig, AiModel};
+use e_client_config::config::ai_config::{AiConfig, AiModel, AiMode};
 use rig::{agent::Agent, client::CompletionClient, completion::Prompt, providers::openai};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::info;
 
-/// Built-in system prompt for the Redis GUI Client AI assistant.
+/// Built-in system prompt for the Redis GUI Client AI assistant (Agent mode - full tools).
 pub const SYSTEM_PROMPT: &str = r#"You are an AI assistant for Redis GUI Client. You can help users:
 1. Browse and search Redis keys
 2. View and edit key values
@@ -60,6 +60,20 @@ Example interactions:
 
 - User: "Add user:100 to my users set"
   You: Use sadd with key "my_users" and member "user:100""#;
+
+/// System prompt for Chat mode - stateless, tool-less command translation.
+pub const CHAT_SYSTEM_PROMPT: &str = r#"You are helping with Redis database operations.
+Your task is to translate natural language queries into ONE precise Redis command.
+Always respond with valid Redis command that can be executed directly. 
+Only output the Redis command without any explanation or markdown formatting.
+
+Examples:
+- User: "how many keys do I have?" → DBSIZE
+- User: "show me all keys" → KEYS *
+- User: "what's the value of mykey" → GET mykey
+- User: "set mykey to hello" → SET mykey hello
+- User: "delete the key test" → DEL test
+- User: "list all string keys" → KEYS *"#;
 
 pub type OpenAiAgent = Agent<openai::responses_api::ResponsesCompletionModel>;
 
@@ -163,11 +177,16 @@ pub enum AiChatResult {
 
 pub struct OpenAiRigAgent {
     agent: OpenAiAgent,
-    llm_model: AiModel
+    llm_model: AiModel,
+    mode: AiMode,
 }
 
 impl OpenAiRigAgent {
-    pub async fn new(config: &AiConfig, redis_client: Arc<RedisClient>) -> Result<Self, String> {
+    pub async fn new(
+        config: &AiConfig,
+        redis_client: Arc<RedisClient>,
+        mode: AiMode,
+    ) -> Result<Self, String> {
         let model = config
             .get_active_model()
             .ok_or("No active AI model configured")?;
@@ -190,33 +209,47 @@ impl OpenAiRigAgent {
                 .map_err(|e| format!("Failed to create API client: {}", e))?
         };
 
-        let agent = client
-            .agent(&model.get_model_id())
-            .preamble(&Self::build_system_prompt())
-            .temperature(model.temperature as f64)
-            .tool(FilterKeysTool::new(redis_client.clone()))
-            .tool(GetKeyInfoTool::new(redis_client.clone()))
-            .tool(DeleteKeysTool::new(redis_client.clone()))
-            .tool(ExecuteCommandTool::new(redis_client.clone()))
-            .tool(GetDbStatsTool::new(redis_client.clone()))
-            .tool(SetStringTool::new(redis_client.clone()))
-            .tool(SetTtlTool::new(redis_client.clone()))
-            .tool(RenameKeyTool::new(redis_client.clone()))
-            .tool(KeyExistsTool::new(redis_client.clone()))
-            .tool(HsetTool::new(redis_client.clone()))
-            .tool(HdelTool::new(redis_client.clone()))
-            .tool(LsetTool::new(redis_client.clone()))
-            .tool(SaddTool::new(redis_client.clone()))
-            .tool(SremTool::new(redis_client.clone()))
-            .tool(ZaddTool::new(redis_client.clone()))
-            .tool(ZremTool::new(redis_client.clone()))
-            .tool(RpushTool::new(redis_client.clone()))
-            .tool(SelectDbTool::new(redis_client))
-            .build();
+        let agent = match mode {
+            AiMode::Agent => {
+                // Agent mode: full tools, system prompt with tools
+                client
+                    .agent(&model.get_model_id())
+                    .preamble(SYSTEM_PROMPT)
+                    .temperature(model.temperature as f64)
+                    .tool(FilterKeysTool::new(redis_client.clone()))
+                    .tool(GetKeyInfoTool::new(redis_client.clone()))
+                    .tool(DeleteKeysTool::new(redis_client.clone()))
+                    .tool(ExecuteCommandTool::new(redis_client.clone()))
+                    .tool(GetDbStatsTool::new(redis_client.clone()))
+                    .tool(SetStringTool::new(redis_client.clone()))
+                    .tool(SetTtlTool::new(redis_client.clone()))
+                    .tool(RenameKeyTool::new(redis_client.clone()))
+                    .tool(KeyExistsTool::new(redis_client.clone()))
+                    .tool(HsetTool::new(redis_client.clone()))
+                    .tool(HdelTool::new(redis_client.clone()))
+                    .tool(LsetTool::new(redis_client.clone()))
+                    .tool(SaddTool::new(redis_client.clone()))
+                    .tool(SremTool::new(redis_client.clone()))
+                    .tool(ZaddTool::new(redis_client.clone()))
+                    .tool(ZremTool::new(redis_client.clone()))
+                    .tool(RpushTool::new(redis_client.clone()))
+                    .tool(SelectDbTool::new(redis_client))
+                    .build()
+            }
+            AiMode::Chat => {
+                // Chat mode: no tools, stateless, simple command translation prompt
+                client
+                    .agent(&model.get_model_id())
+                    .preamble(CHAT_SYSTEM_PROMPT)
+                    .temperature(model.temperature as f64)
+                    .build()
+            }
+        };
 
         Ok(Self {
             agent,
             llm_model: model.clone(),
+            mode,
         })
     }
 
@@ -224,6 +257,7 @@ impl OpenAiRigAgent {
         info!(
             url = %self.llm_model.base_url.clone().unwrap_or(String::new()),
             model = %self.llm_model.model_id,
+            mode = ?self.mode,
             message = %message,
             "Rig agent AI request: "
         );
@@ -232,9 +266,5 @@ impl OpenAiRigAgent {
             .await
             .map(AiChatResult::Text)
             .map_err(|e| AiResponseError::from_error_string(&e.to_string()))
-    }
-
-    fn build_system_prompt() -> String {
-        SYSTEM_PROMPT.to_string()
     }
 }

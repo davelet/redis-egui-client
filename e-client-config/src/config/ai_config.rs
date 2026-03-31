@@ -1,5 +1,27 @@
 use serde::{Deserialize, Serialize};
 
+/// AI interaction mode
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
+#[must_use = "AiMode determines whether the AI has access to tools and maintains conversation state"]
+pub enum AiMode {
+    /// Stateless chat mode - no conversation context, no Redis tools.
+    /// Uses a specialized prompt for direct command translation.
+    Chat,
+    /// Stateful agent mode - full conversation context, has access to Redis tools.
+    /// Requires LLMs with robust tool-calling/reasoning capabilities.
+    #[default]
+    Agent,
+}
+
+impl std::fmt::Display for AiMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AiMode::Chat => write!(f, "Chat"),
+            AiMode::Agent => write!(f, "Agent"),
+        }
+    }
+}
+
 /// Service name for keyring entries
 const KEYRING_SERVICE: &str = "com.e-client.ai";
 

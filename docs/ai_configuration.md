@@ -4,12 +4,70 @@ This document explains how to configure AI models in Redis Client. All AI provid
 
 ## Table of Contents
 
+- [AI Interaction Modes](#ai-interaction-modes)
 - [Security Note](#security-note)
 - [OpenAI](#openai)
 - [Anthropic (Claude)](#anthropic-claude)
 - [Ollama (Local)](#ollama-local)
 - [OpenRouter](#openrouter)
 - [Other Compatible APIs](#other-compatible-apis)
+
+---
+
+## AI Interaction Modes
+
+Redis Client supports two distinct modes for AI interaction:
+
+### Chat Mode (Stateless)
+
+**Use Case**: Quick command translation without state persistence.
+
+**Features**:
+- **Stateless**: Each message is processed independently. Previous conversation context is NOT sent to the AI.
+- **No Redis Access**: The AI does not have direct access to your Redis database or tools.
+- **Command Translation**: Natural language queries are translated into Redis commands that you can review before executing.
+- **Confirmation Required**: When the AI responds with a Redis command, you'll see a confirmation dialog before execution.
+
+**Example Interaction**:
+- User: "How many keys do I have?"
+- AI Response: `DBSIZE` (shown in confirmation dialog)
+- User confirms → Command executes
+
+**Tip**: You can also copy the suggested command and paste it into the command line manually as an alternative workflow.
+
+### Agent Mode (Stateful)
+
+**Use Case**: Complex operations with multi-round conversation and direct Redis access.
+
+**Features**:
+- **Stateful**: Conversation context is maintained across messages for more natural interactions.
+- **Redis Tools**: The AI has access to all Redis tools including:
+  - `filter_keys`: Search keys with patterns
+  - `get_key_info`: Get detailed key information
+  - `execute_redis_command`: Execute any Redis command
+  - `delete_keys`, `set_string`, `set_ttl`, and more
+- **Direct Answers**: The AI can fetch data directly from Redis and provide answers without requiring user confirmation for each operation.
+- **Multi-round Conversation**: Follow-up questions work naturally with context.
+
+> [!IMPORTANT]
+> **Agent Mode Requirements**: This mode requires LLMs with robust **tool-calling (function calling)** and **reasoning capabilities**. Not all models support tool calling. Recommended models include:
+> - OpenAI: GPT-4o, GPT-4o-mini
+> - Anthropic: Claude Sonnet 4, Claude 3.5 Sonnet
+> - Local: Llama 3.x with tool calling support
+
+**Example Interaction**:
+- User: "Show me all user keys"
+- AI: Uses `filter_keys` tool with pattern `user:*`, gets results, and displays them directly.
+
+### Switching Modes
+
+You can switch between modes using the mode toggle in the command line panel (Chat/Agent buttons). Mode selection is per-tab and not persisted - each new CLI session starts in Agent mode.
+
+**Switching modes** will automatically clear the existing agent state to ensure statelessness.
+
+### Model Selection in CLI
+
+You can select a different AI model per CLI session using the model dropdown. This selection is temporary and does not affect the global active model setting.
 
 ---
 

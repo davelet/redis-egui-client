@@ -464,7 +464,7 @@ pub fn load_all_translations(
         TranslationKey::ShortcutCloseCommandLine,
         tr_en_zh("Close Command Line", "关闭命令行"),
     );
-
+    strings.insert(TranslationKey::ChatMode, tr_en_zh("AI Mode", "AI 模式"));
     // AI Settings
     strings.insert(
         TranslationKey::AiSettings,
