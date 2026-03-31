@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.3] - 2026-03-31
+
+### Added
+- **AI Chat Mode** - New stateless AI interaction mode for direct command translation
+  - No conversation context maintained (each message is independent)
+  - No Redis tool access for maximum safety
+  - Translates natural language to Redis commands with confirmation dialog
+  - Example: "How many keys do I have?" → `DBSIZE` (requires confirmation)
+- **AI Agent Mode** - Full-featured mode with tool calling capabilities
+  - Stateful conversation with context maintained across messages
+  - Direct access to 18 Redis tools (filter_keys, get_key_info, execute_redis_command, etc.)
+  - Provides direct answers without confirmation prompts
+  - Requires LLMs with tool-calling support (GPT-4o, Claude Sonnet, etc.)
+- **AI Mode Toggle** - Quick mode switching in command line panel
+  - Switch between Chat and Agent modes on the fly
+  - Mode state is cleared when switching to ensure consistency
+- **Default AI Mode Setting** - Configure your preferred mode in AI Settings
+
 ## [0.4.2] - 2026-03-30
 
 ### Added
