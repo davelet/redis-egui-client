@@ -398,6 +398,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ai-interaction-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Interaction Modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AI Interaction Modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chat-mode-stateless" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chat Mode (Stateless)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-mode-stateful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Mode (Stateful)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#switching-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Switching Modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-selection-in-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Selection in CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-note" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -863,6 +924,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ai-interaction-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Interaction Modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AI Interaction Modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chat-mode-stateless" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chat Mode (Stateless)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-mode-stateful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Mode (Stateful)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#switching-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Switching Modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-selection-in-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Selection in CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-note" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1252,6 +1374,7 @@
 <p>This document explains how to configure AI models in Redis Client. All AI providers are configured as custom API endpoints.</p>
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
+<li><a href="#ai-interaction-modes">AI Interaction Modes</a></li>
 <li><a href="#security-note">Security Note</a></li>
 <li><a href="#openai">OpenAI</a></li>
 <li><a href="#anthropic-claude">Anthropic (Claude)</a></li>
@@ -1259,6 +1382,47 @@
 <li><a href="#openrouter">OpenRouter</a></li>
 <li><a href="#other-compatible-apis">Other Compatible APIs</a></li>
 </ul>
+<hr />
+<h2 id="ai-interaction-modes">AI Interaction Modes</h2>
+<p>Redis Client supports two distinct modes for AI interaction:</p>
+<h3 id="chat-mode-stateless">Chat Mode (Stateless)</h3>
+<p><strong>Use Case</strong>: Quick command translation without state persistence.</p>
+<p><strong>Features</strong>:
+- <strong>Stateless</strong>: Each message is processed independently. Previous conversation context is NOT sent to the AI.
+- <strong>No Redis Access</strong>: The AI does not have direct access to your Redis database or tools.
+- <strong>Command Translation</strong>: Natural language queries are translated into Redis commands that you can review before executing.
+- <strong>Confirmation Required</strong>: When the AI responds with a Redis command, you'll see a confirmation dialog before execution.</p>
+<p><strong>Example Interaction</strong>:
+- User: "How many keys do I have?"
+- AI Response: <code>DBSIZE</code> (shown in confirmation dialog)
+- User confirms → Command executes</p>
+<p><strong>Tip</strong>: You can also copy the suggested command and paste it into the command line manually as an alternative workflow.</p>
+<h3 id="agent-mode-stateful">Agent Mode (Stateful)</h3>
+<p><strong>Use Case</strong>: Complex operations with multi-round conversation and direct Redis access.</p>
+<p><strong>Features</strong>:
+- <strong>Stateful</strong>: Conversation context is maintained across messages for more natural interactions.
+- <strong>Redis Tools</strong>: The AI has access to all Redis tools including:
+  - <code>filter_keys</code>: Search keys with patterns
+  - <code>get_key_info</code>: Get detailed key information
+  - <code>execute_redis_command</code>: Execute any Redis command
+  - <code>delete_keys</code>, <code>set_string</code>, <code>set_ttl</code>, and more
+- <strong>Direct Answers</strong>: The AI can fetch data directly from Redis and provide answers without requiring user confirmation for each operation.
+- <strong>Multi-round Conversation</strong>: Follow-up questions work naturally with context.</p>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Agent Mode Requirements</strong>: This mode requires LLMs with robust <strong>tool-calling (function calling)</strong> and <strong>reasoning capabilities</strong>. Not all models support tool calling. Recommended models include:
+- OpenAI: GPT-4o, GPT-4o-mini
+- Anthropic: Claude Sonnet 4, Claude 3.5 Sonnet
+- Local: Llama 3.x with tool calling support</p>
+</blockquote>
+<p><strong>Example Interaction</strong>:
+- User: "Show me all user keys"
+- AI: Uses <code>filter_keys</code> tool with pattern <code>user:*</code>, gets results, and displays them directly.</p>
+<h3 id="switching-modes">Switching Modes</h3>
+<p>You can switch between modes using the mode toggle in the command line panel (Chat/Agent buttons). Mode selection is per-tab and not persisted - each new CLI session starts in Agent mode.</p>
+<p><strong>Switching modes</strong> will automatically clear the existing agent state to ensure statelessness.</p>
+<h3 id="model-selection-in-cli">Model Selection in CLI</h3>
+<p>You can select a different AI model per CLI session using the model dropdown. This selection is temporary and does not affect the global active model setting.</p>
 <hr />
 <h2 id="security-note">Security Note</h2>
 <p><strong>API Key Storage</strong>: Your API keys are securely stored in your operating system's native credential store:</p>
