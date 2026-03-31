@@ -1,7 +1,6 @@
 use e_client_bilingual::translations::TranslationKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use strum::IntoEnumIterator;
 use strum_macros::{AsRefStr, Display, EnumIter, EnumString};
 
 #[derive(

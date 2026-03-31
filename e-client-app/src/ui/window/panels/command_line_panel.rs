@@ -516,7 +516,32 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
         // If agent doesn't exist, try to create it first
         if agent_opt.is_none() {
-            match OpenAiRigAgent::new(&ai_config_clone, redis_client.clone()).await {
+            // Load API key from keyring before building the agent
+            let mut active_model_with_key = ai_config_clone
+                .get_active_model()
+                .cloned()
+                .unwrap_or_default();
+            if let Err(e) = active_model_with_key.load_api_key() {
+                let _ = tx.send(Err(AiResponseError::Other(format!(
+                    "Failed to load API key from keyring: {}",
+                    e
+                ))));
+                return;
+            }
+
+            // Temporarily set the API key on the config so the agent builder can read it
+            let mut config_with_key = ai_config_clone.clone();
+            if let Some(model_id) = config_with_key.active_model_id.clone() {
+                config_with_key
+                    .models
+                    .iter_mut()
+                    .find(|m| m.id == model_id)
+                    .map(|m| {
+                        m.api_key = active_model_with_key.api_key.clone();
+                    });
+            }
+
+            match OpenAiRigAgent::new(&config_with_key, redis_client.clone()).await {
                 Ok(new_agent) => {
                     *agent_opt = Some(new_agent);
                 }

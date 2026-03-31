@@ -397,7 +397,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AutoRefreshTtl,
-        tr_en_zh("Auto Refresh TTL", "自动刷新 TTL"),
+        tr_en_zh("Auto Refresh TTL", "自动刷新过期时间"),
     );
     strings.insert(
         TranslationKey::AutoExpand,
@@ -443,6 +443,10 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::ShortcutResetDefaults,
         tr_en_zh("Reset to Defaults", "重置为默认值"),
+    );
+    strings.insert(
+        TranslationKey::ShortcutRestored,
+        tr_en_zh("Restored", "重置成功"),
     );
     strings.insert(
         TranslationKey::ShortcutCloseSettings,
@@ -590,6 +594,10 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::AiErrorInvalidUrl,
         tr_en_zh("Invalid API URL", "无效的 API 地址"),
+    );
+    strings.insert(
+        TranslationKey::AiErrorInvalidModel,
+        tr_en_zh("Invalid model", "无效的模型"),
     );
     strings.insert(
         TranslationKey::AiErrorServerError,

@@ -400,14 +400,23 @@ pub fn render_shortcut_settings(
 
     ui.add_space(8.0);
     ui.horizontal(|ui| {
-        let reset_text = format!(
-            "{} {}",
-            emoji::action::REFRESH,
-            tr(TranslationKey::ShortcutResetDefaults, current_lang)
+        let reset_btn_id = egui::Id::new("shortcut_reset_defaults");
+        let reset_btn_color = app.action_button_text_color(reset_btn_id);
+        let reset_btn_text = app.copy_button_text(
+            reset_btn_id,
+            &format!(
+                "{} {}",
+                emoji::action::REFRESH,
+                tr(TranslationKey::ShortcutResetDefaults, current_lang)
+            ),
         );
-        if ui.button(reset_text).clicked() {
+        if ui
+            .button(egui::RichText::new(reset_btn_text).color(reset_btn_color))
+            .clicked()
+        {
             app.config.settings.shortcuts.reset_to_default();
             app.config.mark_settings_dirty();
+            app.record_action_success(reset_btn_id);
             // Clear editing state to refresh the display
             app.shortcut_state.editing_shortcut = None;
             app.shortcut_state.shortcut_input_buffer.clear();

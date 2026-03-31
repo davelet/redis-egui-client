@@ -374,7 +374,8 @@ impl Tool for GetDbStatsTool {
         }
     }
 
-    async fn call(&self, _args: ()) -> Result<Self::Output, Self::Error> {
+    async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let _ = args; // Consume the unit value (from empty JSON object {})
         let db_size = self.redis_client.get_db_size().await?;
 
         let result = json!({

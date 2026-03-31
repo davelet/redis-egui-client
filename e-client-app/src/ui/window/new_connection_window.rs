@@ -2,7 +2,7 @@ use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_REDIS_PORT;
 use e_client_config::language::Language;
-use e_client_config::translations::{keys, tr, TranslationKey};
+use e_client_config::translations::{tr, TranslationKey};
 use egui::Context;
 
 // Predefined high-contrast colors for connections

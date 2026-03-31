@@ -76,6 +76,7 @@ pub fn init_logging(config: &LoggingConfig) -> Result<(), LoggingError> {
             fmt::layer()
                 .with_writer(file_appender)
                 .with_ansi(false)
+                .with_thread_ids(true)
                 .with_file(true)
                 .with_line_number(true),
         )

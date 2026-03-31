@@ -4,10 +4,11 @@ use crate::ai_tools::{
     SetStringTool, SetTtlTool, SremTool, ZaddTool, ZremTool,
 };
 use crate::redis_client::RedisClient;
-use e_client_config::config::ai_config::AiConfig;
+use e_client_config::config::ai_config::{AiConfig, AiModel};
 use rig::{agent::Agent, client::CompletionClient, completion::Prompt, providers::openai};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tracing::info;
 
 /// Built-in system prompt for the Redis GUI Client AI assistant.
 pub const SYSTEM_PROMPT: &str = r#"You are an AI assistant for Redis GUI Client. You can help users:
@@ -70,6 +71,7 @@ pub enum AiResponseError {
     RateLimitExceeded,
     NetworkError,
     InvalidUrl,
+    InvalidModel(String),
     ServerError(String),
     ModelNotFound,
     Other(String),
@@ -93,6 +95,19 @@ impl AiResponseError {
             || error_lower.contains("refused")
         {
             AiResponseError::NetworkError
+        } else if error_lower.contains("reasoning is not supported for model") {
+            // "CompletionError: HttpError: Invalid status code 400 Bad Request with message: {"error":{"code":"InvalidParameter","message":"The parameter `input[2].reasoning` specified in the request are not valid: Item reasoning is not supported for model: doubao-seed-1-6-lite, version: 251015, please use another latest model. Request id: 0217749362096289a0d83abff91b62c26f47d22f8f16225aca1e2","param":"input[2].reasoning","type":"BadRequest"}}"
+            let mut m = String::new();
+            if let Some(model_start) = error_lower.find("model: ") {
+                    let after_model = &error_lower[model_start + "model: ".len()..];
+
+                    if let Some(comma_pos) = after_model.find(", please") {
+                        let model_part = &after_model[..comma_pos].trim();
+
+                        m = model_part.to_string();
+                    }
+                }
+            AiResponseError::InvalidModel(m)
         } else if error_lower.contains("url") || error_lower.contains("invalid") {
             AiResponseError::InvalidUrl
         } else if error_lower.contains("500")
@@ -123,6 +138,7 @@ impl AiResponseError {
             AiResponseError::RateLimitExceeded => TranslationKey::AiErrorRateLimit,
             AiResponseError::NetworkError => TranslationKey::AiErrorNetwork,
             AiResponseError::InvalidUrl => TranslationKey::AiErrorInvalidUrl,
+            AiResponseError::InvalidModel(_) => TranslationKey::AiErrorInvalidModel,
             AiResponseError::ServerError(_) => TranslationKey::AiErrorServerError,
             AiResponseError::ModelNotFound => TranslationKey::AiErrorModelNotFound,
             AiResponseError::Other(_) => TranslationKey::AiErrorOther,
@@ -147,6 +163,7 @@ pub enum AiChatResult {
 
 pub struct OpenAiRigAgent {
     agent: OpenAiAgent,
+    llm_model: AiModel
 }
 
 impl OpenAiRigAgent {
@@ -197,10 +214,19 @@ impl OpenAiRigAgent {
             .tool(SelectDbTool::new(redis_client))
             .build();
 
-        Ok(Self { agent })
+        Ok(Self {
+            agent,
+            llm_model: model.clone(),
+        })
     }
 
     pub async fn chat(&mut self, message: &str) -> Result<AiChatResult, AiResponseError> {
+        info!(
+            url = %self.llm_model.base_url.clone().unwrap_or(String::new()),
+            model = %self.llm_model.model_id,
+            message = %message,
+            "Rig agent AI request: "
+        );
         self.agent
             .prompt(message)
             .await

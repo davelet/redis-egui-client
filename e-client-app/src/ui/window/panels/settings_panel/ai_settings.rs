@@ -117,11 +117,18 @@ pub fn render_ai_settings_section(
                 // System prompt label with copy button
                 ui.horizontal(|ui| {
                     ui.label(tr(TranslationKey::AiSystemPrompt, current_lang));
+                    let copy_prompt_id = egui::Id::new("copy_system_prompt");
+                    let copy_prompt_color = app.copy_button_text_color(copy_prompt_id);
+                    let copy_prompt_text = app.copy_button_text(
+                        copy_prompt_id,
+                        tr(TranslationKey::AiCopyPrompt, current_lang),
+                    );
                     if ui
-                        .button(tr(TranslationKey::AiCopyPrompt, current_lang))
+                        .button(egui::RichText::new(copy_prompt_text).color(copy_prompt_color))
                         .clicked()
                     {
                         ui.ctx().copy_text(SYSTEM_PROMPT.to_string());
+                        app.record_copy_success_with_id(copy_prompt_id);
                     }
                 });
                 ui.add_space(2.0);

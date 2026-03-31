@@ -366,7 +366,7 @@ impl RedisApp {
     }
 
     pub fn close_tab(&mut self, index: usize, ctx: &egui::Context) {
-        use e_client_config::translations::{TranslationKey, keys, tr};
+        use e_client_config::translations::{TranslationKey, tr};
 
         if self.tabs.len() <= 1 {
             // Close the last tab and exit the application
@@ -477,8 +477,13 @@ impl RedisApp {
         }
     }
 
-    pub fn record_copy_success_with_id(&mut self, _button_id: egui::Id) {
-        self.copy_feedback_manager.record_copy_success();
+    pub fn record_copy_success_with_id(&mut self, button_id: egui::Id) {
+        self.copy_feedback_manager
+            .record_copy_success_with_id(button_id);
+    }
+
+    pub fn record_action_success(&mut self, button_id: egui::Id) {
+        self.copy_feedback_manager.record_action_success(button_id);
     }
 
     pub fn copy_button_text(&self, button_id: egui::Id, original_text: &str) -> String {
@@ -488,6 +493,11 @@ impl RedisApp {
 
     pub fn copy_button_text_color(&self, button_id: egui::Id) -> egui::Color32 {
         self.copy_feedback_manager.copy_button_text_color(button_id)
+    }
+
+    pub fn action_button_text_color(&self, button_id: egui::Id) -> egui::Color32 {
+        self.copy_feedback_manager
+            .action_button_text_color(button_id)
     }
 
     fn load_connection_preferences(&mut self, tab_idx: usize) {
@@ -629,7 +639,7 @@ impl RedisApp {
     }
 
     pub fn update_language(&mut self, lang: Language) {
-        use e_client_config::translations::{TranslationKey, keys, tr};
+        use e_client_config::translations::{TranslationKey, tr};
         self.global_language = lang;
         // Update all tabs' language and names
         for tab in self.tabs.iter_mut() {

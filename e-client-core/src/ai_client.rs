@@ -223,6 +223,28 @@ impl AiClient {
             }
         };
 
+        // Log request URL and body before sending
+        info!(url = %url, model = %model.model_id, provider = ?provider, "AI request URL");
+        let request_summary = if provider == ApiProvider::Anthropic {
+            format!(
+                "model={}, messages=[{{role:user, content:\"{}\"}}], temperature={:?}",
+                model.model_id,
+                message,
+                Some(model.temperature),
+            )
+        } else {
+            format!(
+                "model={}, messages=[{}{{role:user, content:\"{}\"}}], temperature={:?}",
+                model.model_id,
+                context
+                    .map(|_| "{role:system, content:...}, ")
+                    .unwrap_or_default(),
+                message,
+                Some(model.temperature),
+            )
+        };
+        info!(request = %request_summary, "AI request body");
+
         // Add appropriate headers based on provider
         if let Some(ref api_key) = model.api_key {
             match provider {
