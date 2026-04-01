@@ -506,6 +506,11 @@ pub fn load_all_translations(
         TranslationKey::AiShowThinking,
         tr_en_zh("Show Thinking", "显示思考过程"),
     );
+    strings.insert(
+        TranslationKey::AiMaxTurns,
+        tr_en_zh("Max Tool-Call Turns", "最大工具调用轮次"),
+    );
+    strings.insert(TranslationKey::AiMaxTurnsUnit, tr_en_zh(" turns", " 轮次"));
     strings.insert(TranslationKey::AiDisable, tr_en_zh("Disable", "禁用"));
     strings.insert(TranslationKey::AiEnable, tr_en_zh("Enable", "启用"));
     strings.insert(
@@ -563,6 +568,10 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::AiSystemPrompt,
         tr_en_zh("System Prompt", "系统提示词"),
+    );
+    strings.insert(
+        TranslationKey::AiChatSystemPrompt,
+        tr_en_zh("Chat Prompt", "对话提示词"),
     );
 
     strings.insert(
@@ -639,6 +648,10 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::AiCopyPrompt,
         tr_en_zh("Copy Prompt", "复制提示词"),
+    );
+    strings.insert(
+        TranslationKey::AiCopyChatPrompt,
+        tr_en_zh("Copy Chat Prompt", "复制对话提示词"),
     );
 
     // Tab switching shortcuts

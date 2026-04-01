@@ -6,7 +6,7 @@ use e_client_basics::constants::{
 use e_client_config::config::ai_config::{AiModel, AiProviderType};
 use e_client_config::language::Language;
 use e_client_config::translations::{emoji, tr, tr_fmt, TranslationKey};
-use e_client_core::{detect_api_provider, AiClient, SYSTEM_PROMPT};
+use e_client_core::{detect_api_provider, AiClient, CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT};
 use std::str::FromStr;
 
 use super::super::super::RedisApp;
@@ -112,42 +112,102 @@ pub fn render_ai_settings_section(
                     }
                 });
 
-                ui.add_space(8.0);
-
-                // System prompt label with copy button
+                // Max tool-call turns slider
                 ui.horizontal(|ui| {
-                    ui.label(tr(TranslationKey::AiSystemPrompt, current_lang));
-                    let copy_prompt_id = egui::Id::new("copy_system_prompt");
-                    let copy_prompt_color = app.copy_button_text_color(copy_prompt_id);
-                    let copy_prompt_text = app.copy_button_text(
-                        copy_prompt_id,
-                        tr(TranslationKey::AiCopyPrompt, current_lang),
-                    );
+                    ui.label(tr(TranslationKey::AiMaxTurns, current_lang));
                     if ui
-                        .button(egui::RichText::new(copy_prompt_text).color(copy_prompt_color))
-                        .clicked()
+                        .add(
+                            egui::Slider::new(&mut app.config.ai_config.max_turns, 1..=20)
+                                .suffix(tr(TranslationKey::AiMaxTurnsUnit, current_lang)),
+                        )
+                        .changed()
                     {
-                        ui.ctx().copy_text(SYSTEM_PROMPT.to_string());
-                        app.record_copy_success_with_id(copy_prompt_id);
+                        if let Err(e) = app.config.save_ai_config() {
+                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                        }
                     }
                 });
-                ui.add_space(2.0);
 
-                // System prompt read-only preview
-                egui::Frame::group(ui.style())
-                    .fill(ui.visuals().code_bg_color)
-                    .show(ui, |ui| {
-                        egui::ScrollArea::vertical()
-                            .max_height(200.0)
+                ui.add_space(8.0);
+
+                // System prompt: Agent (left) and Chat (right) side by side
+                ui.horizontal_wrapped(|ui| {
+                    // --- Agent mode prompt (left) ---
+                    ui.vertical(|ui| {
+                        ui.set_width(ui.available_width() / 2.0 - 4.0);
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::AiSystemPrompt, current_lang));
+                            let copy_prompt_id = egui::Id::new("copy_system_prompt");
+                            let copy_prompt_color = app.copy_button_text_color(copy_prompt_id);
+                            let copy_prompt_text = app.copy_button_text(
+                                copy_prompt_id,
+                                tr(TranslationKey::AiCopyPrompt, current_lang),
+                            );
+                            if ui
+                                .button(
+                                    egui::RichText::new(copy_prompt_text).color(copy_prompt_color),
+                                )
+                                .clicked()
+                            {
+                                ui.ctx().copy_text(SYSTEM_PROMPT.to_string());
+                                app.record_copy_success_with_id(copy_prompt_id);
+                            }
+                        });
+                        egui::Frame::group(ui.style())
+                            .fill(ui.visuals().code_bg_color)
                             .show(ui, |ui| {
-                                ui.add(
-                                    egui::Label::new(
-                                        egui::RichText::new(SYSTEM_PROMPT).monospace(),
-                                    )
-                                    .wrap(),
-                                );
+                                egui::ScrollArea::vertical()
+                                    .id_salt("agent_prompt_scroll")
+                                    .max_height(200.0)
+                                    .show(ui, |ui| {
+                                        ui.add(
+                                            egui::Label::new(
+                                                egui::RichText::new(SYSTEM_PROMPT).monospace(),
+                                            )
+                                            .wrap(),
+                                        );
+                                    });
                             });
                     });
+
+                    ui.add_space(8.0);
+
+                    // --- Chat mode prompt (right) ---
+                    ui.vertical(|ui| {
+                        ui.set_width(ui.available_width() / 2.0 - 4.0);
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::AiChatSystemPrompt, current_lang));
+                            let copy_chat_id = egui::Id::new("copy_chat_prompt");
+                            let copy_chat_color = app.copy_button_text_color(copy_chat_id);
+                            let copy_chat_text = app.copy_button_text(
+                                copy_chat_id,
+                                tr(TranslationKey::AiCopyChatPrompt, current_lang),
+                            );
+                            if ui
+                                .button(egui::RichText::new(copy_chat_text).color(copy_chat_color))
+                                .clicked()
+                            {
+                                ui.ctx().copy_text(CHAT_SYSTEM_PROMPT.to_string());
+                                app.record_copy_success_with_id(copy_chat_id);
+                            }
+                        });
+                        egui::Frame::group(ui.style())
+                            .fill(ui.visuals().code_bg_color)
+                            .show(ui, |ui| {
+                                egui::ScrollArea::vertical()
+                                    .id_salt("chat_prompt_scroll")
+                                    .max_height(200.0)
+                                    .show(ui, |ui| {
+                                        ui.add(
+                                            egui::Label::new(
+                                                egui::RichText::new(CHAT_SYSTEM_PROMPT).monospace(),
+                                            )
+                                            .wrap(),
+                                        );
+                                    });
+                            });
+                    });
+                });
 
                 // Models list - collapsible with background
                 if !app.config.ai_config.models.is_empty() {

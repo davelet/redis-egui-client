@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.4] - 2026-04-01
+
+- fix: fix the max-turn bug of the AI agent mode
+- fix: support line warping in the command line panel
+
 ## [0.4.3] - 2026-03-31
 
 ### Added

@@ -367,6 +367,9 @@ pub struct AiConfig {
     pub confirm_before_execute: bool,
     /// Whether to show AI thinking process
     pub show_ai_thinking: bool,
+    /// Maximum tool-call turns per request
+    #[serde(default = "AiConfig::default_max_turns")]
+    pub max_turns: u32,
 }
 
 impl Default for AiConfig {
@@ -377,11 +380,16 @@ impl Default for AiConfig {
             enabled: true,
             confirm_before_execute: true,
             show_ai_thinking: true,
+            max_turns: 20,
         }
     }
 }
 
 impl AiConfig {
+    pub fn default_max_turns() -> u32 {
+        20
+    }
+
     pub fn new() -> Self {
         Self::default()
     }

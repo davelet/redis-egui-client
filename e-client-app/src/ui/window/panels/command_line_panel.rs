@@ -64,7 +64,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
     }
 
     egui::TopBottomPanel::bottom("command_line_panel")
-        .exact_height(ctx.screen_rect().height() / 4.0)
+        .exact_height(ctx.content_rect().height() / 2.0)
         .show(ctx, |ui| {
             // Mode toggle and model selector row
             ui.horizontal(|ui| {
@@ -129,6 +129,24 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             clear_agent(app, active_tab_idx);
                         }
                     });
+
+                // Turn counter (Agent mode only, right-aligned)
+                let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
+                if current_mode == AiMode::Agent {
+                    let rig_agent = app.tabs[active_tab_idx].command_line_panel.rig_agent.clone();
+                    if let Ok(agent_guard) = rig_agent.try_lock() {
+                        if let Some(ref agent) = *agent_guard {
+                            let turns = agent.turn_count();
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                ui.label(
+                                    egui::RichText::new(format!("{} turns", turns))
+                                        .small()
+                                        .color(egui::Color32::GRAY),
+                                );
+                            });
+                        }
+                    }
+                }
             });
 
             ui.separator();
@@ -155,28 +173,20 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                         .monospace(),
                                 );
                             });
-                            // Result line
-                            ui.horizontal(|ui| {
+                            // Result line (wrap at available width)
+                            ui.horizontal_wrapped(|ui| {
                                 ui.add_space(16.0);
-                                if result.starts_with("ERR:") || result.starts_with("Error:") {
-                                    ui.label(
-                                        egui::RichText::new(result)
-                                            .color(egui::Color32::from_rgb(255, 100, 100))
-                                            .monospace(),
-                                    );
-                                } else if result == "Thinking..." {
-                                    ui.label(
-                                        egui::RichText::new(result)
-                                            .color(egui::Color32::from_rgb(150, 150, 150))
-                                            .monospace(),
-                                    );
-                                } else {
-                                    ui.label(
-                                        egui::RichText::new(result)
-                                            .color(egui::Color32::BLACK)
-                                            .monospace(),
-                                    );
-                                }
+                                ui.label(
+                                    egui::RichText::new(result)
+                                        .color(if result.starts_with("ERR:") || result.starts_with("Error:") {
+                                            egui::Color32::from_rgb(255, 100, 100)
+                                        } else if result == "Thinking..." {
+                                            egui::Color32::from_rgb(150, 150, 150)
+                                        } else {
+                                            egui::Color32::BLACK
+                                        })
+                                        .monospace(),
+                                ).on_hover_text(result.clone());
                             });
                             ui.add_space(4.0);
                         }
@@ -316,7 +326,7 @@ fn render_ai_confirm_dialog(
     // Read config outside the closure to avoid borrow conflict
     let confirm_before_execute = app.config.ai_config.confirm_before_execute;
 
-    let screen = ctx.screen_rect();
+    let screen = ctx.viewport_rect();
     let dialog_width = 520.0_f32.min(screen.width() - 40.0);
 
     let mut dialog_action: Option<DialogAction> = None;

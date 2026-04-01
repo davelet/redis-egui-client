@@ -5,7 +5,7 @@ use crate::ai_tools::{
 };
 use crate::redis_client::RedisClient;
 use e_client_config::config::ai_config::{AiConfig, AiModel, AiMode};
-use rig::{agent::Agent, client::CompletionClient, completion::Prompt, providers::openai};
+use rig::{agent::Agent, client::CompletionClient, completion::{Message, Prompt}, providers::openai};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::info;
@@ -64,7 +64,7 @@ Example interactions:
 /// System prompt for Chat mode - stateless, tool-less command translation.
 pub const CHAT_SYSTEM_PROMPT: &str = r#"You are helping with Redis database operations.
 Your task is to translate natural language queries into ONE precise Redis command.
-Always respond with valid Redis command that can be executed directly. 
+Always respond with valid Redis command that can be executed directly.
 Only output the Redis command without any explanation or markdown formatting.
 
 Examples:
@@ -179,6 +179,8 @@ pub struct OpenAiRigAgent {
     agent: OpenAiAgent,
     llm_model: AiModel,
     mode: AiMode,
+    history: Vec<Message>,
+    max_turns: u32,
 }
 
 impl OpenAiRigAgent {
@@ -215,6 +217,7 @@ impl OpenAiRigAgent {
                 client
                     .agent(&model.get_model_id())
                     .preamble(SYSTEM_PROMPT)
+                    .default_max_turns(config.max_turns as usize)
                     .temperature(model.temperature as f64)
                     .tool(FilterKeysTool::new(redis_client.clone()))
                     .tool(GetKeyInfoTool::new(redis_client.clone()))
@@ -250,7 +253,20 @@ impl OpenAiRigAgent {
             agent,
             llm_model: model.clone(),
             mode,
+            history: Vec::new(),
+            max_turns: config.max_turns,
         })
+    }
+
+    /// Number of completed conversation turns (user+assistant pairs in history).
+    pub fn turn_count(&self) -> usize {
+        // history contains alternating User/Assistant messages; each pair = 1 turn
+        self.history.len() / 2
+    }
+
+    /// Configured max turns for this agent.
+    pub fn max_turns(&self) -> u32 {
+        self.max_turns
     }
 
     pub async fn chat(&mut self, message: &str) -> Result<AiChatResult, AiResponseError> {
@@ -263,6 +279,8 @@ impl OpenAiRigAgent {
         );
         self.agent
             .prompt(message)
+            .max_turns(self.max_turns as usize)
+            .with_history(&mut self.history)
             .await
             .map(AiChatResult::Text)
             .map_err(|e| AiResponseError::from_error_string(&e.to_string()))
