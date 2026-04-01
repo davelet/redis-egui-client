@@ -112,16 +112,31 @@ pub fn render_ai_settings_section(
                     }
                 });
 
-                // Max tool-call turns slider
+                // Render markdown in CLI checkbox
                 ui.horizontal(|ui| {
-                    ui.label(tr(TranslationKey::AiMaxTurns, current_lang));
                     if ui
-                        .add(
-                            egui::Slider::new(&mut app.config.ai_config.max_turns, 1..=20)
-                                .suffix(tr(TranslationKey::AiMaxTurnsUnit, current_lang)),
+                        .checkbox(
+                            &mut app.config.ai_config.render_markdown,
+                            tr(TranslationKey::AiRenderMarkdown, current_lang),
                         )
                         .changed()
                     {
+                        if let Err(e) = app.config.save_ai_config() {
+                            eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                        }
+                    }
+                });
+
+                // Max tool-call turns slider
+                ui.horizontal(|ui| {
+                    ui.label(tr(TranslationKey::AiMaxTurns, current_lang));
+                    let mut max_turns = app.config.ai_config.max_turns;
+                    ui.add(
+                        egui::Slider::new(&mut max_turns, 1..=20)
+                            .suffix(tr(TranslationKey::AiMaxTurnsUnit, current_lang)),
+                    );
+                    if max_turns != app.config.ai_config.max_turns {
+                        app.config.ai_config.max_turns = max_turns;
                         if let Err(e) = app.config.save_ai_config() {
                             eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
                         }
@@ -321,6 +336,11 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
         .default_pos(top_right)
         .movable(true)
         .show(ctx, |ui| {
+            // Close on ESC key
+            if ui.ctx().input(|i| i.key_pressed(egui::Key::Escape)) {
+                app.ai_model_editor.close();
+                return;
+            }
             egui::Grid::new("ai_model_editor_grid")
                 .num_columns(3)
                 .spacing([10.0, 8.0])
@@ -508,10 +528,9 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     ui.end_row();
 
                     ui.label(tr(TranslationKey::AiTemperature, current_lang));
-                    ui.add(egui::Slider::new(
-                        &mut app.ai_model_editor.temperature,
-                        0.0..=1.0,
-                    ));
+                    let mut temperature = app.ai_model_editor.temperature;
+                    ui.add(egui::Slider::new(&mut temperature, 0.0..=1.0));
+                    app.ai_model_editor.temperature = temperature.clamp(0.0, 1.0);
                     ui.label("");
                     ui.end_row();
                 });

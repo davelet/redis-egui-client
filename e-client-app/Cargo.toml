@@ -1,11 +1,11 @@
 [package]
-name = "e-client-app"
-version = "0.4.4"
+name = "Rudist"
+version = "0.4.5"
 edition = "2024"
 repository = "https://github.com/davelet/redis-egui-client"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
 readme = "README.md"
-description = "A small Redis GUI client built with egui/eframe"
+description = "A AI-agent Redis GUI client built with egui + rig-core"
 categories = ["gui"]
 keywords = ["redis", "egui", "eframe", "gui"]
 
@@ -27,6 +27,7 @@ image = "0.25.9"
 wgpu = { version = "27", features = ["metal", "dx12"]}
 tracing = "0.1.44"
 tracing-subscriber = "0.3.22"
+pulldown-cmark = "0.12"
 
 [build-dependencies]
 winres = "0.1.12"
@@ -55,14 +56,9 @@ publisher = "Sheldon.Wei"
 homepage = "https://github.com/davelet/redis-egui-client"
 icons = ["../assets/icon.icns"]
 
-formats = [
-  "wix",     # Windows 安装包
-  "dmg",      # macOS 镜像
-]
-
 [[package.metadata.packager.binaries]]
 main = true
-path = "e-client-app"
+path = "Rudist"
 
 [package.metadata.packager.macos]
 minimum-system-version = "10.13"

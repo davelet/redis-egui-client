@@ -430,7 +430,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::ShortcutFocusFilter,
-        tr_en_zh("Focus Filter", "聚焦过滤器"),
+        tr_en_zh("Focus Filter", "过滤键"),
     );
     strings.insert(
         TranslationKey::ShortcutPressKeys,
@@ -458,7 +458,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::ShortcutToggleCommandLine,
-        tr_en_zh("Toggle Command Line", "切换命令行"),
+        tr_en_zh("Toggle Command Line", "打开命令行"),
     );
     strings.insert(
         TranslationKey::ShortcutCloseCommandLine,
@@ -500,7 +500,10 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiConfirmBeforeExecute,
-        tr_en_zh("Confirm Before Execute", "执行前确认"),
+        tr_en_zh(
+            "Confirm Before Execute (Chat Mode)",
+            "执行前确认（仅 Chat 模式）",
+        ),
     );
     strings.insert(
         TranslationKey::AiShowThinking,
@@ -511,8 +514,14 @@ pub fn load_all_translations(
         tr_en_zh("Max Tool-Call Turns", "最大工具调用轮次"),
     );
     strings.insert(TranslationKey::AiMaxTurnsUnit, tr_en_zh(" turns", " 轮次"));
-    strings.insert(TranslationKey::AiDisable, tr_en_zh("Disable", "禁用"));
-    strings.insert(TranslationKey::AiEnable, tr_en_zh("Enable", "启用"));
+    strings.insert(
+        TranslationKey::AiRenderMarkdown,
+        tr_en_zh("Render Markdown in CLI", "CLI 渲染 Markdown"),
+    );
+    strings.insert(
+        TranslationKey::AiEnable,
+        tr_en_zh("Enable AI", "启用 AI 功能"),
+    );
     strings.insert(
         TranslationKey::AiSelectModel,
         tr_en_zh("Select Model", "选择模型"),
@@ -732,6 +741,11 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::ShortcutCancelAiCommand,
         tr_en_zh("Cancel AI Command", "取消AI命令"),
+    );
+    // AI model editor shortcut
+    strings.insert(
+        TranslationKey::ShortcutCloseAiModelEditor,
+        tr_en_zh("Close AI Model Editor", "关闭AI模型编辑器"),
     );
 }
 

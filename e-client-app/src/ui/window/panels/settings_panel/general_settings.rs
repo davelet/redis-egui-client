@@ -161,6 +161,9 @@ pub fn render_general_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
                     threshold_enabled,
                     egui::Slider::new(&mut threshold, 1.0..=100.0).show_value(true),
                 );
+                // Sync back every frame so text-input also takes effect.
+                // clamp avoids stale values from outside the range.
+                let threshold = threshold.clamp(1.0, 100.0);
                 if threshold_enabled
                     && (threshold as usize) != app.config.settings.auto_expand_threshold
                 {

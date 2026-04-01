@@ -370,6 +370,9 @@ pub struct AiConfig {
     /// Maximum tool-call turns per request
     #[serde(default = "AiConfig::default_max_turns")]
     pub max_turns: u32,
+    /// Whether to render CLI chat output as markdown (default: true)
+    #[serde(default = "AiConfig::default_render_markdown")]
+    pub render_markdown: bool,
 }
 
 impl Default for AiConfig {
@@ -381,6 +384,7 @@ impl Default for AiConfig {
             confirm_before_execute: true,
             show_ai_thinking: true,
             max_turns: 20,
+            render_markdown: true,
         }
     }
 }
@@ -388,6 +392,10 @@ impl Default for AiConfig {
 impl AiConfig {
     pub fn default_max_turns() -> u32 {
         20
+    }
+
+    pub fn default_render_markdown() -> bool {
+        true
     }
 
     pub fn new() -> Self {

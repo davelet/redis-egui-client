@@ -1,4 +1,6 @@
 use crate::ui::window::RedisApp;
+use crate::ui::window::components::markdown::render_markdown;
+use crate::ui::window::types::HistoryEntry;
 use e_client_basics::constants::REDIS_COMMANDS;
 use e_client_config::config::ai_config::AiMode;
 use e_client_config::language::Language;
@@ -159,7 +161,9 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 .max_height(available_height)
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        for (cmd, result) in &app.tabs[active_tab_idx].command_line_panel.history {
+                        for entry in &app.tabs[active_tab_idx].command_line_panel.history {
+                            let cmd = &entry.command;
+                            let result = &entry.result;
                             // Command line
                             ui.horizontal(|ui| {
                                 ui.label(
@@ -173,20 +177,28 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                         .monospace(),
                                 );
                             });
-                            // Result line (wrap at available width)
-                            ui.horizontal_wrapped(|ui| {
-                                ui.add_space(16.0);
-                                ui.label(
-                                    egui::RichText::new(result)
-                                        .color(if result.starts_with("ERR:") || result.starts_with("Error:") {
-                                            egui::Color32::from_rgb(255, 100, 100)
-                                        } else if result == "Thinking..." {
-                                            egui::Color32::from_rgb(150, 150, 150)
-                                        } else {
-                                            egui::Color32::BLACK
-                                        })
-                                        .monospace(),
-                                ).on_hover_text(result.clone());
+                            // Result line
+                            ui.vertical(|ui| {
+                                ui.add_space(2.0);
+                                let render_as_md = app.config.ai_config.render_markdown;
+                                if render_as_md {
+                                    render_markdown(result, ui);
+                                } else {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.add_space(16.0);
+                                        ui.label(
+                                            egui::RichText::new(result)
+                                                .color(if result.starts_with("ERR:") || result.starts_with("Error:") {
+                                                    egui::Color32::from_rgb(255, 100, 100)
+                                                } else if result == "Thinking..." {
+                                                    egui::Color32::from_rgb(150, 150, 150)
+                                                } else {
+                                                    egui::Color32::BLACK
+                                                })
+                                                .monospace(),
+                                        ).on_hover_text(result.clone());
+                                    });
+                                }
                             });
                             ui.add_space(4.0);
                         }
@@ -243,7 +255,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             }
                             if history_changed {
                                 if let Some(idx) = panel.history_index {
-                                    panel.input = panel.history[idx].0.clone();
+                                    panel.input = panel.history[idx].command.clone();
                                 }
                             }
                         }
@@ -252,7 +264,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         if let Some(idx) = panel.history_index {
                             if idx + 1 < panel.history.len() {
                                 panel.history_index = Some(idx + 1);
-                                panel.input = panel.history[idx + 1].0.clone();
+                                panel.input = panel.history[idx + 1].command.clone();
                                 history_changed = true;
                             } else {
                                 panel.history_index = None;
@@ -478,7 +490,7 @@ fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
     app.tabs[tab_idx]
         .command_line_panel
         .history
-        .push((command.clone(), "Executing...".to_string()));
+        .push(HistoryEntry::plain(command.clone(), "Executing..."));
     app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(rx);
 
     tokio::task::spawn(async move {
@@ -509,14 +521,14 @@ pub fn process_redis_command_results(app: &mut RedisApp, tab_idx: usize) {
                 Ok(output) => output,
                 Err(e) => format!("ERR: {}", e),
             };
-            app.tabs[tab_idx].command_line_panel.history[last_idx].1 = final_output;
+            app.tabs[tab_idx].command_line_panel.history[last_idx].result = final_output;
         }
         Err(std::sync::mpsc::TryRecvError::Empty) => {
             app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(pending);
         }
         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
             let last_idx = app.tabs[tab_idx].command_line_panel.history.len() - 1;
-            app.tabs[tab_idx].command_line_panel.history[last_idx].1 =
+            app.tabs[tab_idx].command_line_panel.history[last_idx].result =
                 "ERR: Command execution failed - channel disconnected".to_string();
         }
     }
@@ -541,7 +553,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push((trimmed_input, error_msg));
+            .push(HistoryEntry::plain(trimmed_input, error_msg));
         return;
     }
 
@@ -555,7 +567,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push((trimmed_input, error_msg));
+            .push(HistoryEntry::plain(trimmed_input, error_msg));
         return;
     }
 
@@ -564,7 +576,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push((trimmed_input.clone(), "Thinking...".to_string()));
+            .push(HistoryEntry::plain(trimmed_input.clone(), "Thinking..."));
     }
 
     // Get the history index of the thinking message (if shown)
@@ -695,9 +707,9 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
             // Channel disconnected, show error
             if let Some(idx) = pending.thinking_idx {
-                app.tabs[tab_idx].command_line_panel.history[idx] = (
+                app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::plain(
                     pending.user_input,
-                    "ERR: AI request failed - channel disconnected".to_string(),
+                    "ERR: AI request failed - channel disconnected",
                 );
             }
             return;
@@ -721,7 +733,7 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     // Execute without confirmation
                     if let Some(idx) = pending.thinking_idx {
                         app.tabs[tab_idx].command_line_panel.history[idx] =
-                            (pending.user_input.clone(), "Executing...".to_string());
+                            HistoryEntry::plain(pending.user_input.clone(), "Executing...");
                     }
 
                     execute_redis_command(app, tab_idx, trimmed_response.to_string());
@@ -732,15 +744,15 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     }
                 }
             } else {
-                // Non-Redis command response
+                // Non-Redis command response — mark as markdown (AI response)
                 if let Some(idx) = pending.thinking_idx {
                     app.tabs[tab_idx].command_line_panel.history[idx] =
-                        (pending.user_input, response);
+                        HistoryEntry::markdown(pending.user_input, response);
                 } else {
                     app.tabs[tab_idx]
                         .command_line_panel
                         .history
-                        .push((pending.user_input, response));
+                        .push(HistoryEntry::markdown(pending.user_input, response));
                 }
             }
         }
@@ -760,12 +772,13 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
 
             // Update the thinking message with the error
             if let Some(idx) = pending.thinking_idx {
-                app.tabs[tab_idx].command_line_panel.history[idx] = (pending.user_input, error_msg);
+                app.tabs[tab_idx].command_line_panel.history[idx] =
+                    HistoryEntry::plain(pending.user_input, error_msg);
             } else {
                 app.tabs[tab_idx]
                     .command_line_panel
                     .history
-                    .push((pending.user_input, error_msg));
+                    .push(HistoryEntry::plain(pending.user_input, error_msg));
             }
         }
     }

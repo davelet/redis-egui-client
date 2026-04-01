@@ -157,7 +157,7 @@ pub enum TranslationKey {
     AiShowThinking,
     AiMaxTurns,
     AiMaxTurnsUnit,
-    AiDisable,
+    AiRenderMarkdown,
     AiEnable,
     AiSelectModel,
     AiModelRequiredFields,
@@ -217,4 +217,5 @@ pub enum TranslationKey {
     ShortcutRefreshKeys,
     ShortcutExecuteAiCommand,
     ShortcutCancelAiCommand,
+    ShortcutCloseAiModelEditor,
 }

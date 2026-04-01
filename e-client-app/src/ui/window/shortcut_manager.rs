@@ -236,6 +236,8 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
                 tab.state.spawn_load_keys();
             }
         }
-        ShortcutAction::ExecuteAiCommand | ShortcutAction::CancelAiCommand => {}
+        ShortcutAction::ExecuteAiCommand
+        | ShortcutAction::CancelAiCommand
+        | ShortcutAction::CloseAiModelEditor => {}
     }
 }

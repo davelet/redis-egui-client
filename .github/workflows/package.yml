@@ -4,21 +4,44 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  build-macos-universal:
+    runs-on: macos-14  # 只用这一台，同时打两个架构
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-packager --locked
-      - run: cargo build --release
-      - run: cargo packager --release
-      - uses: softprops/action-gh-release@v2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          files: target/release/*.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          targets: x86_64-apple-darwin, aarch64-apple-darwin  # 安装两个架构
+      - run: cargo install cargo-packager --locked
+      # 编译 Intel x86_64
+      - name: Build x86_64
+        run: cargo build --release --target x86_64-apple-darwin
+
+      # 编译 Apple Silicon arm64
+      - name: Build arm64
+        run: cargo build --release --target aarch64-apple-darwin
+
+      # 打包 x86_64 → dmg
+      - name: Package x86_64
+        run: |
+          cargo packager --release --formats dmg --target x86_64-apple-darwin
+          mv target/x86_64-apple-darwin/release/*.dmg Rudist-macos-x64.dmg
+
+      # 打包 arm64 → dmg
+      - name: Package arm64
+        run: |
+          cargo packager --release --formats dmg --target aarch64-apple-darwin
+          mv target/aarch64-apple-darwin/release/*.dmg Rudist-macos-arm64.dmg
+
+      # 一次上传两个 DMG，不会覆盖
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Rudist-macos-x64.dmg
+            Rudist-macos-arm64.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -27,9 +50,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-packager --locked
       - run: cargo build --release
-      - run: cargo packager --release
+      - run: cargo packager --release --formats nsis
+      - name: Rename artifact
+        run: Get-ChildItem target/release/*.exe | Select-Object -First 1 | Rename-Item -NewName "rudist_$env:GITHUB_REF_NAME`_windows.exe" -Force
+
       - uses: softprops/action-gh-release@v2
         with:
-          files: target/release/*.msi
+          files: rudist_*_windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

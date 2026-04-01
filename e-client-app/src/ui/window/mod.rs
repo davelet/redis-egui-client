@@ -13,6 +13,7 @@ pub use panels::{
 pub use types::{AiModelEditor, ElementEditDialog, NewKeyDialog, RedisTab};
 
 pub mod copy_feedback;
+pub mod components;
 mod new_connection_window;
 pub mod panels;
 pub mod shortcut_manager;

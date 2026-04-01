@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.5] - 2026-04-02
+
+- feat: add shortcut `esc` to close ai model editor
+
 ## [0.4.4] - 2026-04-01
 
 - fix: fix the max-turn bug of the AI agent mode

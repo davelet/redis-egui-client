@@ -24,8 +24,9 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
     let is_editing_shortcut = app.shortcut_state.editing_shortcut.is_some();
 
     // Handle Esc key - cancel editing if in edit mode, otherwise close settings
+    // But if AI model editor is open, let it handle ESC (don't close settings)
     let esc_pressed = ctx.input(|i| i.key_pressed(egui::Key::Escape));
-    if esc_pressed {
+    if esc_pressed && !app.ai_model_editor.show {
         if is_editing_shortcut {
             // Cancel editing
             app.shortcut_state.editing_shortcut = None;

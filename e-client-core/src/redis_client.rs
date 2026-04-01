@@ -4,7 +4,7 @@ use redis::aio::ConnectionManagerConfig;
 use redis::{AsyncCommands, Client, RedisError, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, instrument};
+use tracing::{error, info, instrument, warn};
 
 #[derive(Clone, Debug)]
 pub struct RedisClient {
@@ -78,19 +78,21 @@ impl RedisClient {
             match redis::cmd("CONFIG")
                 .arg("GET")
                 .arg("databases")
-                .query_async::<String>(conn)
+                .query_async::<Vec<String>>(conn)
                 .await
             {
                 Ok(config) => {
-                    let db_count: u32 = config
-                        .split_whitespace()
-                        .last()
-                        .unwrap_or(&DEFAULT_DATABASE_COUNT.to_string())
-                        .parse()
-                        .unwrap_or(DEFAULT_DATABASE_COUNT);
+                    let db_count: u32 = if config.len() >= 2 {
+                        config[1].parse().unwrap_or(DEFAULT_DATABASE_COUNT)
+                    } else {
+                        config.last().and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_DATABASE_COUNT)
+                    };
                     Ok((0..db_count).collect())
                 }
-                Err(_) => Ok((0..DEFAULT_DATABASE_COUNT).collect()),
+                Err(e) => {
+                    warn!(%e, "config get databases err：");
+                    Ok((0..DEFAULT_DATABASE_COUNT).collect())
+                }
             }
         } else {
             Ok(vec![])

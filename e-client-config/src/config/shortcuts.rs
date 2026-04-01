@@ -116,6 +116,9 @@ pub enum ShortcutAction {
     #[serde(rename = "cancel_ai_command")]
     #[strum(serialize = "CancelAiCommand")]
     CancelAiCommand,
+    #[serde(rename = "close_ai_model_editor")]
+    #[strum(serialize = "CloseAiModelEditor")]
+    CloseAiModelEditor,
 }
 
 impl ShortcutAction {
@@ -168,6 +171,7 @@ impl ShortcutAction {
             ShortcutAction::RefreshKeys => "F5".to_string(),
             ShortcutAction::ExecuteAiCommand => "Right".to_string(),
             ShortcutAction::CancelAiCommand => "Left".to_string(),
+            ShortcutAction::CloseAiModelEditor => "Esc".to_string(),
         }
     }
 
@@ -209,6 +213,7 @@ impl ShortcutAction {
             ShortcutAction::RefreshKeys => TranslationKey::ShortcutRefreshKeys,
             ShortcutAction::ExecuteAiCommand => TranslationKey::ShortcutExecuteAiCommand,
             ShortcutAction::CancelAiCommand => TranslationKey::ShortcutCancelAiCommand,
+            ShortcutAction::CloseAiModelEditor => TranslationKey::ShortcutCloseAiModelEditor,
         }
     }
 
@@ -242,6 +247,7 @@ impl ShortcutAction {
                 | ShortcutAction::ConnectConnection8
                 | ShortcutAction::ConnectConnection9
                 | ShortcutAction::RefreshKeys
+                | ShortcutAction::CloseAiModelEditor
         )
     }
 
