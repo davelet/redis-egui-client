@@ -747,6 +747,16 @@ pub fn load_all_translations(
         TranslationKey::ShortcutCloseAiModelEditor,
         tr_en_zh("Close AI Model Editor", "关闭AI模型编辑器"),
     );
+    strings.insert(TranslationKey::Help, tr_en_zh("Help", "帮助"));
+    strings.insert(TranslationKey::HelpContents, tr_en_zh("Contents", "目录"));
+    strings.insert(
+        TranslationKey::HelpInThisSection,
+        tr_en_zh("In This Section", "本节内容"),
+    );
+    strings.insert(
+        TranslationKey::HelpOnlineDocs,
+        tr_en_zh("Online Docs", "在线文档"),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants

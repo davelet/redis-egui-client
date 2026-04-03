@@ -47,6 +47,9 @@ pub struct RedisApp {
     pub delete_connection_confirm: Option<(usize, String)>,
     // Settings panel state - track expanded sections for mutually exclusive behavior
     pub settings_expanded_section: Option<SettingsSection>,
+    // Help overlay
+    show_help: bool,
+    help_selected_section: Option<usize>,
 }
 
 /// Settings panel expandable sections
@@ -223,6 +226,8 @@ impl RedisApp {
             ai_model_editor: AiModelEditor::default(),
             delete_connection_confirm: None,
             settings_expanded_section: None,
+            show_help: false,
+            help_selected_section: None,
         }
     }
 
@@ -259,6 +264,14 @@ impl RedisApp {
 
     pub fn set_show_settings(&mut self, show: bool) {
         self.show_settings = show;
+    }
+
+    pub fn show_help(&self) -> bool {
+        self.show_help
+    }
+
+    pub fn set_show_help(&mut self, show: bool) {
+        self.show_help = show;
     }
 
     pub fn new_key_dialog(&self) -> &NewKeyDialog {
@@ -302,6 +315,8 @@ impl RedisApp {
             ai_model_editor: AiModelEditor::default(),
             delete_connection_confirm: None,
             settings_expanded_section: None,
+            show_help: false,
+            help_selected_section: None,
         }
     }
 

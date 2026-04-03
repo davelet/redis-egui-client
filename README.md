@@ -37,8 +37,7 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
 - **Memory Optimization** - Large values loaded on demand, prevents memory spikes
 
 ### Cross-Platform Support
-- **macOS** - Native App Bundle (.app) with Apple Silicon (M1/M2/M3) support
-  - ⚠️ **Intel Mac is not supported** in pre-built releases. Intel users need to [build from source](#build-from-source).
+- **macOS** - Native App Bundle (.app) with Apple Silicon (M1/M2/M3) support; Intel Mac supported via [source build](#build-from-source)
 - **Windows** - MSI installer with application icon and system PATH integration
 
 ### AI-Powered Assistant

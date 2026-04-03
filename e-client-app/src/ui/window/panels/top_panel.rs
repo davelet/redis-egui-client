@@ -1,11 +1,15 @@
 //! Top panel - connection bar and settings button
 
+use crate::help::get_help_sections;
+use crate::ui::window::components::markdown::render_markdown;
 use crate::ui::window::RedisApp;
+use e_client_basics::constants::ONLINE_DOCS_URL;
 use e_client_basics::constants::WILD_KEY_FILTER;
+use e_client_config::language::Language;
 use e_client_config::translations::emoji;
 use e_client_config::translations::{tr, TranslationKey};
 
-use super::settings_panel::render_settings_window;
+use super::settings_panel::{render_settings_window, SettingsSection};
 
 pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if no active tab
@@ -208,6 +212,11 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
         render_settings_window(app, ctx, current_lang);
     }
 
+    // Help overlay
+    if app.show_help {
+        render_help_window(app, ctx, current_lang);
+    }
+
     // Handle deferred operations
     if let Some((idx, conn)) = create_new_tab_with {
         app.create_tab_with_connection(idx, conn);
@@ -245,4 +254,160 @@ fn parse_color_hex(hex: &str) -> Option<egui::Color32> {
     let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
 
     Some(egui::Color32::from_rgb(r, g, b))
+}
+
+/// Render help overlay window
+fn render_help_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    // Handle Esc key to close
+    let esc_pressed = ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    if esc_pressed {
+        app.show_help = false;
+        return;
+    }
+
+    let sections = get_help_sections(current_lang);
+    let selected_idx = app
+        .help_selected_section
+        .unwrap_or(0)
+        .min(sections.len().saturating_sub(1));
+
+    if sections.is_empty() {
+        return;
+    }
+
+    let selected_section = &sections[selected_idx];
+
+    egui::Window::new(tr(TranslationKey::Help, current_lang))
+        .id(egui::Id::new("help_window"))
+        .default_size([750.0, 550.0])
+        .min_size([600.0, 400.0])
+        .resizable(true)
+        .collapsible(false)
+        .show(ctx, |ui| {
+            // Left sidebar - module list
+            egui::SidePanel::left("help_sidebar")
+                .width_range(180.0..=200.0)
+                .resizable(false)
+                .show_inside(ui, |ui| {
+                    // Sidebar header - use text instead of emoji
+                    ui.label(
+                        egui::RichText::new(tr(TranslationKey::HelpContents, current_lang))
+                            .strong()
+                            .size(14.0),
+                    );
+                    ui.add_space(8.0);
+
+                    // Module list with unique IDs
+                    for (idx, section) in sections.iter().enumerate() {
+                        let is_selected = idx == selected_idx;
+                        let label = egui::RichText::new(&section.title).size(13.0).strong();
+
+                        let response = ui
+                            .push_id(idx, |ui| ui.selectable_label(is_selected, label))
+                            .inner;
+                        if response.clicked() {
+                            app.help_selected_section = Some(idx);
+                        }
+                    }
+
+                    // Online docs link at bottom
+                    ui.add_space(12.0);
+                    ui.separator();
+                    ui.add_space(8.0);
+                    ui.hyperlink_to(
+                        format!("{} →", tr(TranslationKey::HelpOnlineDocs, current_lang)),
+                        ONLINE_DOCS_URL,
+                    );
+                });
+
+            // Vertical separator
+            ui.add(egui::Separator::default().spacing(8.0));
+
+            // Right content area
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                // Section title
+                ui.label(
+                    egui::RichText::new(&selected_section.title)
+                        .size(18.0)
+                        .strong(),
+                );
+                ui.add_space(12.0);
+
+                // Content with unique ID for scroll area
+                egui::ScrollArea::vertical()
+                    .id_salt(selected_idx)
+                    .show(ui, |ui| {
+                        // Subsections with unique IDs
+                        if !selected_section.subsections.is_empty() {
+                            ui.label(
+                                egui::RichText::new(tr(
+                                    TranslationKey::HelpInThisSection,
+                                    current_lang,
+                                ))
+                                .size(12.0)
+                                .weak(),
+                            );
+                            ui.add_space(8.0);
+
+                            for (sub_idx, sub) in selected_section.subsections.iter().enumerate() {
+                                ui.push_id(sub_idx, |ui| ui.label(format!("> {}", sub.title)));
+                            }
+
+                            ui.add_space(16.0);
+                            ui.separator();
+                            ui.add_space(12.0);
+                        }
+
+                        // Section content - check for shortcuts button marker
+                        let shortcuts_button_marker_en = "[View All Shortcuts in Settings]";
+                        let shortcuts_button_marker_zh = "[在设置中查看所有快捷键]";
+
+                        if selected_section
+                            .content
+                            .contains(shortcuts_button_marker_en)
+                            || selected_section
+                                .content
+                                .contains(shortcuts_button_marker_zh)
+                        {
+                            // Split content at the marker
+                            let marker = if selected_section
+                                .content
+                                .contains(shortcuts_button_marker_en)
+                            {
+                                shortcuts_button_marker_en
+                            } else {
+                                shortcuts_button_marker_zh
+                            };
+
+                            let parts: Vec<&str> = selected_section.content.split(marker).collect();
+                            if !parts.is_empty() {
+                                // Render content before marker
+                                render_markdown(parts[0].trim(), ui);
+                                ui.add_space(16.0);
+
+                                // Render button
+                                let button_text =
+                                    tr(TranslationKey::KeyboardShortcuts, current_lang);
+                                if ui.button(button_text).clicked() {
+                                    app.show_help = false;
+                                    app.show_settings = true;
+                                    // Set to keyboard shortcuts section
+                                    app.settings_expanded_section =
+                                        Some(SettingsSection::Shortcuts);
+                                }
+                                ui.add_space(8.0);
+
+                                // Render content after marker if any
+                                if parts.len() > 1 {
+                                    render_markdown(parts[1].trim(), ui);
+                                }
+                            } else {
+                                render_markdown(&selected_section.content, ui);
+                            }
+                        } else {
+                            render_markdown(&selected_section.content, ui);
+                        }
+                    });
+            });
+        });
 }

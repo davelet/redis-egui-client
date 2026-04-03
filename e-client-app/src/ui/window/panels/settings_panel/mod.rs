@@ -12,7 +12,10 @@ use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{tr, TranslationKey};
 
-use super::super::{RedisApp, SettingsSection};
+use super::super::RedisApp;
+
+// Re-export SettingsSection for use in other modules
+pub use super::super::SettingsSection;
 
 /// Settings window dimensions
 pub const SETTINGS_WINDOW_WIDTH: f32 = 450.0;

@@ -4,6 +4,9 @@
 pub const APP_NAME: &str = "Rudist";
 pub const LOAD_ERROR_TITLE: &str = "Load Error:";
 
+/// Online documentation URL
+pub const ONLINE_DOCS_URL: &str = "https://redis-egui-client.pages.dev/";
+
 /// Default Redis URL used when no other is specified
 pub const DEFAULT_REDIS_PORT: &str = "6379";
 

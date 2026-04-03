@@ -239,5 +239,8 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
         ShortcutAction::ExecuteAiCommand
         | ShortcutAction::CancelAiCommand
         | ShortcutAction::CloseAiModelEditor => {}
+        ShortcutAction::ToggleHelp => {
+            app.set_show_help(!app.show_help());
+        }
     }
 }

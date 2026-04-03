@@ -3,6 +3,7 @@ use e_client_logging::{LoggingConfig, init_logging, log_app_shutdown, log_app_st
 use tokio::runtime::Runtime;
 
 mod core;
+mod help;
 mod ui;
 
 fn main() -> Result<(), eframe::Error> {

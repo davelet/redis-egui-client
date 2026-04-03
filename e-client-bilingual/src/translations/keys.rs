@@ -218,4 +218,8 @@ pub enum TranslationKey {
     ShortcutExecuteAiCommand,
     ShortcutCancelAiCommand,
     ShortcutCloseAiModelEditor,
+    Help,
+    HelpContents,
+    HelpInThisSection,
+    HelpOnlineDocs,
 }

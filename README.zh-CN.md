@@ -37,8 +37,7 @@
 - **内存优化** - 大值按需加载，防止内存暴涨
 
 ### 跨平台支持
-- **macOS** - 原生 App Bundle (.app)，支持 Apple Silicon (M1/M2/M3)
-  - ⚠️ **Intel Mac 不提供预构建版本**，Intel 用户需要[自行编译](#从源码构建)
+- **macOS** - 原生 App Bundle (.app)，支持 Apple Silicon (M1/M2/M3)；Intel Mac 可通过[源码编译](#从源码构建)使用
 - **Windows** - MSI 安装程序，支持应用程序图标和系统 PATH 集成
 
 ## 快速开始
