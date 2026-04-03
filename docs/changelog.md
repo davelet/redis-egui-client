@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.6] - 2026-04-03
+
+- Markdown list rendering: Fixed the issue where list item bullets were not on the same line as the content 
+- SoftBreak handling: Fixed the issue of missing line breaks in plain text content
+
 ## [0.4.5] - 2026-04-02
 
 - feat: add shortcut `esc` to close ai model editor

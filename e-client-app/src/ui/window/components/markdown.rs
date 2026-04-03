@@ -348,21 +348,22 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                 if list_indent > 0 {
                     list_indent -= 1;
                 }
+                ui.add_space(4.0);
             }
             Event::Start(Tag::Item) => {
                 push_span!();
                 flush_spans(&mut spans, ui);
                 in_list_item = true;
-                // Indent bullet
+            }
+            Event::End(TagEnd::Item) => {
+                push_span!();
+                // Render the list item: bullet + collected spans on the same line
                 let indent = (list_indent.saturating_sub(1) as f32) * 16.0 + 8.0;
                 ui.horizontal(|ui| {
                     ui.add_space(indent);
                     ui.label("•");
+                    flush_spans(&mut spans, ui);
                 });
-            }
-            Event::End(TagEnd::Item) => {
-                push_span!();
-                flush_spans(&mut spans, ui);
                 in_list_item = false;
             }
 
@@ -409,8 +410,10 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                 spans.push(Span::new(t.as_ref(), false, false, true));
             }
             Event::SoftBreak => {
-                // Soft break inside a paragraph → space, not newline.
-                current_text.push(' ');
+                // Treat soft break as a newline to preserve original line breaks
+                // in plain text content.
+                push_span!();
+                flush_spans(&mut spans, ui);
             }
             Event::HardBreak => {
                 push_span!();

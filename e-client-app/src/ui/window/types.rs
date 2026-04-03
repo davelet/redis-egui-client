@@ -8,28 +8,17 @@ use e_client_config::translations::{tr, TranslationKey};
 use e_client_core::AiResponseError;
 
 /// A single entry in the CLI history.
-/// `is_markdown` is set at write time (when the AI response is stored),
-/// so the renderer never needs to guess from content.
 #[derive(Clone)]
 pub struct HistoryEntry {
     pub command: String,
     pub result: String,
-    pub is_markdown: bool,
 }
 
 impl HistoryEntry {
-    pub fn plain(command: impl Into<String>, result: impl Into<String>) -> Self {
+    pub fn new(command: impl Into<String>, result: impl Into<String>) -> Self {
         Self {
             command: command.into(),
             result: result.into(),
-            is_markdown: false,
-        }
-    }
-    pub fn markdown(command: impl Into<String>, result: impl Into<String>) -> Self {
-        Self {
-            command: command.into(),
-            result: result.into(),
-            is_markdown: true,
         }
     }
 }
@@ -210,13 +199,6 @@ pub struct AiModelEditor {
     pub testing_connection: bool,
     pub test_result: Option<Result<(), String>>,
     pub test_result_receiver: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
-}
-
-#[allow(deprecated)]
-impl AiModelEditor {
-    pub fn url(&self) -> &String {
-        &self.base_url
-    }
 }
 
 impl Default for AiModelEditor {

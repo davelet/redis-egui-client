@@ -490,7 +490,7 @@ fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
     app.tabs[tab_idx]
         .command_line_panel
         .history
-        .push(HistoryEntry::plain(command.clone(), "Executing..."));
+        .push(HistoryEntry::new(command.clone(), "Executing..."));
     app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(rx);
 
     tokio::task::spawn(async move {
@@ -553,7 +553,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push(HistoryEntry::plain(trimmed_input, error_msg));
+            .push(HistoryEntry::new(trimmed_input, error_msg));
         return;
     }
 
@@ -567,7 +567,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push(HistoryEntry::plain(trimmed_input, error_msg));
+            .push(HistoryEntry::new(trimmed_input, error_msg));
         return;
     }
 
@@ -576,7 +576,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push(HistoryEntry::plain(trimmed_input.clone(), "Thinking..."));
+            .push(HistoryEntry::new(trimmed_input.clone(), "Thinking..."));
     }
 
     // Get the history index of the thinking message (if shown)
@@ -707,7 +707,7 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
             // Channel disconnected, show error
             if let Some(idx) = pending.thinking_idx {
-                app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::plain(
+                app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::new(
                     pending.user_input,
                     "ERR: AI request failed - channel disconnected",
                 );
@@ -733,7 +733,7 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     // Execute without confirmation
                     if let Some(idx) = pending.thinking_idx {
                         app.tabs[tab_idx].command_line_panel.history[idx] =
-                            HistoryEntry::plain(pending.user_input.clone(), "Executing...");
+                            HistoryEntry::new(pending.user_input.clone(), "Executing...");
                     }
 
                     execute_redis_command(app, tab_idx, trimmed_response.to_string());
@@ -747,12 +747,12 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                 // Non-Redis command response — mark as markdown (AI response)
                 if let Some(idx) = pending.thinking_idx {
                     app.tabs[tab_idx].command_line_panel.history[idx] =
-                        HistoryEntry::markdown(pending.user_input, response);
+                        HistoryEntry::new(pending.user_input, response);
                 } else {
                     app.tabs[tab_idx]
                         .command_line_panel
                         .history
-                        .push(HistoryEntry::markdown(pending.user_input, response));
+                        .push(HistoryEntry::new(pending.user_input, response));
                 }
             }
         }
@@ -773,12 +773,12 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
             // Update the thinking message with the error
             if let Some(idx) = pending.thinking_idx {
                 app.tabs[tab_idx].command_line_panel.history[idx] =
-                    HistoryEntry::plain(pending.user_input, error_msg);
+                    HistoryEntry::new(pending.user_input, error_msg);
             } else {
                 app.tabs[tab_idx]
                     .command_line_panel
                     .history
-                    .push(HistoryEntry::plain(pending.user_input, error_msg));
+                    .push(HistoryEntry::new(pending.user_input, error_msg));
             }
         }
     }

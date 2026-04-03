@@ -29,7 +29,7 @@ impl Default for LoggingConfig {
             log_dir,
             file_prefix: "app".to_string(),
             enable_file: true,
-            enable_console: true,
+            enable_console: false,
         }
     }
 }
