@@ -222,4 +222,8 @@ pub enum TranslationKey {
     HelpContents,
     HelpInThisSection,
     HelpOnlineDocs,
+    Theme,
+    ThemeSystem,
+    ThemeLight,
+    ThemeDark,
 }

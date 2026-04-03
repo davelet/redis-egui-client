@@ -757,6 +757,12 @@ pub fn load_all_translations(
         TranslationKey::HelpOnlineDocs,
         tr_en_zh("Online Docs", "在线文档"),
     );
+
+    // Theme settings
+    strings.insert(TranslationKey::Theme, tr_en_zh("Theme", "主题"));
+    strings.insert(TranslationKey::ThemeSystem, tr_en_zh("System", "跟随系统"));
+    strings.insert(TranslationKey::ThemeLight, tr_en_zh("Light", "浅色"));
+    strings.insert(TranslationKey::ThemeDark, tr_en_zh("Dark", "深色"));
 }
 
 /// Create a translation HashMap with English and Chinese variants

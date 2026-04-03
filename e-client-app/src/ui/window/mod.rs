@@ -95,6 +95,7 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        ctx.set_visuals(super::theme_to_visuals(self.config.settings.theme));
         // Handle keyboard shortcuts
         shortcut_manager::handle_shortcuts(self, ctx);
 
@@ -163,73 +164,6 @@ impl eframe::App for RedisApp {
 }
 
 impl RedisApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        // Load configuration from the default location
-        let config = Config::load().unwrap_or_else(|_| Config::default());
-
-        let language = if !config.settings.language.is_empty() {
-            Language::file_name_to_lang(&config.settings.language)
-        } else {
-            Language::English
-        };
-
-        // Create initial tab
-        let initial_tab = RedisTab::new(0, language);
-
-        // Restore open connections from previous session
-        let open_connections = config.window.open_connections.connection_names.clone();
-        let mut tabs = vec![initial_tab];
-        let mut next_tab_id = 1;
-
-        if !open_connections.is_empty() {
-            // Find connections by name and create tabs for them
-            for conn_name in open_connections {
-                if let Some((conn_idx, conn)) = config
-                    .connections
-                    .connections
-                    .iter()
-                    .enumerate()
-                    .find(|(_, c)| c.name == conn_name)
-                    .map(|(i, c)| (i, c.clone()))
-                {
-                    let new_tab = RedisTab::with_connection(next_tab_id, conn_idx, conn, language);
-                    tabs.push(new_tab);
-                    next_tab_id += 1;
-                }
-            }
-        }
-
-        // If we restored connections, remove the initial empty tab
-        if tabs.len() > 1 {
-            tabs.remove(0);
-        }
-
-        // Initialize previous connected states (all false initially)
-        let prev_connected_states = vec![false; tabs.len()];
-
-        Self {
-            tabs,
-            active_tab: 0,
-            next_tab_id,
-            config,
-            new_connection: NewConnectionWindowWindow::new(),
-            show_settings: false,
-            new_key_dialog: NewKeyDialog::new(),
-            element_edit_dialog: ElementEditDialog::default(),
-            global_language: language,
-            prev_connected_states,
-            copy_feedback_manager: copy_feedback::CopyFeedbackManager::default(),
-            show_open_connections_prompt: false,
-            shortcut_state: shortcut_manager::ShortcutManagerState::default(),
-            scroll_to_tab: None,
-            show_all_tabs_dropdown: false,
-            ai_model_editor: AiModelEditor::default(),
-            delete_connection_confirm: None,
-            settings_expanded_section: None,
-            show_help: false,
-            help_selected_section: None,
-        }
-    }
 
     // Getters for private fields (needed by panels)
     pub fn tabs(&self) -> &[RedisTab] {
@@ -274,14 +208,6 @@ impl RedisApp {
         self.show_help = show;
     }
 
-    pub fn new_key_dialog(&self) -> &NewKeyDialog {
-        &self.new_key_dialog
-    }
-
-    pub fn new_key_dialog_mut(&mut self) -> &mut NewKeyDialog {
-        &mut self.new_key_dialog
-    }
-
     pub fn with_config(config: Config) -> Self {
         let global_language = if !config.settings.language.is_empty() {
             Language::file_name_to_lang(&config.settings.language)
@@ -318,22 +244,6 @@ impl RedisApp {
             show_help: false,
             help_selected_section: None,
         }
-    }
-
-    pub fn global_language(&self) -> Language {
-        self.global_language
-    }
-
-    pub fn set_global_language(&mut self, lang: Language) {
-        self.global_language = lang;
-    }
-
-    pub fn scroll_to_tab(&self) -> Option<usize> {
-        self.scroll_to_tab
-    }
-
-    pub fn set_scroll_to_tab(&mut self, idx: Option<usize>) {
-        self.scroll_to_tab = idx;
     }
 
     // Other public methods

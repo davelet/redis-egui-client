@@ -19,7 +19,7 @@ pub use super::super::SettingsSection;
 
 /// Settings window dimensions
 pub const SETTINGS_WINDOW_WIDTH: f32 = 450.0;
-pub const SETTINGS_WINDOW_HEIGHT: f32 = 600.0;
+pub const SETTINGS_WINDOW_HEIGHT: f32 = 400.0;
 
 /// Render the settings window
 pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
@@ -91,14 +91,15 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
         .collapsible(false)
         .resizable(true)
         .default_pos(top_right)
-        .min_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
+        .min_size([SETTINGS_WINDOW_WIDTH, 200.0])
         .default_size([SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT])
         .show(ctx, |ui| {
             egui::ScrollArea::vertical()
                 .id_salt("settings_scroll")
+                .max_height(600.0)
                 .show(ui, |ui| {
                     // General settings
-                    render_general_settings(app, ui, current_lang);
+                    render_general_settings(app, ui, current_lang, ctx);
 
                     ui.separator();
 
@@ -150,14 +151,23 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     }
 
                     ui.separator();
+                });
 
-                    // Close button
+            egui::Frame::NONE
+                .fill(ui.visuals().faint_bg_color)
+                .inner_margin(egui::Margin::same(8))
+                .show(ui, |ui| {
                     ui.horizontal(|ui| {
                         if ui.button(tr(TranslationKey::Close, current_lang)).clicked() {
                             app.show_settings = false;
                             app.shortcut_state.editing_shortcut = None;
                             app.shortcut_state.shortcut_input_buffer.clear();
                         }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button(tr(TranslationKey::Help, current_lang)).clicked() {
+                                app.show_help = true;
+                            }
+                        });
                     });
                 });
         });

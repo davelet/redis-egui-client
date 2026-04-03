@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.7] - 2026-04-03
+
+- add theme switching support
+- add 'help' button in settings window
+
 ## [0.4.6] - 2026-04-03
 
 - Markdown list rendering: Fixed the issue where list item bullets were not on the same line as the content 

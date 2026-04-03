@@ -1,12 +1,71 @@
 use crate::ui::icon::load_icon;
 use crate::ui::window::RedisApp;
 use crate::ui::window::panels::render_error_panel;
-use e_client_config::config::Config;
+use e_client_config::config::{Config, Theme};
 use e_client_config::constants::APP_NAME;
 
 pub mod font;
 pub mod icon;
 pub mod window;
+
+/// Convert Theme to egui Visuals
+pub fn theme_to_visuals(theme: Theme) -> egui::Visuals {
+    match theme {
+        Theme::Light => egui::Visuals::light(),
+        Theme::Dark => egui::Visuals::dark(),
+        Theme::System => detect_system_theme(),
+    }
+}
+
+/// Detect system theme preference
+fn detect_system_theme() -> egui::Visuals {
+    #[cfg(target_os = "macos")]
+    {
+        return detect_macos_theme();
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return detect_windows_theme();
+    }
+    egui::Visuals::light()
+}
+
+#[cfg(target_os = "macos")]
+fn detect_macos_theme() -> egui::Visuals {
+    let output = std::process::Command::new("defaults")
+        .args(["read", "-g", "AppleInterfaceStyle"])
+        .output();
+
+    match output {
+        Ok(out) if out.stdout.starts_with(b"Dark") => egui::Visuals::dark(),
+        _ => egui::Visuals::light(),
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn detect_windows_theme() -> egui::Visuals {
+    let output = std::process::Command::new("reg")
+        .args([
+            "query",
+            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            "/v",
+            "AppsUseLightTheme"
+        ])
+        .output();
+
+    match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            // AppsUseLightTheme = 0 means dark, = 1 means light
+            if stdout.contains("0x0") {
+                egui::Visuals::dark()
+            } else {
+                egui::Visuals::light()
+            }
+        }
+        _ => egui::Visuals::light(),
+    }
+}
 
 pub(crate) fn start_app() -> eframe::Result {
     // Load configuration
@@ -49,12 +108,6 @@ pub(crate) fn start_app() -> eframe::Result {
         Box::new(|cc| {
             // Configure fonts for better Chinese and English display
             font::setup_chinese_fonts(&cc.egui_ctx)?;
-            // Set language
-            if !config.settings.language.is_empty() {
-                let mut style = (*cc.egui_ctx.style()).clone();
-                style.visuals = egui::style::Visuals::light(); // todo - support dark style
-                cc.egui_ctx.set_style(style);
-            }
 
             Ok(Box::new(RedisApp::with_config(config)))
         }),

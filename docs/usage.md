@@ -218,6 +218,10 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 
 ## Settings
 
+### Theme Settings
+
+- Support themes as System/Light/Dark; Apply theme immediately on selection
+
 ### Language Settings
 
 - Supports **English** and **中文 (Chinese)**

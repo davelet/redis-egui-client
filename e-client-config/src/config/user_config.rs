@@ -1,4 +1,5 @@
 use crate::config::shortcuts::ShortcutConfig;
+use crate::config::theme::Theme;
 use e_client_bilingual::language::Language;
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,8 @@ pub struct ConfigOfUser {
     pub auto_expand: bool,
     #[serde(default = "default_auto_expand_threshold")]
     pub auto_expand_threshold: usize,
+    #[serde(default)]
+    pub theme: Theme,
 }
 
 impl Default for ConfigOfUser {
@@ -36,6 +39,7 @@ impl Default for ConfigOfUser {
             auto_refresh_ttl: false,
             auto_expand: true,
             auto_expand_threshold: default_auto_expand_threshold(),
+            theme: Theme::default(),
         }
     }
 }

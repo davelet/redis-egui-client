@@ -4,7 +4,10 @@ mod connected_preference;
 mod connections;
 mod open_connections;
 pub mod shortcuts;
+mod theme;
 mod user_config;
+
+pub use theme::Theme;
 
 use crate::config::ai_config::AiConfig;
 use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
@@ -105,7 +108,7 @@ impl Config {
             dirty_preferences: false,
             dirty_ai_config: false,
         };
-        info!("Configuration loaded successfully");
+        info!("Configuration loaded successfully: {:?}", &config.settings);
         Ok(config)
     }
 
