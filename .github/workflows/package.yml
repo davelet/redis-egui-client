@@ -3,17 +3,17 @@ name: Build & Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 jobs:
   build-macos-universal:
-    runs-on: macos-14  # 只用这一台，同时打两个架构
+    runs-on: macos-14 # 只用这一台，同时打两个架构
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-apple-darwin, aarch64-apple-darwin  # 安装两个架构
+          targets: x86_64-apple-darwin, aarch64-apple-darwin # 安装两个架构
       - run: cargo install cargo-packager --locked
       # 编译 Intel x86_64
       - name: Build x86_64
@@ -56,6 +56,6 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: rudist_*_windows.exe
+          files: target/release/rudist_*_windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
