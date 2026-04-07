@@ -10,25 +10,31 @@
       
       
       
+        <link rel="canonical" href="https://github.com/davelet/redis-egui-client/usage/connections/">
       
+      
+        <link rel="prev" href="../interface/">
+      
+      
+        <link rel="next" href="../data-operations/">
       
       
         
       
       
-      <link rel="icon" href="/davelet/redis-egui-client/assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Rudist</title>
+        <title>Connections - Rudist</title>
       
     
     
-      <link rel="stylesheet" href="/davelet/redis-egui-client/assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="/davelet/redis-egui-client/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -47,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("/davelet/redis-egui-client/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -71,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#connection-management" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/davelet/redis-egui-client/." title="Rudist" class="md-header__button md-logo" aria-label="Rudist" data-md-component="logo">
+    <a href="../.." title="Rudist" class="md-header__button md-logo" aria-label="Rudist" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -103,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Connections
             
           </span>
         </div>
@@ -205,7 +216,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/davelet/redis-egui-client/." title="Rudist" class="md-nav__button md-logo" aria-label="Rudist" data-md-component="logo">
+    <a href="../.." title="Rudist" class="md-nav__button md-logo" aria-label="Rudist" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -235,7 +246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -262,7 +273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/install/" class="md-nav__link">
+      <a href="../../install/" class="md-nav__link">
         
   
   
@@ -286,18 +297,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -318,7 +331,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -336,7 +349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -364,7 +377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/interface/" class="md-nav__link">
+      <a href="../interface/" class="md-nav__link">
         
   
   
@@ -389,10 +402,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/connections/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connections
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -408,6 +448,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-new-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a New Connection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a New Connection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-connect-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Connect Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tls-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connectdisconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect/Disconnect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editdelete-connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit/Delete Connections
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -420,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/data-operations/" class="md-nav__link">
+      <a href="../data-operations/" class="md-nav__link">
         
   
   
@@ -448,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/shortcuts/" class="md-nav__link">
+      <a href="../shortcuts/" class="md-nav__link">
         
   
   
@@ -476,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/usage/settings/" class="md-nav__link">
+      <a href="../settings/" class="md-nav__link">
         
   
   
@@ -558,7 +679,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/ai/" class="md-nav__link">
+      <a href="../../ai/" class="md-nav__link">
         
   
   
@@ -586,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/ai/configuration/" class="md-nav__link">
+      <a href="../../ai/configuration/" class="md-nav__link">
         
   
   
@@ -614,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/ai/tools/" class="md-nav__link">
+      <a href="../../ai/tools/" class="md-nav__link">
         
   
   
@@ -649,7 +770,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/davelet/redis-egui-client/changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -686,6 +807,77 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-new-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a New Connection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a New Connection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-connect-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Connect Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tls-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connectdisconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect/Disconnect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editdelete-connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit/Delete Connections
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -698,8 +890,67 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="connection-management">Connection Management</h1>
+<h2 id="creating-a-new-connection">Creating a New Connection</h2>
+<ol>
+<li>Click the <strong>"+ New"</strong> button in the top panel</li>
+<li>Fill in the connection details in the dialog:</li>
+<li><strong>Connection Name</strong>: Custom identifier (e.g., "Production", "Local Dev")</li>
+<li><strong>Host Address</strong>: Redis server IP or hostname</li>
+<li><strong>Port</strong>: Default is 6379</li>
+<li><strong>Username</strong> (optional): ACL authentication username</li>
+<li><strong>Password</strong> (optional): Authentication password</li>
+<li><strong>Color Marker</strong>: Choose a high-contrast color to distinguish environments</li>
+<li>Click <strong>Save</strong> to save the connection configuration</li>
+</ol>
+<h3 id="quick-connect-mode">Quick Connect Mode</h3>
+<p>You can also connect using a Redis URL string:</p>
+<ol>
+<li>In the New Connection dialog, toggle to <strong>Quick Connect</strong> mode</li>
+<li>Enter a Redis URL: <code>redis://[&lt;username&gt;][:&lt;password&gt;@]&lt;hostname&gt;[:port][/[&lt;db&gt;]]</code></li>
+<li>For TLS connections, use <code>rediss://</code> scheme</li>
+</ol>
+<p><strong>Examples</strong>:
+- <code>redis://localhost:6379</code> - Basic connection
+- <code>redis://:mypassword@localhost:6379/0</code> - With password and database
+- <code>rediss://prod.redis.example.com:6380</code> - TLS encrypted connection</p>
+<h3 id="tls-support">TLS Support</h3>
+<p>Both Quick Connect and Advanced modes support TLS/SSL connections:</p>
+<ul>
+<li><strong>Quick Connect</strong>: Use <code>rediss://</code> URL scheme</li>
+<li><strong>Advanced Mode</strong>: Enable the <strong>"Use TLS"</strong> checkbox</li>
+</ul>
+<h2 id="connectdisconnect">Connect/Disconnect</h2>
+<ul>
+<li>Select a saved connection from the dropdown menu to automatically connect</li>
+<li>Click the <strong>Disconnect</strong> button next to the connection name to disconnect</li>
+<li>Supports multiple tabs connecting to different Redis instances simultaneously</li>
+</ul>
+<h2 id="editdelete-connections">Edit/Delete Connections</h2>
+<ul>
+<li>Hover over a connection item in the dropdown and click the edit icon to modify</li>
+<li>Click the delete icon to remove a saved connection</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -736,10 +987,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/davelet/redis-egui-client/", "features": [], "search": "/davelet/redis-egui-client/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/davelet/redis-egui-client/assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
