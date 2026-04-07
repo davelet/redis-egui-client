@@ -205,7 +205,7 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
     // ── Block state ──────────────────────────────────────────────────────
     let mut in_code_block = false;
     let mut code_block_buf = String::new();
-    let mut in_list_item = false;
+    let mut _in_list_item = false;
     let mut list_indent: u32 = 0;
 
     // ── Table state ──────────────────────────────────────────────────────
@@ -353,7 +353,7 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
             Event::Start(Tag::Item) => {
                 push_span!();
                 flush_spans(&mut spans, ui);
-                in_list_item = true;
+                _in_list_item = true;
             }
             Event::End(TagEnd::Item) => {
                 push_span!();
@@ -364,7 +364,7 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                     ui.label("•");
                     flush_spans(&mut spans, ui);
                 });
-                in_list_item = false;
+                _in_list_item = false;
             }
 
             // ── Inline formatting ────────────────────────────────────────

@@ -50,6 +50,8 @@ pub struct RedisApp {
     // Help overlay
     show_help: bool,
     help_selected_section: Option<usize>,
+    // Toast notifications
+    pub toasts: components::toast::ToastManager,
 }
 
 /// Settings panel expandable sections
@@ -151,6 +153,9 @@ impl eframe::App for RedisApp {
         render_top_panel(self, ctx);
         render_side_panel(self, ctx);
         render_central_panel(self, ctx);
+
+        // Render toast notifications
+        self.toasts.render(ctx);
 
         // Force continuous repaint while loading to ensure smooth UI updates
         let mut any_loading = false;
@@ -260,6 +265,7 @@ impl RedisApp {
             settings_expanded_section: None,
             show_help: false,
             help_selected_section: None,
+            toasts: components::toast::ToastManager::new(),
         }
     }
 

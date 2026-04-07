@@ -22,6 +22,67 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
     let scan_has_more = app.poll_bool(app.tabs[active_tab_idx].state.scan_has_more.clone());
     let error_message = app.poll_string(app.tabs[active_tab_idx].state.error_message.clone());
 
+    // Detect loading transitions for toast logic:
+    //   false → true: new connection attempt → clear error dedup, cancel pending
+    //   true  → false: loading just finished → set pending_error_check
+    // pending_error_check persists across frames until we see the result (error or success),
+    // because loading and error_message may update in different frames.
+    let loading_just_started = loading && !app.tabs[active_tab_idx].was_loading;
+    let loading_just_finished = !loading && app.tabs[active_tab_idx].was_loading;
+
+    if loading_just_started {
+        app.tabs[active_tab_idx].last_error_shown = None;
+        app.tabs[active_tab_idx].pending_error_check = false;
+    }
+    if loading_just_finished {
+        app.tabs[active_tab_idx].pending_error_check = true;
+    }
+    app.tabs[active_tab_idx].was_loading = loading;
+
+    // Show toast when: pending_error_check is set (loading recently finished)
+    // AND error_message is present. This handles the case where the error
+    // arrives one frame after loading drops to false.
+    if !error_message.is_empty() && app.tabs[active_tab_idx].pending_error_check {
+        // Get owner before borrowing tab mutably
+        let selected_connection = app.tabs[active_tab_idx].selected_connection;
+        let tab_name = app.tabs[active_tab_idx].name.clone();
+        let owner = if let Some(conn_idx) = selected_connection {
+            app.config()
+                .connections
+                .get(conn_idx)
+                .map(|c| c.name.clone())
+                .unwrap_or(tab_name)
+        } else {
+            tab_name
+        };
+
+        // Dedup key includes owner + message, so different connections
+        // with the same error (e.g. "Connection refused") each get a toast.
+        let dedup_key = format!("{}|{}", owner, error_message);
+
+        let tab = &mut app.tabs[active_tab_idx];
+        let should_show = match &tab.last_error_shown {
+            None => true,
+            Some(last) => last != &dedup_key,
+        };
+
+        if should_show {
+            let toast_message = if error_message.len() > 200 {
+                format!("{}...", &error_message[..200])
+            } else {
+                error_message.clone()
+            };
+
+            app.toasts.warning(owner, toast_message);
+            tab.last_error_shown = Some(dedup_key);
+        }
+        // Connection attempt resolved with error — clear pending
+        tab.pending_error_check = false;
+    } else if error_message.is_empty() && app.tabs[active_tab_idx].pending_error_check {
+        // No error but pending check — connection succeeded, clear pending
+        app.tabs[active_tab_idx].pending_error_check = false;
+    }
+
     egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 8.0;

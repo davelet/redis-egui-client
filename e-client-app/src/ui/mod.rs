@@ -21,13 +21,16 @@ pub fn theme_to_visuals(theme: Theme) -> egui::Visuals {
 fn detect_system_theme() -> egui::Visuals {
     #[cfg(target_os = "macos")]
     {
-        return detect_macos_theme();
+        detect_macos_theme()
     }
     #[cfg(target_os = "windows")]
     {
-        return detect_windows_theme();
+        detect_windows_theme()
     }
-    egui::Visuals::light()
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        egui::Visuals::light()
+    }
 }
 
 #[cfg(target_os = "macos")]

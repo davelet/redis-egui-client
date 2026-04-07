@@ -33,6 +33,9 @@ pub struct RedisTab {
     pub key_filter_input: String,
     pub side_panel_width: f32, // Current side panel width for this tab
     pub command_line_panel: CommandLinePanel, // Per-tab command line panel state
+    pub last_error_shown: Option<String>, // Prevent duplicate toasts
+    pub was_loading: bool,     // Previous frame loading state, for transition detection
+    pub pending_error_check: bool, // loading just finished; check next frames for error
 }
 
 impl RedisTab {
@@ -49,6 +52,9 @@ impl RedisTab {
             key_filter_input: String::new(),
             side_panel_width: DEFAULT_SIDE_PANEL_WIDTH,
             command_line_panel: CommandLinePanel::default(),
+            last_error_shown: None,
+            was_loading: false,
+            pending_error_check: false,
         }
     }
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.8] - 2026-04-07
+
+### New Features
+
+**Quick Connect Mode**
+- Added Quick Connect mode in New Connection dialog
+- Supports Redis URL format: `redis://[<username>][:<password>@]<hostname>[:port][/[<db>]]`
+- Supports TLS connections via `rediss://` scheme
+- Auto-extracts host name as default connection name
+- Toggle between Quick Connect and Advanced mode
+
+**TLS Support for Advanced Mode**
+- Added "Use TLS" checkbox in Advanced connection mode
+- Enables secure TLS/SSL connections without URL syntax
+- Both Quick Connect and Advanced modes now fully support TLS
+
+**Open Connections in New Tab Setting**
+- New setting: "Open Connections in New Tab" (default: enabled)
+- When disabled, clicking Connect uses current tab instead of creating new one
+- Applies to Welcome page, connection list, and keyboard shortcuts
+
 ## [0.4.7] - 2026-04-03
 
 - add theme switching support
