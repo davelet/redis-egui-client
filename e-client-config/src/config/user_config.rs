@@ -23,6 +23,8 @@ pub struct ConfigOfUser {
     pub auto_expand: bool,
     #[serde(default = "default_auto_expand_threshold")]
     pub auto_expand_threshold: usize,
+    #[serde(default = "default_true")]
+    pub open_connections_in_new_tab: bool,
     #[serde(default)]
     pub theme: Theme,
 }
@@ -39,6 +41,7 @@ impl Default for ConfigOfUser {
             auto_refresh_ttl: false,
             auto_expand: true,
             auto_expand_threshold: default_auto_expand_threshold(),
+            open_connections_in_new_tab: true,
             theme: Theme::default(),
         }
     }

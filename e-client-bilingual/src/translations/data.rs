@@ -763,6 +763,40 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::ThemeSystem, tr_en_zh("System", "跟随系统"));
     strings.insert(TranslationKey::ThemeLight, tr_en_zh("Light", "浅色"));
     strings.insert(TranslationKey::ThemeDark, tr_en_zh("Dark", "深色"));
+
+    // Quick Connect
+    strings.insert(
+        TranslationKey::QuickConnect,
+        tr_en_zh("Quick Connect", "快速连接"),
+    );
+    strings.insert(
+        TranslationKey::QuickConnectUrl,
+        tr_en_zh("Connection URL:", "连接字符串:"),
+    );
+    strings.insert(
+        TranslationKey::QuickConnectHint,
+        tr_en_zh(
+            "e.g. redis://user:pass@host:6379/0",
+            "例如 redis://user:pass@host:6379/0",
+        ),
+    );
+    strings.insert(TranslationKey::AdvancedMode, tr_en_zh("Advanced", "高级"));
+    strings.insert(
+        TranslationKey::InvalidConnectionString,
+        tr_en_zh("Invalid connection string", "无效的连接字符串"),
+    );
+    strings.insert(
+        TranslationKey::UnsupportedConnectionType,
+        tr_en_zh("Unsupported connection type: {}", "不支持的连接类型: {}"),
+    );
+    strings.insert(
+        TranslationKey::OpenConnectionsInNewTab,
+        tr_en_zh("Open Connections in New Tab", "在新标签页打开连接"),
+    );
+    strings.insert(
+        TranslationKey::UseTLS,
+        tr_en_zh("Use TLS (rediss://)", "使用 TLS 加密连接"),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants

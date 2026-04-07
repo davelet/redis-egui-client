@@ -120,18 +120,8 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
                 for (i, conn_name) in open_conn_names.iter().enumerate() {
                     if let Some(conn_idx) = connections.iter().position(|c| &c.name == conn_name) {
                         let conn = connections[conn_idx].clone();
-                        if i == 0 {
-                            if let Some(tab) = app.get_active_tab_mut() {
-                                let conn_clone = conn.clone();
-                                *tab.state.connection_param.blocking_write() = Some(conn_clone);
-                                tab.name = conn.name.clone();
-                                tab.connected_color = conn.color.clone();
-                                tab.selected_connection = Some(conn_idx);
-
-                                let active_tab_idx = app.active_tab();
-                                app.load_connection_preferences(active_tab_idx);
-                                app.spawn_connect_with_initial_db(active_tab_idx);
-                            }
+                        if i == 0 && !app.config().settings.open_connections_in_new_tab {
+                            app.connect_in_current_tab(conn_idx, &conn);
                         } else {
                             app.create_tab_with_connection(conn_idx, conn);
                         }
@@ -215,7 +205,12 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
                         let config = app.config();
                         if conn_idx < config.connections.connections.len() {
                             let conn = config.connections.connections[conn_idx].clone();
-                            app.create_tab_with_connection(conn_idx, conn);
+                            let open_in_new_tab = config.settings.open_connections_in_new_tab;
+                            if open_in_new_tab {
+                                app.create_tab_with_connection(conn_idx, conn);
+                            } else {
+                                app.connect_in_current_tab(conn_idx, &conn);
+                            }
                         }
                     }
                 }

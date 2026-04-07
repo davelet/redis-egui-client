@@ -28,6 +28,11 @@ pub(crate) struct NewConnectionWindowWindow {
     pub new_connection_password: String,
     pub new_connection_color_hex: Option<String>,
     pub error_message: Option<String>,
+    /// Quick connect mode: parse connection URL directly
+    pub quick_connect_mode: bool,
+    pub quick_connect_url: String,
+    /// TLS setting for advanced mode
+    pub new_connection_use_tls: bool,
 }
 
 impl NewConnectionWindowWindow {
@@ -43,18 +48,23 @@ impl NewConnectionWindowWindow {
             new_connection_password: String::new(),
             new_connection_color_hex: None,
             error_message: None,
+            quick_connect_mode: true, // Default to quick connect
+            quick_connect_url: String::new(),
+            new_connection_use_tls: false,
         }
     }
 
     pub(crate) fn open_for_edit(&mut self, conn: &RedisConnectionConfig) {
         self.show = true;
         self.edit_mode = true;
+        self.quick_connect_mode = false; // Always use advanced mode when editing
         self.editing_connection_name = Some(conn.name.clone());
         self.new_connection_name = conn.name.clone();
         self.new_connection_url = conn.url.clone();
         self.new_connection_port = conn.port.clone();
         self.new_connection_username = conn.username.clone().unwrap_or_default();
         self.new_connection_password = conn.password.clone().unwrap_or_default();
+        self.new_connection_use_tls = conn.use_tls;
 
         // Parse color hex to RGB
         self.new_connection_color_hex = conn.color.clone();
@@ -79,39 +89,95 @@ impl NewConnectionWindowWindow {
             .resizable(false)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
+                    // Mode toggle (only show for new connections, not edit mode)
+                    if !self.edit_mode {
+                        ui.horizontal(|ui| {
+                            let quick_label = tr(TranslationKey::QuickConnect, current_lang);
+                            let advanced_label = tr(TranslationKey::AdvancedMode, current_lang);
+
+                            if ui
+                                .selectable_label(self.quick_connect_mode, quick_label)
+                                .clicked()
+                            {
+                                self.quick_connect_mode = true;
+                            }
+                            if ui
+                                .selectable_label(!self.quick_connect_mode, advanced_label)
+                                .clicked()
+                            {
+                                self.quick_connect_mode = false;
+                            }
+                        });
+                        ui.separator();
+                    }
+
+                    // Connection name (always shown)
                     ui.horizontal(|ui| {
                         ui.label(tr(TranslationKey::ConnectionName, current_lang));
                         ui.text_edit_singleline(&mut self.new_connection_name);
                     });
 
-                    ui.horizontal(|ui| {
-                        ui.label(tr(TranslationKey::ConnectionAddress, current_lang));
-                        let url_id = ui.make_persistent_id("new_connection_url");
-                        let res = ui.add(
-                            egui::TextEdit::singleline(&mut self.new_connection_url).id(url_id),
-                        );
-                        let had_focus = ctx.memory(|m| m.has_focus(url_id));
-                        let has_focus_now = res.has_focus();
+                    if self.quick_connect_mode && !self.edit_mode {
+                        // Quick Connect mode
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::QuickConnectUrl, current_lang));
+                            ui.add(
+                                egui::TextEdit::singleline(&mut self.quick_connect_url)
+                                    .desired_width(280.0)
+                                    .hint_text(tr(TranslationKey::QuickConnectHint, current_lang)),
+                            );
+                        });
 
-                        if (!had_focus || !has_focus_now)
-                            && self.new_connection_name.trim().is_empty()
-                            && !self.new_connection_url.trim().is_empty()
+                        // Auto-fill name from URL when URL changes
+                        if self.new_connection_name.trim().is_empty()
+                            && !self.quick_connect_url.trim().is_empty()
                         {
-                            self.new_connection_name = self.new_connection_url.clone();
+                            // Extract host from URL for default name
+                            if let Some(host) = RedisConnectionConfig::extract_host_from_url(
+                                &self.quick_connect_url,
+                            ) {
+                                self.new_connection_name = host;
+                            }
                         }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label(tr(TranslationKey::ConnectionPort, current_lang));
-                        ui.text_edit_singleline(&mut self.new_connection_port);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label(tr(TranslationKey::ConnectionUsername, current_lang));
-                        ui.text_edit_singleline(&mut self.new_connection_username);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label(tr(TranslationKey::ConnectionPassword, current_lang));
-                        ui.text_edit_singleline(&mut self.new_connection_password);
-                    });
+                    } else {
+                        // Advanced mode (original fields)
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::ConnectionAddress, current_lang));
+                            let url_id = ui.make_persistent_id("new_connection_url");
+                            let res = ui.add(
+                                egui::TextEdit::singleline(&mut self.new_connection_url).id(url_id),
+                            );
+                            let had_focus = ctx.memory(|m| m.has_focus(url_id));
+                            let has_focus_now = res.has_focus();
+
+                            if (!had_focus || !has_focus_now)
+                                && self.new_connection_name.trim().is_empty()
+                                && !self.new_connection_url.trim().is_empty()
+                            {
+                                self.new_connection_name = self.new_connection_url.clone();
+                            }
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::ConnectionPort, current_lang));
+                            ui.text_edit_singleline(&mut self.new_connection_port);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::ConnectionUsername, current_lang));
+                            ui.text_edit_singleline(&mut self.new_connection_username);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::ConnectionPassword, current_lang));
+                            ui.text_edit_singleline(&mut self.new_connection_password);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.checkbox(
+                                &mut self.new_connection_use_tls,
+                                tr(TranslationKey::UseTLS, current_lang),
+                            );
+                        });
+                    }
+
+                    // Color picker (always shown)
                     ui.horizontal(|ui| {
                         ui.label(tr(TranslationKey::ConnectionColor, current_lang));
                         ui.horizontal_wrapped(|ui| {
@@ -150,6 +216,38 @@ impl NewConnectionWindowWindow {
                                     tr(TranslationKey::PleaseEnterConnectionName, current_lang)
                                         .to_string(),
                                 );
+                            } else if self.quick_connect_mode && !self.edit_mode {
+                                // Quick connect mode validation
+                                if self.quick_connect_url.trim().is_empty() {
+                                    self.error_message = Some(
+                                        tr(TranslationKey::InvalidConnectionString, current_lang)
+                                            .to_string(),
+                                    );
+                                } else {
+                                    // Parse URL and create connection
+                                    match RedisConnectionConfig::from_url(
+                                        self.new_connection_name.clone(),
+                                        &self.quick_connect_url,
+                                        self.new_connection_color_hex.clone(),
+                                    ) {
+                                        Ok(conn) => match app.add_connection(conn) {
+                                            Ok(_) => self.clear(),
+                                            Err(e) => {
+                                                self.error_message =
+                                                    Some(e.to_message(current_lang));
+                                            }
+                                        },
+                                        Err(_) => {
+                                            self.error_message = Some(
+                                                tr(
+                                                    TranslationKey::InvalidConnectionString,
+                                                    current_lang,
+                                                )
+                                                .to_string(),
+                                            );
+                                        }
+                                    }
+                                }
                             } else if self.new_connection_url.trim().is_empty() {
                                 self.error_message = Some(
                                     tr(TranslationKey::PleaseEnterConnectionAddress, current_lang)
@@ -194,7 +292,7 @@ impl NewConnectionWindowWindow {
     }
 
     fn build_connection(&self) -> RedisConnectionConfig {
-        RedisConnectionConfig::new(
+        RedisConnectionConfig::new_with_tls(
             self.new_connection_name.clone(),
             self.new_connection_url.clone(),
             self.new_connection_port.clone(),
@@ -209,6 +307,7 @@ impl NewConnectionWindowWindow {
                 Some(self.new_connection_password.clone())
             },
             self.new_connection_color_hex.clone(),
+            self.new_connection_use_tls,
         )
     }
 
@@ -226,6 +325,9 @@ impl NewConnectionWindowWindow {
         self.new_connection_color_hex = None;
         self.edit_mode = false;
         self.editing_connection_name = None;
+        self.quick_connect_mode = true;
+        self.quick_connect_url = String::new();
+        self.new_connection_use_tls = false;
         self.clear_err();
     }
 }

@@ -226,4 +226,13 @@ pub enum TranslationKey {
     ThemeSystem,
     ThemeLight,
     ThemeDark,
+    // Quick Connect
+    QuickConnect,
+    QuickConnectUrl,
+    QuickConnectHint,
+    AdvancedMode,
+    InvalidConnectionString,
+    UnsupportedConnectionType,
+    OpenConnectionsInNewTab,
+    UseTLS,
 }

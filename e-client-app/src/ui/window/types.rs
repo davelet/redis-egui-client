@@ -60,8 +60,6 @@ impl RedisTab {
     ) -> Self {
         let mut tab = Self::new(id, language);
         tab.selected_connection = Some(conn_idx);
-        tab.name = conn.name.clone();
-        tab.connected_color = conn.color.clone();
         *tab.state.connection_param.blocking_write() = Some(conn);
         tab
     }

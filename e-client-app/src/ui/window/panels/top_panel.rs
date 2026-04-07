@@ -133,9 +133,6 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         if let Some(conn) = app.config.connections.get(idx) {
                             let conn_clone = conn.clone();
                             *tab.state.connection_param.blocking_write() = Some(conn_clone.clone());
-                            // Update tab name and color to connection name and color
-                            tab.name = conn.name.clone();
-                            tab.connected_color = conn.color.clone();
 
                             // Load preferences for this connection
                             app.load_connection_preferences(active_tab_idx);
@@ -228,8 +225,6 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
         if let Some(conn) = app.config.connections.get(idx).cloned() {
             let tab = &mut app.tabs[active_tab_idx];
             *tab.state.connection_param.blocking_write() = Some(conn.clone());
-            tab.name = conn.name.clone();
-            tab.connected_color = conn.color.clone();
             app.load_connection_preferences(active_tab_idx);
             app.spawn_connect_with_initial_db(active_tab_idx);
         }

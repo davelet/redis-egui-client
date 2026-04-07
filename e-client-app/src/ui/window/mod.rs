@@ -95,6 +95,23 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        // Sync connection state and update tab name/color when connected successfully
+        for (idx, tab) in self.tabs.iter_mut().enumerate() {
+            if idx < self.prev_connected_states.len() {
+                let is_connected = tab.state.connected.try_read().map(|v| *v).unwrap_or(false);
+                if is_connected && !self.prev_connected_states[idx] {
+                    // Just connected -> update name and color
+                    if let Some(conn_idx) = tab.selected_connection {
+                        if let Some(conn) = self.config.connections.get(conn_idx) {
+                            tab.name = conn.name.clone();
+                            tab.connected_color = conn.color.clone();
+                        }
+                    }
+                }
+                self.prev_connected_states[idx] = is_connected;
+            }
+        }
+
         ctx.set_visuals(super::theme_to_visuals(self.config.settings.theme));
         // Handle keyboard shortcuts
         shortcut_manager::handle_shortcuts(self, ctx);
@@ -289,6 +306,36 @@ impl RedisApp {
 
         // Auto-connect with preferred DB
         self.spawn_connect_with_initial_db(new_tab_idx);
+    }
+
+    pub fn connect_in_current_tab(
+        &mut self,
+        conn_idx: usize,
+        conn: &e_client_config::connection::RedisConnectionConfig,
+    ) {
+        // Check if duplicate connections are allowed
+        if !self.config.settings.allow_duplicate_connections {
+            // Check if this connection is already open in another tab
+            if let Some(existing_tab_idx) = self.find_tab_with_connection(conn_idx) {
+                // Switch to the existing tab
+                self.switch_to_tab(existing_tab_idx);
+                self.show_open_connections_prompt = false;
+                return;
+            }
+        }
+
+        if let Some(tab) = self.get_active_tab_mut() {
+            *tab.state.connection_param.blocking_write() = Some(conn.clone());
+            tab.selected_connection = Some(conn_idx);
+
+            let active_tab_idx = self.active_tab;
+            self.load_connection_preferences(active_tab_idx);
+            self.spawn_connect_with_initial_db(active_tab_idx);
+
+            // Clear open connections list when connecting (same as "Connect All")
+            self.config.clear_open_connections();
+            self.show_open_connections_prompt = false;
+        }
     }
 
     pub fn close_tab(&mut self, index: usize, ctx: &egui::Context) {

@@ -11,6 +11,8 @@ pub enum ConfigError {
     WriteFailed(String),
     ConnectionNameExists,
     ConnectionNotFound,
+    InvalidUrl,
+    UnsupportedConnectionType(String),
 }
 
 impl ConfigError {
@@ -36,6 +38,12 @@ impl ConfigError {
             }
             ConfigError::ConnectionNotFound => {
                 tr(TranslationKey::ConnectionNotFound, lang).to_string()
+            }
+            ConfigError::InvalidUrl => {
+                tr(TranslationKey::InvalidConnectionString, lang).to_string()
+            }
+            ConfigError::UnsupportedConnectionType(t) => {
+                tr_fmt(TranslationKey::UnsupportedConnectionType, lang, &[t])
             }
         }
     }

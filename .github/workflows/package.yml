@@ -27,21 +27,21 @@ jobs:
       - name: Package x86_64
         run: |
           cargo packager --release --formats dmg --target x86_64-apple-darwin
-          mv target/x86_64-apple-darwin/release/*.dmg Rudist-macos-x64.dmg
+          mv target/x86_64-apple-darwin/release/*.dmg Rudist-${{ github.ref_name }}-macos-x64.dmg
 
       # 打包 arm64 → dmg
       - name: Package arm64
         run: |
           cargo packager --release --formats dmg --target aarch64-apple-darwin
-          mv target/aarch64-apple-darwin/release/*.dmg Rudist-macos-arm64.dmg
+          mv target/aarch64-apple-darwin/release/*.dmg Rudist-${{ github.ref_name }}-macos-arm64.dmg
 
       # 一次上传两个 DMG，不会覆盖
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Rudist-macos-x64.dmg
-            Rudist-macos-arm64.dmg
+            Rudist-${{ github.ref_name }}-macos-x64.dmg
+            Rudist-${{ github.ref_name }}-macos-arm64.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -52,10 +52,10 @@ jobs:
       - run: cargo build --release
       - run: cargo packager --release --formats nsis
       - name: Rename artifact
-        run: Get-ChildItem target/release/*.exe | Select-Object -First 1 | Rename-Item -NewName "rudist_$env:GITHUB_REF_NAME`_windows.exe" -Force
+        run: Get-ChildItem target/release/*.exe | Select-Object -First 1 | Rename-Item -NewName "Rudist-${{ github.ref_name }}-windows.exe" -Force
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: target/release/rudist_*_windows.exe
+          files: target/release/Rudist-${{ github.ref_name }}-windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

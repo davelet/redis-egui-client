@@ -82,6 +82,25 @@ pub fn render_general_settings(
 
     ui.separator();
 
+    // Open connections in new tab setting
+    egui::Grid::new("open_in_new_tab_grid")
+        .num_columns(2)
+        .spacing([40.0, 12.0])
+        .min_col_width(120.0)
+        .show(ui, |ui| {
+            ui.label(tr(TranslationKey::OpenConnectionsInNewTab, current_lang));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let mut open_new = app.config.settings.open_connections_in_new_tab;
+                if ui.checkbox(&mut open_new, "").changed() {
+                    app.config.settings.open_connections_in_new_tab = open_new;
+                    app.config.mark_settings_dirty();
+                }
+            });
+            ui.end_row();
+        });
+
+    ui.separator();
+
     // Auto connect setting
     egui::Grid::new("auto_connect_grid")
         .num_columns(2)
