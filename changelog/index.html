@@ -439,6 +439,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#048-2026-04-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.8] - 2026-04-07
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.4.8] - 2026-04-07">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#047-2026-04-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -990,6 +1018,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#048-2026-04-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.8] - 2026-04-07
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.4.8] - 2026-04-07">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#047-2026-04-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1527,6 +1583,28 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="048-2026-04-07">[0.4.8] - 2026-04-07</h2>
+<h3 id="new-features">New Features</h3>
+<p><strong>Quick Connect Mode</strong>
+- Added Quick Connect mode in New Connection dialog
+- Supports Redis URL format: <code>redis://[&lt;username&gt;][:&lt;password&gt;@]&lt;hostname&gt;[:port][/[&lt;db&gt;]]</code>
+- Supports TLS connections via <code>rediss://</code> scheme
+- Auto-extracts host name as default connection name
+- Toggle between Quick Connect and Advanced mode</p>
+<p><strong>TLS Support for Advanced Mode</strong>
+- Added "Use TLS" checkbox in Advanced connection mode
+- Enables secure TLS/SSL connections without URL syntax
+- Both Quick Connect and Advanced modes now fully support TLS</p>
+<p><strong>Toast Notification System</strong>
+- Custom lightweight toast implementation (no third-party dependencies)
+- Supports warning, error, info, success notification types
+- Toasts stack in bottom-right corner with 5-second auto-dismiss
+- Connection error toasts with dedup mechanism per connection + message
+- Cross-frame timing handling to detect errors that arrive after loading completes</p>
+<p><strong>Open Connections in New Tab Setting</strong>
+- New setting: "Open Connections in New Tab" (default: enabled)
+- When disabled, clicking Connect uses current tab instead of creating new one
+- Applies to Welcome page, connection list, and keyboard shortcuts</p>
 <h2 id="047-2026-04-03">[0.4.7] - 2026-04-03</h2>
 <ul>
 <li>add theme switching support</li>
