@@ -1,4 +1,4 @@
-# Rudist - Redis GUI Client
+# Rudist - Redis GUI Client with AI
 
 [![CI](https://github.com/davelet/redis-egui-client/actions/workflows/release.yml/badge.svg)](https://github.com/davelet/redis-egui-client/actions/workflows/release.yml)
 [![CI](https://github.com/davelet/redis-egui-client/actions/workflows/docs.yml/badge.svg)](https://github.com/davelet/redis-egui-client/actions/workflows/docs.yml)
@@ -8,165 +8,151 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-A modern, high-performance Redis GUI client built with Rust and egui, supporting macOS and Windows.
+A modern Redis GUI client with built-in AI assistant. Manage Redis using natural language, keyboard-first design, and smooth user experience.
+
+---
+
+## ✨ AI-Powered Assistant
+
+**Talk to Redis in plain English.** No need to memorize commands.
+
+```
+You: "Show me all keys matching user:*"
+AI:  → SCAN 0 MATCH user:* COUNT 100
+
+You: "What's the TTL of session:abc123?"
+AI:  → TTL session:abc123
+
+You: "Delete all expired test keys"
+AI:  → Analyzes and suggests cleanup commands
+```
+
+### Two AI Modes
+
+| Mode | Description | Best For |
+|------|-------------|----------|
+| **Chat Mode** | Translates natural language → Redis command (requires confirmation) | Safe exploration, learning Redis |
+| **Agent Mode** | Full tool access, executes 18+ operations directly | Power users, complex workflows |
+
+### AI Capabilities (18+ Tools)
+
+- **Query**: filter keys, get key info, check existence, database stats
+- **Write**: set values, set TTL, rename/delete keys
+- **Data Structures**: Hash (hset/hdel), List (lset/rpush), Set (sadd/srem), ZSet (zadd/zrem)
+- **Database**: execute commands, switch databases
+
+### Flexible Model Support
+
+Works with OpenAI, Claude, Ollama (local), OpenRouter, and any OpenAI-compatible API. Your API keys are stored securely in system keychain (never in config files).
+
+👉 **Quick Start**: Press `Cmd/Ctrl + E` to open AI panel, type your question.
+
+---
+
+## ⌨️ Keyboard-First Design
+
+**Minimal mouse, maximum speed.** Every action has a shortcut.
+
+### Essential Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + E` | **Toggle AI Panel** ← Start here |
+| `Cmd/Ctrl + T` | New Tab |
+| `Cmd/Ctrl + W` | Close Tab |
+| `Cmd/Ctrl + R` | Refresh Key |
+| `Cmd/Ctrl + F` | Focus Filter |
+| `1-9` | Quick Connect (saved connections) |
+| `Cmd/Ctrl + 1-9` | Switch Tabs |
+| `↑/↓` | Command history navigation |
+| `Esc` | Close panel/dialog |
+
+All shortcuts are customizable in Settings (`Cmd/Ctrl + ,`).
+
+---
+
+## 🎯 Smooth User Experience
+
+- **Toast Notifications** - Connection errors, warnings with hover-to-pause
+- **Multi-Tab Workflow** - Independent sessions, color-coded environments
+- **Lazy Loading** - Large datasets load smoothly, UI never freezes
+- **Smart JSON** - Auto-format on view, compress on save
+- **Progress Indicators** - Visual feedback for all async operations
+
+---
 
 ## Core Features
 
-### Multi-Connection Management
-- **Multi-Tab Support** - Open multiple Redis connections simultaneously, switch between tabs quickly
-- **Connection Color Coding** - Assign different colors to different environments (dev/test/prod) for instant visual distinction
-- **Persistent Configuration** - Connection settings are automatically saved and available on next launch
-- **Connect All** - Quickly restore all previously opened connections
-- **Quick Connect** - Connect via Redis URL (`redis://user:pass@host:port/db`) or `rediss://` for TLS
-- **TLS Support** - Secure TLS/SSL connections in both Quick Connect and Advanced modes
+### Connection Management
+- **Quick Connect** - One-line URL: `redis://pass@host:port/db` or `rediss://` for TLS
+- **Multi-Tab** - Multiple Redis instances simultaneously
+- **Color Coding** - Visual distinction for dev/test/prod environments
+- **Persistent Config** - Auto-saved, restored on launch
 
-### Data Browsing & Editing
-- **Full Type Support** - Complete support for String, List, Hash, Set, ZSet
-- **Smart JSON Handling** - Auto-format JSON data for friendly editing, intelligent compression on save
-- **Lazy Loading** - Smooth browsing with large datasets, load keys and values on demand
-- **Real-time Filtering** - Key list supports real-time search and filtering
-- **Group Keys by Colon** - Organize keys in a tree structure based on colon separator (e.g., `user:123:profile`)
+### Data Operations
+- **Full Type Support** - String, List, Hash, Set, ZSet
+- **Key Tree View** - Organize by colon separator (`user:123:profile`)
+- **Real-time Filter** - Pattern matching with `*` wildcard
+- **TTL Management** - View and modify expiration times
+- **CRUD Operations** - Create, edit, delete keys with confirmation
 
-### Efficient Operations
-- **Keyboard-First** - Shortcut support reduces mouse usage and improves efficiency
-- **Command Line Mode** - Execute any Redis command directly
-- **TTL Management** - Conveniently view and modify key expiration times
-- **Data Operations** - Support copy, delete, rename, and other common operations
+### Performance
+- **Async I/O** - Tokio-based, never blocks UI
+- **Incremental Loading** - Batch loading for millions of keys
+- **Memory Efficient** - Large values loaded on demand
 
-### Performance Optimization
-- **Async I/O** - Tokio-based asynchronous architecture, operations never block
-- **Incremental Loading** - Batch loading for large key sets, UI remains responsive
-- **Memory Optimization** - Large values loaded on demand, prevents memory spikes
+### Cross-Platform
+- **macOS** - Native .app bundle, Apple Silicon (M1/M2/M3) support
+- **Windows** - MSI installer with PATH integration
 
-### Cross-Platform Support
-- **macOS** - Native App Bundle (.app) with Apple Silicon (M1/M2/M3) support; Intel Mac supported via [source build](#build-from-source)
-- **Windows** - MSI installer with application icon and system PATH integration
-
-### AI-Powered Assistant
-- **Natural Language Interface** - Control Redis using plain English commands
-- **Tool-Enabled AI** - AI can execute 18+ operations including:
-  - Query: filter keys, get key info, check existence, database stats
-  - Write: set values, set TTL, rename/delete keys
-  - Data Structures: Hash (hset/hdel), List (lset/rpush), Set (sadd/srem), ZSet (zadd/zrem)
-  - Database: execute commands, switch databases
-- **Multi-Round Conversation** - Maintains context for complex multi-step tasks
-- **Flexible Model Support** - Works with OpenAI, Claude, Ollama, OpenRouter, and any OpenAI-compatible API
+---
 
 ## Quick Start
 
-### Installation
+### Install
 
-Download the latest release from [GitHub Releases](https://github.com/davelet/redis-egui-client/releases).
+Download from [GitHub Releases](https://github.com/davelet/redis-egui-client/releases):
 
-#### macOS
-Download the `.dmg` file and drag the app to your Applications folder.
-
-#### Windows
-Download and run the `.msi` installer.
+- **macOS**: `.dmg` → drag to Applications
+- **Windows**: `.msi` → run installer
 
 ### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/davelet/redis-egui-client.git
 cd redis-egui-client
-
-# Run in development mode
 cargo run
-
-# Release build
-cargo build --release
 ```
 
-### macOS App Bundle Build
+### First Run
 
-```bash
-# Install cargo-bundle
-cargo install cargo-bundle
+1. Press `Cmd/Ctrl + N` to create a connection
+2. Enter host/port (or use Quick Connect URL)
+3. Press `Cmd/Ctrl + E` to open AI panel
+4. Type: "Show me all keys" ← Start exploring!
 
-# Build macOS app
-./scripts/build-macos.sh
-```
+---
 
-### Windows Build (with icon support)
+## Documentation
 
-The Windows build automatically includes application icon generation. Ensure you have the necessary Rust toolchain for Windows targets:
+- [AI Configuration](docs/ai/configuration.md) - Set up models and API keys
+- [AI Tools Reference](docs/ai/tools.md) - Full list of 18+ tools
+- [Keyboard Shortcuts](docs/usage/shortcuts.md) - Complete shortcut reference
+- [Usage Guide](docs/usage/index.md) - Full documentation
 
-```bash
-# Build for Windows (from any platform if cross-compilation is set up)
-cargo build --release --target x86_64-pc-windows-msvc
-```
-
-## Usage Guide
-
-### Creating a Connection
-1. Click the dropdown at the top and select "+ New"
-2. Fill in connection details (name, host, port, password, etc.)
-3. Choose a connection color to distinguish environments
-4. Click save, connection config will be persisted locally
-
-### Managing Data
-- **Browse Keys** - Left panel shows all keys, supports `*` wildcard filtering
-- **View Values** - Click a key to see detailed content on the right
-- **Edit Data** - Double-click a value or click edit button, JSON data auto-formats
-- **Execute Commands** - Enter any Redis command in the bottom command line, press Enter to execute
-
-### Keyboard Shortcuts
-| Shortcut | Function |
-|----------|----------|
-| `Cmd/Ctrl + T` | New Tab |
-| `Cmd/Ctrl + W` | Close current Tab |
-| `Cmd/Ctrl + R` | Refresh current Key |
-| `Cmd/Ctrl + F` | Focus to Key filter box |
-| `Cmd/Ctrl + 1-9` | Switch to Tab 1-9 |
-| `Cmd/Ctrl + 0` | Switch to the rightmost Tab |
-| `Cmd/Ctrl + E` | Toggle Command Line Panel |
-| `Up/Down Arrow` | Navigate command history (in command line) |
-| `Cmd/Ctrl + Shift + D` | Delete duplicate Tabs and unconnected Tabs |
-
-## Configuration
-
-Configuration file locations:
-- **macOS**: `~/.config/rudist/config.toml`
-- **Windows**: `%APPDATA%\rudist\config.toml`
-
-Example configuration:
-```toml
-[[connections]]
-name = "Local Dev"
-host = "localhost"
-port = 6379
-password = ""
-database = 0
-color = "#4CAF50"
-
-[[connections]]
-name = "Production"
-host = "redis.example.com"
-port = 6380
-password = "secret"
-database = 0
-color = "#F44336"
-```
+---
 
 ## Contributing
 
-Issues and PRs are welcome!
-
 ```bash
-# Setup Git hooks
 sh scripts/setup-git-hooks.sh
-
-# Code formatting
 cargo fmt --all
-
-# Run tests
 cargo test
 ```
 
 ## License
 
-Apache License 2.0 - See [LICENSE](LICENSE) file for details
+Apache License 2.0
 
 ## Author
 

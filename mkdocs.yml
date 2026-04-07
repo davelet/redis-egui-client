@@ -5,15 +5,24 @@ repo_url: https://github.com/davelet/redis-egui-client
 
 theme:
   name: material
-  palette:
-    - primary: blue
+
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Home: index.md
   - Install: install.md
-  - Usage: usage.md
-  - AI Configuration: ai_configuration.md
-  - AI Tools: ai_tools.md
+  - AI Assistant:
+    - Overview: ai/index.md
+    - Configuration: ai/configuration.md
+    - Tools Reference: ai/tools.md
+  - Usage:
+    - Overview: usage/index.md
+    - Keyboard Shortcuts: usage/shortcuts.md
+    - Interface: usage/interface.md
+    - Connections: usage/connections.md
+    - Data Operations: usage/data-operations.md
+    - Settings: usage/settings.md
   - Changelog: changelog.md
 
 plugins:
