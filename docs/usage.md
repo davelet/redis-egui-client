@@ -239,6 +239,16 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 - Supports letters, numbers, F1-F12 function keys
 - Supports modifier combinations (Ctrl/Cmd, Alt, Shift)
 
+## Toast Notifications
+
+Rudist displays toast notifications for important events like connection errors. Toasts appear in the bottom-right corner of the window.
+
+### Toast Behavior
+
+- **Auto-dismiss**: Toasts automatically disappear after 10 seconds
+- **Hover to pause**: Hover your mouse over a toast to pause the timer and keep it visible longer
+- **Progress bar**: A colored progress bar at the bottom shows remaining time before auto-dismiss
+
 ## Status Bar Information
 
 The bottom status bar displays the following information:

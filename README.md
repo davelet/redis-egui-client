@@ -17,6 +17,8 @@ A modern, high-performance Redis GUI client built with Rust and egui, supporting
 - **Connection Color Coding** - Assign different colors to different environments (dev/test/prod) for instant visual distinction
 - **Persistent Configuration** - Connection settings are automatically saved and available on next launch
 - **Connect All** - Quickly restore all previously opened connections
+- **Quick Connect** - Connect via Redis URL (`redis://user:pass@host:port/db`) or `rediss://` for TLS
+- **TLS Support** - Secure TLS/SSL connections in both Quick Connect and Advanced modes
 
 ### Data Browsing & Editing
 - **Full Type Support** - Complete support for String, List, Hash, Set, ZSet

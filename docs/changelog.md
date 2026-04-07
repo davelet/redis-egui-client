@@ -16,6 +16,13 @@
 - Enables secure TLS/SSL connections without URL syntax
 - Both Quick Connect and Advanced modes now fully support TLS
 
+**Toast Notification System**
+- Custom lightweight toast implementation (no third-party dependencies)
+- Supports warning, error, info, success notification types
+- Toasts stack in bottom-right corner with 5-second auto-dismiss
+- Connection error toasts with dedup mechanism per connection + message
+- Cross-frame timing handling to detect errors that arrive after loading completes
+
 **Open Connections in New Tab Setting**
 - New setting: "Open Connections in New Tab" (default: enabled)
 - When disabled, clicking Connect uses current tab instead of creating new one
