@@ -1,0 +1,6 @@
+/* Custom primary color matching icon top gradient */
+:root {
+  --md-primary-fg-color: #DF6565;
+  --md-primary-fg-color--light: #E88585;
+  --md-primary-fg-color--dark: #C54545;
+}
