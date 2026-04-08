@@ -1,6 +1,6 @@
-/* Custom primary color matching icon top gradient (#DF6565) */
+/* Custom primary color matching icon top gradient (#753131) */
 :root {
-  --md-primary-fg-color: #df6565;
+  --md-primary-fg-color: #753131;
   --md-primary-fg-color--light: #e88585;
   --md-primary-fg-color--dark: #c54545;
   --md-primary-bg-color: #ffffff;
@@ -12,17 +12,17 @@
 
 /* Override header background */
 .md-header {
-  background-color: #df6565 !important;
+  background-color: #753131 !important;
 }
 
 /* Override sidebar active link */
 .md-nav__link--active {
-  color: #df6565;
+  color: #753131;
 }
 
 /* Override links */
 .md-typeset a {
-  color: #df6565;
+  color: #753131;
 }
 
 /* Override hover states */
