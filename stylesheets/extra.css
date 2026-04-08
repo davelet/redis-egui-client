@@ -1,31 +1,31 @@
 /* Custom primary color matching icon top gradient (#DF6565) */
 :root {
-  --md-primary-fg-color: #DF6565;
-  --md-primary-fg-color--light: #E88585;
-  --md-primary-fg-color--dark: #C54545;
+  --md-primary-fg-color: #df6565;
+  --md-primary-fg-color--light: #e88585;
+  --md-primary-fg-color--dark: #c54545;
   --md-primary-bg-color: #ffffff;
   --md-primary-bg-color--light: #ffffff;
-  
-  --md-accent-fg-color: #C54545;
+
+  --md-accent-fg-color: #c54545;
   --md-accent-fg-color--transparent: rgba(197, 69, 69, 0.1);
 }
 
 /* Override header background */
 .md-header {
-  background-color: #DF6565;
+  background-color: #df6565 !important;
 }
 
 /* Override sidebar active link */
 .md-nav__link--active {
-  color: #DF6565;
+  color: #df6565;
 }
 
 /* Override links */
 .md-typeset a {
-  color: #DF6565;
+  color: #df6565;
 }
 
 /* Override hover states */
 .md-typeset a:hover {
-  color: #C54545;
+  color: #c54545;
 }
