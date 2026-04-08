@@ -145,7 +145,6 @@ cargo run
 ## 贡献
 
 ```bash
-sh scripts/setup-git-hooks.sh
 cargo fmt --all
 cargo test
 ```

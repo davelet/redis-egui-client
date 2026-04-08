@@ -3,7 +3,7 @@ use e_client_config::language::Language;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::{operations, EditState};
+use super::{EditState, operations};
 
 /// Type alias for the common Arc<RwLock<T>> pattern
 pub type Shared<T> = Arc<RwLock<T>>;

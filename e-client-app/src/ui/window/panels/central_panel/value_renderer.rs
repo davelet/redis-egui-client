@@ -2,7 +2,7 @@ use crate::core::ValueData;
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{MAX_CENTRAL_PANEL_HEIGHT, MIN_CENTRAL_PANEL_HEIGHT};
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, tr_fmt, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use super::utils::truncate_with_ellipsis;
 

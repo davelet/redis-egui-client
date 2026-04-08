@@ -1,9 +1,9 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
+use e_client_basics::emoji;
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::language::Language;
-use e_client_config::translations::emoji;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 use std::collections::BTreeMap;
 
 /// Represents a node in the key tree structure

@@ -1,8 +1,9 @@
 //! Keyboard shortcut settings UI components
 
+use e_client_basics::emoji;
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
-use e_client_config::translations::{emoji, tr, tr_fmt, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use super::super::super::RedisApp;
 

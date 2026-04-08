@@ -2,7 +2,6 @@ use crate::ui::icon::load_icon;
 use crate::ui::window::RedisApp;
 use crate::ui::window::panels::render_error_panel;
 use e_client_config::config::{Config, Theme};
-use e_client_config::constants::APP_NAME;
 
 pub mod font;
 pub mod icon;
@@ -52,7 +51,7 @@ fn detect_windows_theme() -> egui::Visuals {
             "query",
             r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
             "/v",
-            "AppsUseLightTheme"
+            "AppsUseLightTheme",
         ])
         .output();
 
@@ -83,7 +82,7 @@ pub(crate) fn start_app() -> eframe::Result {
     let height = config.window.height.max(100.0); // Minimum height 100
     let mut viewport = egui::ViewportBuilder::default()
         .with_icon(load_icon())
-        .with_title(APP_NAME);
+        .with_title(env!("CARGO_PKG_NAME"));
 
     // Set window size and position
     if !config.window.maximized {
@@ -106,7 +105,7 @@ pub(crate) fn start_app() -> eframe::Result {
     };
 
     eframe::run_native(
-        APP_NAME,
+        env!("CARGO_PKG_NAME"),
         options,
         Box::new(|cc| {
             // Configure fonts for better Chinese and English display

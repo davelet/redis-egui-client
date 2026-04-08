@@ -104,7 +104,7 @@ impl CopyFeedbackManager {
         global_language: Language,
     ) -> String {
         use e_client_basics::constants::COPY_FEEDBACK_DURATION_MS;
-        use e_client_config::translations::{tr, TranslationKey};
+        use e_client_config::translations::{TranslationKey, tr};
         use std::time::Duration;
 
         let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);

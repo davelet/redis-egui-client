@@ -33,3 +33,9 @@ pub mod status {
     /// Disconnected / Cross (✗)
     pub const DISCONNECTED: &str = "\u{2717}";
 }
+
+/// Web/Link icons
+pub mod web {
+    /// Globe / Web (🌐)
+    pub const WEB: &str = "\u{1F310}";
+}

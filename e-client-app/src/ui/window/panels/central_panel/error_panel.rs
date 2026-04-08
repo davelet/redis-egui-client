@@ -1,15 +1,15 @@
 use e_client_config::config::Config;
-use e_client_config::constants::{APP_NAME, LOAD_ERROR_TITLE};
+use e_client_config::constants::LOAD_ERROR_TITLE;
 use e_client_config::error::ConfigError;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 /// Render error panel when configuration fails to load
 pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
     let lang = Language::default();
     let err = err.to_message(lang);
     let options = eframe::NativeOptions::default();
-    eframe::run_simple_native(APP_NAME, options, move |ctx, _frame| {
+    eframe::run_simple_native(env!("CARGO_PKG_NAME"), options, move |ctx, _frame| {
         use std::cell::Cell;
         thread_local! {
             static SHOW_POPUP: Cell<bool> = Cell::new(false);

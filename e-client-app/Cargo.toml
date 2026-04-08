@@ -1,6 +1,6 @@
 [package]
 name = "Rudist"
-version = "0.4.8"
+version = "0.5.0"
 edition = "2024"
 repository = "https://github.com/davelet/redis-egui-client"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
@@ -51,7 +51,6 @@ eula = false
 [package.metadata.packager]
 product-name = "Rudist"
 identifier = "com.sheldon.client.rudist"
-version = "0.4.2"
 category = "DeveloperTool"
 publisher = "Sheldon.Wei"
 homepage = "https://github.com/davelet/redis-egui-client"

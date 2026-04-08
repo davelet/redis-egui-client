@@ -1,15 +1,16 @@
 //! Top panel - connection bar and settings button
 
 use crate::help::get_help_sections;
-use crate::ui::window::components::markdown::render_markdown;
 use crate::ui::window::RedisApp;
-use e_client_basics::constants::ONLINE_DOCS_URL;
+use crate::ui::window::components::markdown::render_markdown;
 use e_client_basics::constants::WILD_KEY_FILTER;
+use e_client_basics::constants::{GITHUB_REPO_URL, ONLINE_DOCS_URL};
+use e_client_basics::emoji;
+use e_client_basics::emoji::web::WEB;
 use e_client_config::language::Language;
-use e_client_config::translations::emoji;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
-use super::settings_panel::{render_settings_window, SettingsSection};
+use super::settings_panel::{SettingsSection, render_settings_window};
 
 pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if no active tab
@@ -284,35 +285,58 @@ fn render_help_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Lan
                 .width_range(180.0..=200.0)
                 .resizable(false)
                 .show_inside(ui, |ui| {
-                    // Sidebar header - use text instead of emoji
-                    ui.label(
-                        egui::RichText::new(tr(TranslationKey::HelpContents, current_lang))
-                            .strong()
-                            .size(14.0),
-                    );
-                    ui.add_space(8.0);
+                    ui.vertical(|ui| {
+                        ui.add_space(4.0);
 
-                    // Module list with unique IDs
-                    for (idx, section) in sections.iter().enumerate() {
-                        let is_selected = idx == selected_idx;
-                        let label = egui::RichText::new(&section.title).size(13.0).strong();
+                        // Sidebar header - use text instead of emoji
+                        ui.label(
+                            egui::RichText::new(tr(TranslationKey::HelpContents, current_lang))
+                                .strong()
+                                .size(14.0),
+                        );
+                        ui.add_space(8.0);
 
-                        let response = ui
-                            .push_id(idx, |ui| ui.selectable_label(is_selected, label))
-                            .inner;
-                        if response.clicked() {
-                            app.help_selected_section = Some(idx);
+                        // Module list with unique IDs
+                        for (idx, section) in sections.iter().enumerate() {
+                            let is_selected = idx == selected_idx;
+                            let label = egui::RichText::new(&section.title).size(13.0).strong();
+
+                            let response = ui
+                                .push_id(idx, |ui| ui.selectable_label(is_selected, label))
+                                .inner;
+                            if response.clicked() {
+                                app.help_selected_section = Some(idx);
+                            }
                         }
-                    }
 
-                    // Online docs link at bottom
-                    ui.add_space(12.0);
-                    ui.separator();
-                    ui.add_space(8.0);
-                    ui.hyperlink_to(
-                        format!("{} →", tr(TranslationKey::HelpOnlineDocs, current_lang)),
-                        ONLINE_DOCS_URL,
-                    );
+                        ui.add_space(8.0);
+                        ui.separator();
+
+                        // Spacer to push links to bottom
+                        ui.add_space(16.0);
+
+                        // Online docs and GitHub links
+                        ui.hyperlink_to(
+                            tr_fmt(TranslationKey::HelpOnlineDocs, current_lang, &[WEB]),
+                            ONLINE_DOCS_URL,
+                        );
+                        ui.hyperlink_to(
+                            tr_fmt(TranslationKey::HelpGithub, current_lang, &[WEB]),
+                            GITHUB_REPO_URL,
+                        );
+
+                        // Version info at bottom of sidebar
+                        ui.add_space(12.0);
+                        ui.separator();
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            ui.label(format!(
+                                "{} v{}",
+                                env!("CARGO_PKG_NAME"),
+                                env!("CARGO_PKG_VERSION")
+                            ));
+                        });
+                    });
                 });
 
             // Vertical separator

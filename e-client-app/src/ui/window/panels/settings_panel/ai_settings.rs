@@ -3,10 +3,11 @@
 use e_client_basics::constants::{
     AI_API_KEY_LIMIT, AI_MODEL_ID_LIMIT, AI_MODEL_NAME_LIMIT, AI_MODEL_URL_LIMIT,
 };
+use e_client_basics::emoji;
 use e_client_config::config::ai_config::{AiModel, AiProviderType};
 use e_client_config::language::Language;
-use e_client_config::translations::{emoji, tr, tr_fmt, TranslationKey};
-use e_client_core::{detect_api_provider, AiClient, CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_core::{AiClient, CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT, detect_api_provider};
 use std::str::FromStr;
 
 use super::super::super::RedisApp;

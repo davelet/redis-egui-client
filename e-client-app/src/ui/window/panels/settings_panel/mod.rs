@@ -6,11 +6,11 @@ pub mod shortcut_settings;
 
 pub use ai_settings::render_ai_settings_section;
 pub use general_settings::render_general_settings;
-pub use shortcut_settings::{parse_key_from_str, render_shortcut_settings, SUPPORTED_KEYS};
+pub use shortcut_settings::{SUPPORTED_KEYS, parse_key_from_str, render_shortcut_settings};
 
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 use super::super::RedisApp;
 

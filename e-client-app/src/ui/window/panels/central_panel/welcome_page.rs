@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use super::utils::parse_color_hex;
 
@@ -16,7 +16,14 @@ pub fn render_welcome_page(
         ui.add_space(50.0);
 
         // Welcome title
-        ui.heading(egui::RichText::new(tr(TranslationKey::WelcomeTitle, current_lang)).size(32.0));
+        ui.heading(
+            egui::RichText::new(tr_fmt(
+                TranslationKey::WelcomeTitle,
+                current_lang,
+                &[env!("CARGO_PKG_NAME")],
+            ))
+            .size(32.0),
+        );
         ui.add_space(20.0);
 
         // Welcome message

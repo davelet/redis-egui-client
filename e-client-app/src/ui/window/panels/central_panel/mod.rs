@@ -53,7 +53,7 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 );
             }
         } else {
-            use e_client_config::translations::{tr, TranslationKey};
+            use e_client_config::translations::{TranslationKey, tr};
             ui.label(tr(TranslationKey::SelectKeyPrompt, current_lang));
         }
     });

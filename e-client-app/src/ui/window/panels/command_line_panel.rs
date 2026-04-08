@@ -609,7 +609,10 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     let ai_config_clone = ai_config.clone();
     let rig_agent_arc = app.tabs[tab_idx].command_line_panel.rig_agent.clone();
     let mode_for_task = current_mode;
-    let per_tab_model_id = app.tabs[tab_idx].command_line_panel.current_model_id.clone();
+    let per_tab_model_id = app.tabs[tab_idx]
+        .command_line_panel
+        .current_model_id
+        .clone();
 
     // Execute AI chat with rig agent asynchronously
     tokio::task::spawn(async move {
@@ -619,8 +622,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         // If agent doesn't exist, try to create it first
         if agent_opt.is_none() {
             // Determine which model to use: per-tab > global active
-            let model_id = per_tab_model_id
-                .or_else(|| ai_config_clone.active_model_id.clone());
+            let model_id = per_tab_model_id.or_else(|| ai_config_clone.active_model_id.clone());
 
             let mut model_with_key = match model_id {
                 Some(id) => ai_config_clone
@@ -643,7 +645,11 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
             // Build a config with the selected model's API key
             let mut config_with_key = ai_config_clone.clone();
             config_with_key.active_model_id = Some(model_with_key.id.clone());
-            if let Some(m) = config_with_key.models.iter_mut().find(|m| m.id == model_with_key.id) {
+            if let Some(m) = config_with_key
+                .models
+                .iter_mut()
+                .find(|m| m.id == model_with_key.id)
+            {
                 m.api_key = model_with_key.api_key.clone();
             } else {
                 config_with_key.models.push(model_with_key.clone());

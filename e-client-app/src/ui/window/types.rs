@@ -4,7 +4,7 @@ use e_client_basics::constants::DEFAULT_SIDE_PANEL_WIDTH;
 use e_client_config::config::ai_config::{AiMode, AiModel};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 use e_client_core::AiResponseError;
 
 /// A single entry in the CLI history.

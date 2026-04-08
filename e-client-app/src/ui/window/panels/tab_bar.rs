@@ -1,8 +1,8 @@
 use crate::ui::window::RedisApp;
 use e_client_basics::constants::ACTIVE_TAB_BACKGROUND_COLOR;
+use e_client_basics::emoji;
 use e_client_config::language::Language;
-use e_client_config::translations::emoji;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 use std::collections::HashSet;
 
 pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {

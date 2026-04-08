@@ -4,8 +4,13 @@ use crate::ai_tools::{
     SetStringTool, SetTtlTool, SremTool, ZaddTool, ZremTool,
 };
 use crate::redis_client::RedisClient;
-use e_client_config::config::ai_config::{AiConfig, AiModel, AiMode};
-use rig::{agent::Agent, client::CompletionClient, completion::{Message, Prompt}, providers::openai};
+use e_client_config::config::ai_config::{AiConfig, AiMode, AiModel};
+use rig::{
+    agent::Agent,
+    client::CompletionClient,
+    completion::{Message, Prompt},
+    providers::openai,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::info;
@@ -113,14 +118,14 @@ impl AiResponseError {
             // "CompletionError: HttpError: Invalid status code 400 Bad Request with message: {"error":{"code":"InvalidParameter","message":"The parameter `input[2].reasoning` specified in the request are not valid: Item reasoning is not supported for model: doubao-seed-1-6-lite, version: 251015, please use another latest model. Request id: 0217749362096289a0d83abff91b62c26f47d22f8f16225aca1e2","param":"input[2].reasoning","type":"BadRequest"}}"
             let mut m = String::new();
             if let Some(model_start) = error_lower.find("model: ") {
-                    let after_model = &error_lower[model_start + "model: ".len()..];
+                let after_model = &error_lower[model_start + "model: ".len()..];
 
-                    if let Some(comma_pos) = after_model.find(", please") {
-                        let model_part = &after_model[..comma_pos].trim();
+                if let Some(comma_pos) = after_model.find(", please") {
+                    let model_part = &after_model[..comma_pos].trim();
 
-                        m = model_part.to_string();
-                    }
+                    m = model_part.to_string();
                 }
+            }
             AiResponseError::InvalidModel(m)
         } else if error_lower.contains("url") || error_lower.contains("invalid") {
             AiResponseError::InvalidUrl

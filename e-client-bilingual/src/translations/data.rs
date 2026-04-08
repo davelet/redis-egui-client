@@ -297,7 +297,7 @@ pub fn load_all_translations(
     // Welcome page
     strings.insert(
         TranslationKey::WelcomeTitle,
-        tr_en_zh("Welcome to Redis Client", "欢迎使用 Redis 客户端"),
+        tr_en_zh("Welcome to {}", "欢迎使用{}"),
     );
     strings.insert(
         TranslationKey::WelcomeMessage,
@@ -755,7 +755,11 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::HelpOnlineDocs,
-        tr_en_zh("Online Docs", "在线文档"),
+        tr_en_zh("Online Docs {}", "在线文档 {}"),
+    );
+    strings.insert(
+        TranslationKey::HelpGithub,
+        tr_en_zh("GitHub {}", "开源仓库 {}"),
     );
 
     // Theme settings

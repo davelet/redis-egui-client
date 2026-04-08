@@ -1,8 +1,8 @@
 use crate::core::ValueData;
 use crate::ui::window::RedisApp;
+use e_client_basics::emoji;
 use e_client_config::language::Language;
-use e_client_config::translations::emoji;
-use e_client_config::translations::{tr, tr_fmt, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use super::utils::{format_ttl, truncate_key, value_to_copy_text};
 

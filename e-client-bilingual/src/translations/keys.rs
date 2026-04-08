@@ -222,6 +222,7 @@ pub enum TranslationKey {
     HelpContents,
     HelpInThisSection,
     HelpOnlineDocs,
+    HelpGithub,
     Theme,
     ThemeSystem,
     ThemeLight,

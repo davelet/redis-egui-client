@@ -1,12 +1,8 @@
 pub mod data;
-pub mod emoji;
 pub mod keys;
 pub mod translator;
 
-pub use translator::{tr, tr_fmt, Translator};
+pub use translator::{Translator, tr, tr_fmt};
 
 // Re-export keys for convenience
 pub use keys::*;
-
-// Re-export emoji for convenience
-pub use emoji::*;

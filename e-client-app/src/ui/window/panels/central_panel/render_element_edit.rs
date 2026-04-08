@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 /// Render element edit dialog
 pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {

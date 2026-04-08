@@ -1,7 +1,7 @@
 use crate::constants::{CONNECTION_AUTH_LIMIT, CONNECTION_NAME_LIMIT, CONNECTION_URL_LIMIT};
 use crate::error::ConfigError;
 use e_client_bilingual::language::Language;
-use e_client_bilingual::translations::{tr, TranslationKey};
+use e_client_bilingual::translations::{TranslationKey, tr};
 
 use redis::{
     ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo, RedisError,

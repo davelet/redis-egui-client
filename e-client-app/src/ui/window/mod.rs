@@ -12,8 +12,8 @@ pub use panels::{
 // Re-export types
 pub use types::{AiModelEditor, ElementEditDialog, NewKeyDialog, RedisTab};
 
-pub mod copy_feedback;
 pub mod components;
+pub mod copy_feedback;
 mod new_connection_window;
 pub mod panels;
 pub mod shortcut_manager;
@@ -186,7 +186,6 @@ impl eframe::App for RedisApp {
 }
 
 impl RedisApp {
-
     // Getters for private fields (needed by panels)
     pub fn tabs(&self) -> &[RedisTab] {
         &self.tabs

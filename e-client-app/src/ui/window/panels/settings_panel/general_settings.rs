@@ -4,7 +4,7 @@ use crate::ui::theme_to_visuals;
 use e_client_config::config::Theme;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 use super::super::super::RedisApp;
 

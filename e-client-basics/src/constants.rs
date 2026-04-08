@@ -1,11 +1,12 @@
 // Global non-localized constants
 
-/// Application name (not localized)
-pub const APP_NAME: &str = "Rudist";
 pub const LOAD_ERROR_TITLE: &str = "Load Error:";
 
 /// Online documentation URL
 pub const ONLINE_DOCS_URL: &str = "https://redis-egui-client.pages.dev/";
+
+/// GitHub repository URL
+pub const GITHUB_REPO_URL: &str = "https://github.com/davelet/redis-egui-client";
 
 /// Default Redis URL used when no other is specified
 pub const DEFAULT_REDIS_PORT: &str = "6379";

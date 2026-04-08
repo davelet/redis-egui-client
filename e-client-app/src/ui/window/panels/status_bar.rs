@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use e_client_config::constants::WILD_KEY_FILTER;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if no active tab

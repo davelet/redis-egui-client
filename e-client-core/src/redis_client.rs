@@ -85,7 +85,10 @@ impl RedisClient {
                     let db_count: u32 = if config.len() >= 2 {
                         config[1].parse().unwrap_or(DEFAULT_DATABASE_COUNT)
                     } else {
-                        config.last().and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_DATABASE_COUNT)
+                        config
+                            .last()
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(DEFAULT_DATABASE_COUNT)
                     };
                     Ok((0..db_count).collect())
                 }
