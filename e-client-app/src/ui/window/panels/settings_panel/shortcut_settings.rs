@@ -174,6 +174,21 @@ pub fn render_shortcut_settings(
     // Check if we're currently capturing a shortcut
     let is_capturing = app.shortcut_state.editing_shortcut.is_some();
 
+    // Show hint about underlined shortcuts only if there are customized shortcuts
+    let has_customized_shortcuts = ShortcutAction::all_actions()
+        .iter()
+        .any(|(action, _)| !action.is_non_editable() && app.config.settings.shortcuts.is_customized(action));
+    if has_customized_shortcuts {
+        ui.horizontal(|ui| {
+            ui.label(
+                egui::RichText::new(tr(TranslationKey::ShortcutUnderlineHint, current_lang))
+                    .color(ui.visuals().weak_text_color())
+                    .size(12.0),
+            );
+        });
+        ui.add_space(4.0);
+    }
+
     if is_capturing {
         ui.colored_label(
             ui.visuals().warn_fg_color,

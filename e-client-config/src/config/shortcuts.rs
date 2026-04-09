@@ -20,6 +20,12 @@ pub enum ShortcutAction {
     #[serde(rename = "new_connection")]
     #[strum(serialize = "NewConnection")]
     NewConnection,
+    #[serde(rename = "confirm_new_connection")]
+    #[strum(serialize = "ConfirmNewConnection")]
+    ConfirmNewConnection,
+    #[serde(rename = "cancel_new_connection")]
+    #[strum(serialize = "CancelNewConnection")]
+    CancelNewConnection,
     #[serde(rename = "connect_all_unclosed")]
     #[strum(serialize = "ConnectAllUnclosed")]
     ConnectAllUnclosed,
@@ -142,6 +148,8 @@ impl ShortcutAction {
         };
         match self {
             ShortcutAction::NewConnection => format!("{}+N", mod_key),
+            ShortcutAction::ConfirmNewConnection => "Cmd+Enter".to_string(),
+            ShortcutAction::CancelNewConnection => "Esc".to_string(),
             ShortcutAction::ConnectAllUnclosed => "0".to_string(),
             ShortcutAction::ConnectConnection1 => "1".to_string(),
             ShortcutAction::ConnectConnection2 => "2".to_string(),
@@ -183,6 +191,8 @@ impl ShortcutAction {
     pub fn translation_key(&self) -> TranslationKey {
         match self {
             ShortcutAction::NewConnection => TranslationKey::ShortcutNewConnection,
+            ShortcutAction::ConfirmNewConnection => TranslationKey::ShortcutConfirmNewConnection,
+            ShortcutAction::CancelNewConnection => TranslationKey::ShortcutCancelNewConnection,
             ShortcutAction::ConnectAllUnclosed => TranslationKey::ShortcutConnectAllUnclosed,
             ShortcutAction::ConnectConnection1 => TranslationKey::ShortcutConnectConnection1,
             ShortcutAction::ConnectConnection2 => TranslationKey::ShortcutConnectConnection2,
@@ -231,6 +241,7 @@ impl ShortcutAction {
                 | ShortcutAction::CloseCommandLine
                 | ShortcutAction::ExecuteAiCommand
                 | ShortcutAction::CancelAiCommand
+                | ShortcutAction::CancelNewConnection
                 | ShortcutAction::SwitchToTab1
                 | ShortcutAction::SwitchToTab2
                 | ShortcutAction::SwitchToTab3
@@ -308,10 +319,18 @@ impl Default for ShortcutConfig {
 
 impl ShortcutConfig {
     pub fn get_binding(&self, action: &ShortcutAction) -> String {
-        self.bindings
+        let binding = self
+            .bindings
             .get(&format!("{:?}", action))
             .cloned()
-            .unwrap_or_else(|| action.default_key())
+            .unwrap_or_else(|| action.default_key());
+
+        // Convert to current platform's display format
+        if cfg!(target_os = "macos") {
+            binding.replace("Ctrl+", "Cmd+")
+        } else {
+            binding.replace("Cmd+", "Ctrl+")
+        }
     }
 
     /// Check if the binding for this action is customized (different from default)

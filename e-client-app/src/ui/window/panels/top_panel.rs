@@ -9,8 +9,28 @@ use e_client_basics::emoji;
 use e_client_basics::emoji::web::WEB;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use std::sync::OnceLock;
 
 use super::settings_panel::{SettingsSection, render_settings_window};
+
+/// Cached donate image texture
+static DONATE_TEXTURE: OnceLock<std::sync::Arc<egui::TextureHandle>> = OnceLock::new();
+
+/// Load donate image texture (cached)
+fn get_donate_texture(ctx: &egui::Context) -> std::sync::Arc<egui::TextureHandle> {
+    DONATE_TEXTURE
+        .get_or_init(|| {
+            let image_bytes = include_bytes!("../../../../../assets/donate.png");
+            let image = image::load_from_memory(image_bytes).unwrap_or_else(|_| {
+                image::DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1)) // Fallback to empty image
+            });
+            let rgba = image.to_rgba8();
+            let size = [rgba.width() as _, rgba.height() as _];
+            let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
+            std::sync::Arc::new(ctx.load_texture("donate", color_image, egui::TextureOptions::default()))
+        })
+        .clone()
+}
 
 pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if no active tab
@@ -336,6 +356,35 @@ fn render_help_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Lan
                                 env!("CARGO_PKG_VERSION")
                             ));
                         });
+
+                        // Promotions: Donation and other tools
+                        ui.add_space(16.0);
+                        ui.separator();
+                        ui.add_space(8.0);
+
+                        // WeChat donation
+                        ui.label(egui::RichText::new(tr(TranslationKey::SupportUs, current_lang)).size(12.0).weak());
+                        ui.add_space(4.0);
+
+                        // Load and display donate image (cached)
+                        let donate_texture = get_donate_texture(ui.ctx());
+                        ui.add(
+                            egui::Image::new(&*donate_texture)
+                                .max_width(160.0)
+                                .fit_to_original_size(1.0),
+                        )
+                        .on_hover_text(tr(TranslationKey::SupportUsDesc, current_lang));
+
+                        ui.add_space(12.0);
+
+                        // Recommended tool
+                        ui.label(egui::RichText::new(tr(TranslationKey::Recommended, current_lang)).size(12.0).weak());
+                        ui.add_space(4.0);
+                        ui.hyperlink_to(
+                            tr(TranslationKey::GitIntelligenceMessage, current_lang),
+                            "https://git-intelligence-message.pages.dev/",
+                        );
+                        ui.label(egui::RichText::new(tr(TranslationKey::GitIntelligenceMessageDesc, current_lang)).size(11.0).weak());
                     });
                 });
 

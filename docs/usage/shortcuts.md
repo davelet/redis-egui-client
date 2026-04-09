@@ -38,3 +38,9 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 4. Press the new keyboard combination
 5. The system automatically detects conflicts and warns
 6. Click **Reset to Default** to restore default settings
+
+### Shortcut Customization Indicator
+
+- Shortcuts with **underlined names** indicate they have been customized from their default values
+- This helps you quickly identify which shortcuts you've modified
+- To see the original default value, hover over the shortcut entry

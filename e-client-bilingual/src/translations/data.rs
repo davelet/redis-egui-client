@@ -328,6 +328,14 @@ pub fn load_all_translations(
         tr_en_zh("New Connection", "新建连接"),
     );
     strings.insert(
+        TranslationKey::ShortcutConfirmNewConnection,
+        tr_en_zh("Confirm New Connection", "确认新建连接"),
+    );
+    strings.insert(
+        TranslationKey::ShortcutCancelNewConnection,
+        tr_en_zh("Cancel New Connection", "取消新建连接"),
+    );
+    strings.insert(
         TranslationKey::ShortcutConnectAllUnclosed,
         tr_en_zh("Connect All Unclosed", "连接所有未关闭"),
     );
@@ -709,6 +717,30 @@ pub fn load_all_translations(
         tr_en_zh("Non-editable", "不可编辑"),
     );
     strings.insert(
+        TranslationKey::ShortcutUnderlineHint,
+        tr_en_zh("Underlined items indicate customized shortcuts", "带下划线的项表示已自定义的快捷键"),
+    );
+    strings.insert(
+        TranslationKey::SupportUs,
+        tr_en_zh("☕ Support Us", "☕ 支持我们"),
+    );
+    strings.insert(
+        TranslationKey::SupportUsDesc,
+        tr_en_zh("Scan with WeChat to donate", "微信扫码打赏"),
+    );
+    strings.insert(
+        TranslationKey::Recommended,
+        tr_en_zh("🚀 Recommended", "🚀 推荐"),
+    );
+    strings.insert(
+        TranslationKey::GitIntelligenceMessage,
+        tr_en_zh("Git Intelligence Message", "Git Intelligence Message"),
+    );
+    strings.insert(
+        TranslationKey::GitIntelligenceMessageDesc,
+        tr_en_zh("AI-powered commit message generator", "AI 驱动的提交信息生成器"),
+    );
+    strings.insert(
         TranslationKey::ShortcutRemoveDuplicateAndInvalidTabs,
         tr_en_zh("Remove Duplicate and Invalid Tabs", "移除重复和无效标签页"),
     );
@@ -767,6 +799,10 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::ThemeSystem, tr_en_zh("System", "跟随系统"));
     strings.insert(TranslationKey::ThemeLight, tr_en_zh("Light", "浅色"));
     strings.insert(TranslationKey::ThemeDark, tr_en_zh("Dark", "深色"));
+    strings.insert(
+        TranslationKey::DisplaySettings,
+        tr_en_zh("Display Settings", "显示设置"),
+    );
 
     // Quick Connect
     strings.insert(

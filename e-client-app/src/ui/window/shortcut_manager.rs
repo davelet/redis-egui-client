@@ -20,7 +20,83 @@ impl Default for ShortcutManagerState {
 pub fn handle_shortcuts(app: &mut RedisApp, ctx: &egui::Context) {
     use e_client_config::config::shortcuts::ParsedShortcut;
 
-    if !app.show_settings() {
+    // F1 toggles help (works even when settings is open)
+    let f1_pressed = ctx.input(|i| i.key_pressed(egui::Key::F1));
+    if f1_pressed {
+        app.set_show_help(!app.show_help());
+        ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F1));
+    }
+
+    // Handle new connection window shortcuts (work even when new connection window is open)
+    if app.new_connection.show {
+        use crate::ui::window::panels::settings_panel::SUPPORTED_KEYS;
+        use e_client_config::config::shortcuts::ParsedShortcut;
+
+        let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
+            let keys: Vec<egui::Key> = SUPPORTED_KEYS
+                .into_iter()
+                .filter(|k| i.key_pressed(*k))
+                .collect();
+            (i.modifiers, keys)
+        });
+
+        let is_macos = cfg!(target_os = "macos");
+
+        // Check for Confirm New Connection shortcut
+        let confirm_binding = app.config().settings.shortcuts.get_binding(&ShortcutAction::ConfirmNewConnection);
+        if let Some(parsed) = ParsedShortcut::parse(&confirm_binding) {
+            for key in &pressed_keys {
+                let key_str = format!("{:?}", key);
+                let mod_pressed = parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                let alt_match = parsed.alt == modifiers.alt;
+                let shift_match = parsed.shift == modifiers.shift;
+                let key_match = parsed.key_matches(&key_str);
+
+                let meets_mod_requirement = if parsed.command || parsed.ctrl {
+                    mod_pressed
+                } else {
+                    !modifiers.command && !modifiers.ctrl
+                };
+
+                if meets_mod_requirement && alt_match && shift_match && key_match {
+                    let current_lang = if !app.config.settings.language.is_empty() {
+                        e_client_config::language::Language::file_name_to_lang(&app.config.settings.language)
+                    } else {
+                        e_client_config::language::Language::English
+                    };
+                    app.new_connection.try_save(&mut app.config, current_lang);
+                    ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, *key));
+                    return;
+                }
+            }
+        }
+
+        // Check for Cancel New Connection shortcut (default: Esc)
+        let cancel_binding = app.config().settings.shortcuts.get_binding(&ShortcutAction::CancelNewConnection);
+        if let Some(parsed) = ParsedShortcut::parse(&cancel_binding) {
+            for key in &pressed_keys {
+                let key_str = format!("{:?}", key);
+                let mod_pressed = parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                let alt_match = parsed.alt == modifiers.alt;
+                let shift_match = parsed.shift == modifiers.shift;
+                let key_match = parsed.key_matches(&key_str);
+
+                let meets_mod_requirement = if parsed.command || parsed.ctrl {
+                    mod_pressed
+                } else {
+                    !modifiers.command && !modifiers.ctrl
+                };
+
+                if meets_mod_requirement && alt_match && shift_match && key_match {
+                    app.new_connection.clear();
+                    ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, *key));
+                    return;
+                }
+            }
+        }
+    }
+
+    if !app.show_settings() && !app.new_connection.show {
         use crate::ui::window::panels::settings_panel::SUPPORTED_KEYS;
 
         let (modifiers, pressed_keys): (egui::Modifiers, Vec<egui::Key>) = ctx.input(|i| {
@@ -235,7 +311,13 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
         | ShortcutAction::CancelAiCommand
         | ShortcutAction::CloseAiModelEditor => {}
         ShortcutAction::ToggleHelp => {
-            app.set_show_help(!app.show_help());
+            // Handled at the top level to work even when settings is open
+        }
+        ShortcutAction::ConfirmNewConnection => {
+            // Handled at the top level when new connection window is open
+        }
+        ShortcutAction::CancelNewConnection => {
+            // Handled at the top level when new connection window is open
         }
     }
 }

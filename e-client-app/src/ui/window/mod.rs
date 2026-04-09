@@ -57,6 +57,9 @@ pub struct RedisApp {
 /// Settings panel expandable sections
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsSection {
+    General,
+    Connection,
+    Display,
     Ai,
     Shortcuts,
 }

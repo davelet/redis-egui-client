@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0] - 2026-04-09
+
+### New Features
+
+**Shortcut Customization Indicator**
+- Added visual indicator for customized shortcuts in settings
+- Shortcuts with underlined names indicate they have been modified from default values
+- Helps users quickly identify which shortcuts they've customized
+
+### Changed
+
+**Settings Panel Reorganization**
+- Reorganized settings into collapsible sections for better navigation
+- Grouped related settings: Display, Connection, Shortcuts, AI Configuration
+- Improved settings UI with clearer section headers
+
 ## [0.4.8] - 2026-04-07
 
 ### New Features

@@ -211,73 +211,7 @@ impl NewConnectionWindowWindow {
                     ui.horizontal(|ui| {
                         let save_btn = tr(TranslationKey::Save, current_lang);
                         if ui.button(save_btn).clicked() {
-                            if self.new_connection_name.trim().is_empty() {
-                                self.error_message = Some(
-                                    tr(TranslationKey::PleaseEnterConnectionName, current_lang)
-                                        .to_string(),
-                                );
-                            } else if self.quick_connect_mode && !self.edit_mode {
-                                // Quick connect mode validation
-                                if self.quick_connect_url.trim().is_empty() {
-                                    self.error_message = Some(
-                                        tr(TranslationKey::InvalidConnectionString, current_lang)
-                                            .to_string(),
-                                    );
-                                } else {
-                                    // Parse URL and create connection
-                                    match RedisConnectionConfig::from_url(
-                                        self.new_connection_name.clone(),
-                                        &self.quick_connect_url,
-                                        self.new_connection_color_hex.clone(),
-                                    ) {
-                                        Ok(conn) => match app.add_connection(conn) {
-                                            Ok(_) => self.clear(),
-                                            Err(e) => {
-                                                self.error_message =
-                                                    Some(e.to_message(current_lang));
-                                            }
-                                        },
-                                        Err(_) => {
-                                            self.error_message = Some(
-                                                tr(
-                                                    TranslationKey::InvalidConnectionString,
-                                                    current_lang,
-                                                )
-                                                .to_string(),
-                                            );
-                                        }
-                                    }
-                                }
-                            } else if self.new_connection_url.trim().is_empty() {
-                                self.error_message = Some(
-                                    tr(TranslationKey::PleaseEnterConnectionAddress, current_lang)
-                                        .to_string(),
-                                );
-                            } else {
-                                let result = if self.edit_mode {
-                                    // Edit existing connection
-                                    if let Some(old_name) = &self.editing_connection_name {
-                                        app.update_single_connection(
-                                            old_name,
-                                            self.build_connection(),
-                                        )
-                                    } else {
-                                        Err(e_client_config::error::ConfigError::ConnectionNotFound)
-                                    }
-                                } else {
-                                    // Add new connection
-                                    app.add_connection(self.build_connection())
-                                };
-
-                                match result {
-                                    Ok(_) => {
-                                        self.clear();
-                                    }
-                                    Err(e) => {
-                                        self.error_message = Some(e.to_message(current_lang));
-                                    }
-                                }
-                            }
+                            self.try_save(app, current_lang);
                         }
 
                         if ui
@@ -316,7 +250,7 @@ impl NewConnectionWindowWindow {
         self.error_message = None;
     }
 
-    fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.new_connection_name = String::new();
         self.new_connection_url = String::new();
         self.new_connection_port = DEFAULT_REDIS_PORT.to_string();
@@ -329,5 +263,87 @@ impl NewConnectionWindowWindow {
         self.quick_connect_url = String::new();
         self.new_connection_use_tls = false;
         self.clear_err();
+    }
+
+    /// Try to save the connection. Returns true if successful, false otherwise.
+    /// If successful, the window will be closed and fields cleared.
+    pub(crate) fn try_save(&mut self, app: &mut Config, current_lang: Language) -> bool {
+        if self.new_connection_name.trim().is_empty() {
+            self.error_message = Some(
+                tr(TranslationKey::PleaseEnterConnectionName, current_lang)
+                    .to_string(),
+            );
+            return false;
+        }
+
+        if self.quick_connect_mode && !self.edit_mode {
+            // Quick connect mode validation
+            if self.quick_connect_url.trim().is_empty() {
+                self.error_message = Some(
+                    tr(TranslationKey::InvalidConnectionString, current_lang)
+                        .to_string(),
+                );
+                return false;
+            }
+            // Parse URL and create connection
+            match RedisConnectionConfig::from_url(
+                self.new_connection_name.clone(),
+                &self.quick_connect_url,
+                self.new_connection_color_hex.clone(),
+            ) {
+                Ok(conn) => match app.add_connection(conn) {
+                    Ok(_) => {
+                        self.clear();
+                        true
+                    }
+                    Err(e) => {
+                        self.error_message = Some(e.to_message(current_lang));
+                        false
+                    }
+                },
+                Err(_) => {
+                    self.error_message = Some(
+                        tr(
+                            TranslationKey::InvalidConnectionString,
+                            current_lang,
+                        )
+                        .to_string(),
+                    );
+                    false
+                }
+            }
+        } else if self.new_connection_url.trim().is_empty() {
+            self.error_message = Some(
+                tr(TranslationKey::PleaseEnterConnectionAddress, current_lang)
+                    .to_string(),
+            );
+            false
+        } else {
+            let result = if self.edit_mode {
+                // Edit existing connection
+                if let Some(old_name) = &self.editing_connection_name {
+                    app.update_single_connection(
+                        old_name,
+                        self.build_connection(),
+                    )
+                } else {
+                    Err(e_client_config::error::ConfigError::ConnectionNotFound)
+                }
+            } else {
+                // Add new connection
+                app.add_connection(self.build_connection())
+            };
+
+            match result {
+                Ok(_) => {
+                    self.clear();
+                    true
+                }
+                Err(e) => {
+                    self.error_message = Some(e.to_message(current_lang));
+                    false
+                }
+            }
+        }
     }
 }
