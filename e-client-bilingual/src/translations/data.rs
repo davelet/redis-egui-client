@@ -562,6 +562,112 @@ pub fn load_all_translations(
         TranslationKey::AiTestSuccess,
         tr_en_zh("Connection successful!", "连接成功！"),
     );
+    // GIM Import
+    strings.insert(
+        TranslationKey::AiImportFromGim,
+        tr_en_zh("Import from GIM", "从 GIM 导入"),
+    );
+    strings.insert(
+        TranslationKey::AiImportFromGimTooltip,
+        tr_en_zh("Import AI model configuration from Git Intelligence Message (~/.config/gim/config.toml)", "从 Git Intelligence Message (~/.config/gim/config.toml) 导入 AI 模型配置"),
+    );
+    strings.insert(
+        TranslationKey::AiImportingTitle,
+        tr_en_zh("Import from GIM", "从 GIM 导入"),
+    );
+    strings.insert(
+        TranslationKey::AiImportModelName,
+        tr_en_zh("Model", "模型"),
+    );
+    strings.insert(
+        TranslationKey::AiImportProvider,
+        tr_en_zh("Provider", "提供商"),
+    );
+    strings.insert(
+        TranslationKey::AiImportUrl,
+        tr_en_zh("URL", "地址"),
+    );
+    strings.insert(
+        TranslationKey::AiImportApiKey,
+        tr_en_zh("API Key", "API 密钥"),
+    );
+    strings.insert(
+        TranslationKey::AiImportKeychainNote,
+        tr_en_zh("Stored in system keychain", "将存储在系统密钥链中"),
+    );
+    strings.insert(
+        TranslationKey::AiImportConfirm,
+        tr_en_zh("Confirm Import", "确定导入"),
+    );
+    strings.insert(
+        TranslationKey::AiImportSuccess,
+        tr_en_zh("Import successful!", "导入成功！"),
+    );
+    strings.insert(
+        TranslationKey::AiImportFailed,
+        tr_en_zh("Import failed", "导入失败"),
+    );
+    strings.insert(
+        TranslationKey::AiImportNotFound,
+        tr_en_zh("GIM configuration not found at ~/.config/gim/config.toml", "未找到 GIM 配置文件 (~/.config/gim/config.toml)"),
+    );
+    strings.insert(
+        TranslationKey::AiImportAlreadyExists,
+        tr_en_zh("Model already exists", "模型已存在"),
+    );
+    strings.insert(
+        TranslationKey::AiImportOverride,
+        tr_en_zh("Override existing", "覆盖现有"),
+    );
+    strings.insert(
+        TranslationKey::AiImportSkip,
+        tr_en_zh("Skip", "跳过"),
+    );
+    // JSON Import/Export
+    strings.insert(
+        TranslationKey::AiExportJson,
+        tr_en_zh("Export", "导出"),
+    );
+    strings.insert(
+        TranslationKey::AiExportJsonTooltip,
+        tr_en_zh("Export AI config to JSON file", "导出 AI 配置到 JSON 文件"),
+    );
+    strings.insert(
+        TranslationKey::AiExportSuccess,
+        tr_en_zh("Export successful!", "导出成功！"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJson,
+        tr_en_zh("Import", "导入"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonTooltip,
+        tr_en_zh("Import AI config from JSON file", "从 JSON 文件导入 AI 配置"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonTitle,
+        tr_en_zh("Import AI Configuration", "导入 AI 配置"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonWarning,
+        tr_en_zh("API keys will NOT be imported. Please re-enter them after import.", "API 密钥不会被导入，请在导入后重新输入。"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonModelCount,
+        tr_en_zh("Models to import", "将导入的模型"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonConfirm,
+        tr_en_zh("Import", "导入"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonKeyNote,
+        tr_en_zh("Note: API keys are not stored in JSON for security.", "注意：为安全起见，API 密钥不会存储在 JSON 中。"),
+    );
+    strings.insert(
+        TranslationKey::AiImportJsonSuccess,
+        tr_en_zh("Import successful!", "导入成功！"),
+    );
     strings.insert(
         TranslationKey::AiTestFailed,
         tr_en_zh("Connection failed", "连接失败"),

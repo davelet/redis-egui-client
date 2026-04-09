@@ -10,7 +10,7 @@ pub use panels::{
 };
 
 // Re-export types
-pub use types::{AiModelEditor, ElementEditDialog, NewKeyDialog, RedisTab};
+pub use types::{AiModelEditor, ElementEditDialog, GimImportDialog, JsonImportPreview, NewKeyDialog, RedisTab};
 
 pub mod components;
 pub mod copy_feedback;
@@ -43,6 +43,10 @@ pub struct RedisApp {
     pub show_all_tabs_dropdown: bool,
     // AI model editor
     pub ai_model_editor: AiModelEditor,
+    // GIM config import dialog
+    pub gim_import_dialog: GimImportDialog,
+    // JSON import preview dialog
+    pub json_import_preview: Option<JsonImportPreview>,
     // Delete connection confirmation: (connection index, connection name)
     pub delete_connection_confirm: Option<(usize, String)>,
     // Settings panel state - track expanded sections for mutually exclusive behavior
@@ -263,6 +267,8 @@ impl RedisApp {
             scroll_to_tab: None,
             show_all_tabs_dropdown: false,
             ai_model_editor: AiModelEditor::default(),
+            gim_import_dialog: GimImportDialog::default(),
+            json_import_preview: None,
             delete_connection_confirm: None,
             settings_expanded_section: None,
             show_help: false,

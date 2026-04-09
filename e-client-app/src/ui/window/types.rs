@@ -268,3 +268,76 @@ impl AiModelEditor {
         self.editing_model_id.is_some()
     }
 }
+
+/// GIM configuration import dialog state
+pub struct GimImportDialog {
+    /// Whether to show the import dialog
+    pub show: bool,
+    /// The loaded GIM config (None if not loaded or not found)
+    pub gim_config: Option<e_client_config::config::gim_importer::GimAiConfig>,
+    /// The converted AI model (used for preview display)
+    pub converted_model: Option<e_client_config::config::ai_config::AiModel>,
+    /// Error message if import failed
+    pub error_message: Option<String>,
+    /// Whether a model with the same name already exists
+    pub model_exists: bool,
+}
+
+impl Default for GimImportDialog {
+    fn default() -> Self {
+        Self {
+            show: false,
+            gim_config: None,
+            converted_model: None,
+            error_message: None,
+            model_exists: false,
+        }
+    }
+}
+
+impl GimImportDialog {
+    /// Open the dialog and try to load GIM config
+    pub fn open(&mut self) {
+        self.show = true;
+        self.error_message = None;
+        self.model_exists = false;
+
+        // Try to load GIM config
+        match e_client_config::config::gim_importer::GimAiConfig::load_from_default() {
+            Ok(Some(config)) => {
+                // Convert to AiModel for preview display
+                let converted = config.to_ai_model();
+                self.converted_model = Some(converted);
+                self.gim_config = Some(config);
+            }
+            Ok(None) => {
+                // File not found
+                self.gim_config = None;
+                self.converted_model = None;
+                self.error_message = Some("NOT_FOUND".to_string());
+            }
+            Err(e) => {
+                self.gim_config = None;
+                self.converted_model = None;
+                self.error_message = Some(format!("{:?}", e));
+            }
+        }
+    }
+
+    /// Close the dialog and reset state
+    pub fn close(&mut self) {
+        self.show = false;
+        self.gim_config = None;
+        self.converted_model = None;
+        self.error_message = None;
+        self.model_exists = false;
+    }
+}
+
+/// JSON import preview dialog state
+pub struct JsonImportPreview {
+    /// Path to the JSON file
+    pub path: std::path::PathBuf,
+    /// The loaded config (API keys will be None)
+    pub config: e_client_config::config::ai_config::AiConfig,
+}

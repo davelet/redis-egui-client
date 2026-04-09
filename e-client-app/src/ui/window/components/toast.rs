@@ -79,6 +79,10 @@ impl ToastManager {
     /// Add or replace a toast for the given owner.
     /// If a toast with the same owner already exists, it is replaced (timer resets).
     pub fn push(&mut self, owner: String, message: String, toast_type: ToastType) {
+        if self.toasts.is_empty() {
+            self.last_frame_time = Instant::now();
+        }
+
         if let Some(pos) = self.toasts.iter().position(|t| t.owner == owner) {
             self.toasts[pos] = Toast::new(owner, message, toast_type);
         } else {
@@ -141,9 +145,9 @@ impl ToastManager {
 
         let mut any_not_hovered = false;
 
-        // Create a panel at the bottom-right corner
+        // Create a panel at the top-center (more visible)
         egui::Area::new(egui::Id::new("toast_area"))
-            .anchor(Align2::RIGHT_BOTTOM, Vec2::new(-10.0, -10.0))
+            .anchor(Align2::CENTER_TOP, Vec2::new(0.0, 10.0))
             .show(ctx, |ui| {
                 // Stack toasts from bottom to top
                 for toast in self.toasts.iter_mut().rev() {
@@ -157,9 +161,10 @@ impl ToastManager {
                     let response = egui::Frame::window(ui.style())
                         .fill(ui.visuals().window_fill.gamma_multiply(0.95))
                         .stroke(egui::Stroke::new(1.0, accent_color.linear_multiply(0.5)))
+                        .inner_margin(10.0)
                         .corner_radius(8.0)
                         .show(ui, |ui| {
-                            ui.set_max_width(320.0);
+                            ui.set_max_width(400.0);
                             ui.horizontal(|ui| {
                                 ui.label(
                                     RichText::new(icon).color(accent_color).strong().size(16.0),
@@ -172,6 +177,7 @@ impl ToastManager {
                                         .size(12.0),
                                 );
                             });
+                            ui.add_space(4.0);
                             ui.label(
                                 RichText::new(&toast.message)
                                     .color(ui.visuals().text_color())
@@ -181,17 +187,22 @@ impl ToastManager {
                             ui.add_space(8.0);
 
                             // Progress bar at bottom
-                            let bar_rect = ui.available_rect_before_wrap();
-                            let mut bar_rect = bar_rect;
-                            bar_rect.set_height(2.0);
+                            let min_rect = ui.min_rect();
+                            let bar_bg = egui::Rect::from_min_max(
+                                egui::pos2(min_rect.min.x, min_rect.max.y),
+                                egui::pos2(min_rect.max.x, min_rect.max.y + 2.0),
+                            );
                             ui.painter().rect_filled(
-                                bar_rect,
+                                bar_bg,
                                 0.0,
                                 ui.visuals().widgets.noninteractive.bg_fill,
                             );
 
-                            bar_rect.set_width(bar_rect.width() * progress);
-                            ui.painter().rect_filled(bar_rect, 0.0, accent_color);
+                            let bar_progress = egui::Rect::from_min_max(
+                                egui::pos2(min_rect.min.x, min_rect.max.y),
+                                egui::pos2(min_rect.min.x + min_rect.width() * progress, min_rect.max.y + 2.0),
+                            );
+                            ui.painter().rect_filled(bar_progress, 0.0, accent_color);
                         })
                         .response;
 

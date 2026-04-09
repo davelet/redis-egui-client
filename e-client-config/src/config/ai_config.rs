@@ -332,6 +332,9 @@ impl AiModel {
 pub enum AiConfigError {
     KeyringError(String),
     EnvVarError(String),
+    SerializationError(String),
+    DeserializationError(String),
+    IoError(String),
 }
 
 impl std::fmt::Display for AiConfigError {
@@ -339,11 +342,20 @@ impl std::fmt::Display for AiConfigError {
         match self {
             AiConfigError::KeyringError(msg) => write!(f, "Keyring error: {}", msg),
             AiConfigError::EnvVarError(msg) => write!(f, "Environment variable error: {}", msg),
+            AiConfigError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+            AiConfigError::DeserializationError(msg) => write!(f, "Deserialization error: {}", msg),
+            AiConfigError::IoError(msg) => write!(f, "I/O error: {}", msg),
         }
     }
 }
 
 impl std::error::Error for AiConfigError {}
+
+impl From<std::io::Error> for AiConfigError {
+    fn from(e: std::io::Error) -> Self {
+        AiConfigError::IoError(e.to_string())
+    }
+}
 
 impl From<keyring::Error> for AiConfigError {
     fn from(e: keyring::Error) -> Self {

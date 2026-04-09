@@ -1,4 +1,6 @@
 pub mod ai_config;
+pub mod gim_importer;
+pub mod json_importer;
 mod app_window;
 mod connected_preference;
 mod connections;

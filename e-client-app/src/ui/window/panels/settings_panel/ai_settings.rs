@@ -5,12 +5,14 @@ use e_client_basics::constants::{
 };
 use e_client_basics::emoji;
 use e_client_config::config::ai_config::{AiModel, AiProviderType};
+use e_client_config::config::json_importer;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use e_client_core::{AiClient, CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT, detect_api_provider};
 use std::str::FromStr;
 
 use super::super::super::RedisApp;
+use super::super::super::JsonImportPreview;
 
 /// Render AI settings section
 pub fn render_ai_settings_section(
@@ -78,6 +80,78 @@ pub fn render_ai_settings_section(
                         .clicked()
                     {
                         app.ai_model_editor.open_for_new();
+                    }
+
+                    // GIM Import button
+                    ui.add_space(10.0);
+                    if ui
+                        .button(format!(
+                            "📥 {}",
+                            tr(TranslationKey::AiImportFromGim, current_lang)
+                        ))
+                        .on_hover_text(tr(TranslationKey::AiImportFromGimTooltip, current_lang))
+                        .clicked()
+                    {
+                        app.gim_import_dialog.open();
+                    }
+                });
+
+                ui.add_space(8.0);
+
+                // Model operations row - Export/Import JSON
+                ui.horizontal(|ui| {
+                    // JSON Export button (moved to model list area)
+                    if ui
+                        .button(format!(
+                            "📤 {}",
+                            tr(TranslationKey::AiExportJson, current_lang)
+                        ))
+                        .on_hover_text(tr(TranslationKey::AiExportJsonTooltip, current_lang))
+                        .clicked()
+                    {
+                        if let Err(e) = export_ai_config_to_json(app) {
+                            app.toasts.error(
+                                "json_export".to_string(),
+                                format!("Export failed: {}", e),
+                            );
+                        } else {
+                            app.toasts.success(
+                                "json_export".to_string(),
+                                tr(TranslationKey::AiExportSuccess, current_lang).to_string(),
+                            );
+                        }
+                    }
+
+                    // JSON Import button
+                    ui.add_space(5.0);
+                    if ui
+                        .button(format!(
+                            "📂 {}",
+                            tr(TranslationKey::AiImportJson, current_lang)
+                        ))
+                        .on_hover_text(tr(TranslationKey::AiImportJsonTooltip, current_lang))
+                        .clicked()
+                    {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("JSON", &["json"])
+                            .pick_file()
+                        {
+                            match import_ai_config_from_json(&path) {
+                                Ok(config) => {
+                                    // Show preview and confirm dialog
+                                    app.json_import_preview = Some(JsonImportPreview {
+                                        path,
+                                        config,
+                                    });
+                                }
+                                Err(e) => {
+                                    app.toasts.error(
+                                        "json_import".to_string(),
+                                        format!("Import failed: {}", e),
+                                    );
+                                }
+                            }
+                        }
                     }
                 });
 
@@ -672,5 +746,298 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                     app.ai_model_editor.close();
                 }
             });
+        });
+}
+
+/// Render GIM configuration import dialog
+pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    if !app.gim_import_dialog.show {
+        return;
+    }
+
+    let screen_rect = ctx.input(|i| i.viewport().outer_rect).unwrap_or(egui::Rect::ZERO);
+    let top_right = egui::pos2(screen_rect.max.x - 150.0, screen_rect.min.y + 40.0);
+
+    egui::Window::new(tr(TranslationKey::AiImportingTitle, current_lang))
+        .id(egui::Id::new("gim_import_window"))
+        .resizable(false)
+        .collapsible(false)
+        .default_pos(top_right)
+        .movable(true)
+        .show(ctx, |ui| {
+            // Close on ESC key
+            if ui.ctx().input(|i| i.key_pressed(egui::Key::Escape)) {
+                app.gim_import_dialog.close();
+                return;
+            }
+
+            // Check if config was not found
+            if let Some(ref error) = app.gim_import_dialog.error_message {
+                if error == "NOT_FOUND" {
+                    // Show error message for not found
+                    ui.colored_label(
+                        ui.visuals().error_fg_color,
+                        tr(TranslationKey::AiImportNotFound, current_lang),
+                    );
+                    ui.add_space(10.0);
+                    if ui.button(tr(TranslationKey::Cancel, current_lang)).clicked() {
+                        app.gim_import_dialog.close();
+                    }
+                    return;
+                } else {
+                    // Show generic error
+                    ui.colored_label(
+                        ui.visuals().error_fg_color,
+                        format!("{}: {}", tr(TranslationKey::AiImportFailed, current_lang), error),
+                    );
+                    ui.add_space(10.0);
+                    if ui.button(tr(TranslationKey::Cancel, current_lang)).clicked() {
+                        app.gim_import_dialog.close();
+                    }
+                    return;
+                }
+            }
+
+            // Show config preview - use nested if-let to avoid borrow conflicts
+            if let Some(gim_config) = &app.gim_import_dialog.gim_config {
+                if let Some(converted_model) = &app.gim_import_dialog.converted_model {
+                    // Model info section with subtle background
+                    ui.vertical(|ui| {
+                        ui.set_width(280.0);
+
+                        // Model name (prominent)
+                        ui.label(
+                            egui::RichText::new(&converted_model.name)
+                                .strong()
+                                .size(16.0)
+                        );
+                        ui.add_space(8.0);
+
+                        // Provider
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::AiImportProvider, current_lang));
+                            ui.label(egui::RichText::new(converted_model.provider.to_string())
+                                .color(ui.visuals().hyperlink_color));
+                        });
+
+                        // URL
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::AiImportUrl, current_lang));
+                            ui.label(egui::RichText::new(converted_model.get_base_url())
+                                .small()
+                                .weak());
+                        });
+
+                        // API Key indicator (if present)
+                        if gim_config.api_key.is_some() {
+                            ui.horizontal(|ui| {
+                                ui.label(tr(TranslationKey::AiImportApiKey, current_lang));
+                                ui.label(egui::RichText::new("••••••••")
+                                    .weak());
+                                ui.label(egui::RichText::new(tr(TranslationKey::AiImportKeychainNote, current_lang))
+                                    .small()
+                                    .weak()
+                                    .italics());
+                            });
+                        }
+                    }).response.on_hover_text("GIM model configuration");
+
+                    ui.add_space(10.0);
+                }
+
+                // Check if model already exists - clone needed values first
+                let model_name = gim_config.model.clone();
+                let model_exists = app
+                    .config
+                    .ai_config
+                    .models
+                    .iter()
+                    .any(|m| m.name == model_name);
+
+                if model_exists {
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("⚠️ ")
+                            .color(ui.visuals().warn_fg_color));
+                        ui.label(egui::RichText::new(tr(TranslationKey::AiImportAlreadyExists, current_lang))
+                            .weak());
+                    });
+                    ui.add_space(5.0);
+                }
+
+                // Buttons
+                let mut import_clicked = false;
+                let mut cancel_clicked = false;
+                ui.horizontal(|ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        cancel_clicked = ui.button(tr(TranslationKey::Cancel, current_lang)).clicked();
+                        ui.add_space(5.0);
+                        import_clicked = ui.button(
+                            egui::RichText::new(tr(TranslationKey::AiImportConfirm, current_lang))
+                                .strong()
+                        ).clicked();
+                    });
+                });
+
+                // Handle button clicks outside the closure to avoid borrow conflicts
+                if cancel_clicked {
+                    app.gim_import_dialog.close();
+                } else if import_clicked {
+                    // Convert model and import
+                    let model = gim_config.to_ai_model();
+
+                    // Remove existing model with same name if exists
+                    if model_exists {
+                        if let Some(id) = app.config.ai_config.models.iter()
+                            .find(|m| m.name == model_name)
+                            .map(|m| m.id.clone())
+                        {
+                            app.config.remove_ai_model(&id);
+                        }
+                    }
+
+                    // Add the new model
+                    app.config.add_ai_model(model.clone());
+                    app.config.set_active_ai_model(&model.id);
+
+                    // Save immediately
+                    if let Err(e) = app.config.save_ai_config() {
+                        eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
+                    }
+
+                    // Show success toast
+                    app.toasts.success(
+                        tr(TranslationKey::AiImportingTitle, current_lang).to_string(),
+                        tr(TranslationKey::AiImportSuccess, current_lang).to_string(),
+                    );
+
+                    app.gim_import_dialog.close();
+                }
+            }
+        });
+}
+
+// =============================================================================
+// JSON Import/Export Functions
+// =============================================================================
+
+use e_client_config::config::ai_config::AiConfig;
+use std::path::Path;
+
+/// Export AI config to JSON file (API keys are excluded)
+fn export_ai_config_to_json(app: &mut RedisApp) -> Result<(), String> {
+    let path = rfd::FileDialog::new()
+        .add_filter("JSON", &["json"])
+        .set_file_name("ai_config.json")
+        .save_file()
+        .ok_or("No file selected")?;
+
+    json_importer::export_to_json(&app.config.ai_config, &path)
+        .map_err(|e| format!("{:?}", e))
+}
+
+/// Import AI config from JSON file
+fn import_ai_config_from_json(path: &Path) -> Result<AiConfig, String> {
+    json_importer::import_from_json(path).map_err(|e| format!("{:?}", e))
+}
+
+/// Render JSON import preview dialog
+pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    let preview = match app.json_import_preview.take() {
+        Some(p) => p,
+        None => return,
+    };
+
+    egui::Window::new(tr(TranslationKey::AiImportJsonTitle, current_lang))
+        .anchor(egui::Align2::CENTER_TOP, [0.0, 50.0])
+        .resizable(false)
+        .collapsible(false)
+        .show(ctx, |ui| {
+            ui.set_min_width(400.0);
+            ui.set_max_width(500.0);
+
+            // Warning message
+            ui.add(egui::Label::new(
+                egui::RichText::new(format!(
+                    "⚠️ {}",
+                    tr(TranslationKey::AiImportJsonWarning, current_lang)
+                ))
+                .color(ui.visuals().warn_fg_color)
+                .small(),
+            ));
+            ui.add_space(5.0);
+
+            // Model count
+            ui.label(format!(
+                "{}: {}",
+                tr(TranslationKey::AiImportJsonModelCount, current_lang),
+                preview.config.models.len()
+            ));
+            ui.add_space(10.0);
+
+            // Model list
+            egui::ScrollArea::vertical()
+                .max_height(200.0)
+                .show(ui, |ui| {
+                    for model in &preview.config.models {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("• {}", model.name));
+                            ui.label(
+                                egui::RichText::new(format!("({})", model.provider))
+                                    .weak(),
+                            );
+                        });
+                        ui.label(
+                            egui::RichText::new(format!("  Model: {}", model.model_id)).weak(),
+                        );
+                    }
+                });
+
+            ui.add_space(15.0);
+
+            // Buttons
+            let mut confirm_clicked = false;
+            let mut cancel_clicked = false;
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                cancel_clicked = ui.button(tr(TranslationKey::Cancel, current_lang)).clicked();
+                ui.add_space(10.0);
+                confirm_clicked = ui
+                    .button(
+                        egui::RichText::new(tr(TranslationKey::AiImportJsonConfirm, current_lang))
+                            .strong(),
+                    )
+                    .clicked();
+            });
+            ui.add_space(5.0);
+            ui.label(
+                egui::RichText::new(tr(TranslationKey::AiImportJsonKeyNote, current_lang))
+                    .weak()
+                    .small(),
+            );
+
+            // Handle button clicks outside closure
+            if cancel_clicked {
+                // Do nothing, just close
+            } else if confirm_clicked {
+                // Merge models: add new ones, skip duplicates by name
+                for model in preview.config.models {
+                    // Check if model with same name exists
+                    if !app.config.ai_config.models.iter().any(|m| m.name == model.name) {
+                        app.config.add_ai_model(model);
+                    }
+                }
+
+                // Save config
+                if let Err(e) = app.config.save_ai_config() {
+                    app.toasts.error(
+                        "json_import".to_string(),
+                        format!("Save failed: {:?}", e),
+                    );
+                } else {
+                    app.toasts.success(
+                        "json_import".to_string(),
+                        tr(TranslationKey::AiImportJsonSuccess, current_lang).to_string(),
+                    );
+                }
+            }
         });
 }

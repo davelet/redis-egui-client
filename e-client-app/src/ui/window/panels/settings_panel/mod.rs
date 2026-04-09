@@ -6,7 +6,7 @@ pub mod display_settings;
 pub mod general_settings;
 pub mod shortcut_settings;
 
-pub use ai_settings::render_ai_settings_section;
+pub use ai_settings::{render_ai_settings_section, render_gim_import_dialog, render_json_import_preview};
 pub use connection_settings::render_connection_settings;
 pub use display_settings::render_display_settings;
 pub use general_settings::render_general_settings;
@@ -27,6 +27,11 @@ pub const SETTINGS_WINDOW_HEIGHT: f32 = 400.0;
 
 /// Render the settings window
 pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
+    // Render GIM import dialog first (it's a separate window)
+    render_gim_import_dialog(app, ctx, current_lang);
+    // Render JSON import preview dialog
+    render_json_import_preview(app, ctx, current_lang);
+
     // Check if we're currently editing a shortcut
     let is_editing_shortcut = app.shortcut_state.editing_shortcut.is_some();
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.1] - 2026-04-09
+
+### New Features
+
+**GIM Configuration Import**
+- Added "Import from GIM" button in AI settings panel
+- Automatically imports AI model configuration from `~/.config/gim/config.toml`
+- Auto-detects provider type from URL
+- Imports API key and stores securely in system keychain
+- If model already exists, replaces it with imported configuration
+
 ## [0.5.0] - 2026-04-09
 
 ### New Features
