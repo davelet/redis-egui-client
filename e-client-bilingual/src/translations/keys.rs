@@ -157,6 +157,7 @@ pub enum TranslationKey {
     AiActiveModel,
     AiConfirmBeforeExecute,
     AiShowThinking,
+    AiThinking,
     AiMaxTurns,
     AiMaxTurnsUnit,
     AiRenderMarkdown,

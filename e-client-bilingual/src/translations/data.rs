@@ -478,7 +478,7 @@ pub fn load_all_translations(
         TranslationKey::AiSettings,
         tr_en_zh("AI Settings", "AI 设置"),
     );
-    strings.insert(TranslationKey::AiModels, tr_en_zh("AI Models", "AI 模型"));
+    strings.insert(TranslationKey::AiModels, tr_en_zh("AI Model List", "AI 模型清单"));
     strings.insert(
         TranslationKey::AiAddModel,
         tr_en_zh("Add Model", "添加模型"),
@@ -516,6 +516,10 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::AiShowThinking,
         tr_en_zh("Show Thinking", "显示思考过程"),
+    );
+    strings.insert(
+        TranslationKey::AiThinking,
+        tr_en_zh("Thinking...", "思考中..."),
     );
     strings.insert(
         TranslationKey::AiMaxTurns,
@@ -690,11 +694,11 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiSystemPrompt,
-        tr_en_zh("System Prompt", "系统提示词"),
+        tr_en_zh("Agent Mode Prompt", "Agent 模式提示词"),
     );
     strings.insert(
         TranslationKey::AiChatSystemPrompt,
-        tr_en_zh("Chat Prompt", "对话提示词"),
+        tr_en_zh("Chat Mode Prompt", "Chat 模式提示词"),
     );
 
     strings.insert(

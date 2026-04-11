@@ -81,9 +81,13 @@ pub fn render_ai_settings_section(
                     {
                         app.ai_model_editor.open_for_new();
                     }
+                });
 
+                ui.add_space(8.0);
+
+                // GIM Import + JSON Import/Export in one row
+                ui.horizontal(|ui| {
                     // GIM Import button
-                    ui.add_space(10.0);
                     if ui
                         .button(format!(
                             "📥 {}",
@@ -94,13 +98,10 @@ pub fn render_ai_settings_section(
                     {
                         app.gim_import_dialog.open();
                     }
-                });
 
-                ui.add_space(8.0);
+                    ui.add_space(10.0);
 
-                // Model operations row - Export/Import JSON
-                ui.horizontal(|ui| {
-                    // JSON Export button (moved to model list area)
+                    // JSON Export button
                     if ui
                         .button(format!(
                             "📤 {}",
@@ -122,8 +123,9 @@ pub fn render_ai_settings_section(
                         }
                     }
 
-                    // JSON Import button
                     ui.add_space(5.0);
+
+                    // JSON Import button
                     if ui
                         .button(format!(
                             "📂 {}",
@@ -154,6 +156,93 @@ pub fn render_ai_settings_section(
                         }
                     }
                 });
+
+                ui.add_space(8.0);
+
+                // Models list - collapsible with background
+                if !app.config.ai_config.models.is_empty() {
+                    ui.add_space(4.0);
+
+                    egui::CollapsingHeader::new(tr(TranslationKey::AiModels, current_lang))
+                        .id_salt("ai_models_collapsible")
+                        .default_open(!app.ai_model_editor.models_collapsed)
+                        .show(ui, |ui| {
+                            // Add background color using a frame
+                            let bg_color = ui.visuals().code_bg_color;
+                            egui::Frame::group(ui.style())
+                                .fill(bg_color)
+                                .show(ui, |ui| {
+                                    egui::ScrollArea::horizontal().max_height(120.0).show(
+                                        ui,
+                                        |ui| {
+                                            egui::Grid::new("ai_models_grid")
+                                                .num_columns(5)
+                                                .spacing([8.0, 4.0])
+                                                .striped(true)
+                                                .show(ui, |ui| {
+                                                    ui.label(tr(
+                                                        TranslationKey::Edit,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::Delete,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiModelName,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiUrl,
+                                                        current_lang,
+                                                    ));
+                                                    ui.label(tr(
+                                                        TranslationKey::AiModelId,
+                                                        current_lang,
+                                                    ));
+                                                    ui.end_row();
+
+                                                    let mut model_ids_to_delete: Vec<String> =
+                                                        Vec::new();
+                                                    for model in &app.config.ai_config.models {
+                                                        let model_id = model.id.clone();
+                                                        if ui.button(emoji::action::EDIT).clicked()
+                                                        {
+                                                            app.ai_model_editor
+                                                                .open_for_edit(model);
+                                                        }
+                                                        if ui
+                                                            .button(emoji::action::DELETE)
+                                                            .clicked()
+                                                        {
+                                                            model_ids_to_delete.push(model_id);
+                                                        }
+                                                        ui.label(&model.name);
+                                                        ui.label(&model.get_base_url());
+                                                        ui.label(&model.get_model_id());
+                                                        ui.end_row();
+                                                    }
+                                                    for id in model_ids_to_delete.iter() {
+                                                        app.config.remove_ai_model(id);
+                                                    }
+                                                    if !model_ids_to_delete.is_empty() {
+                                                        if let Err(e) = app.config.save_ai_config()
+                                                        {
+                                                            eprintln!(
+                                                                "Failed to save AI config: {}",
+                                                                e.to_message(current_lang)
+                                                            );
+                                                        }
+                                                    }
+                                                });
+                                        },
+                                    );
+                                });
+                        });
+
+                    // Update collapsed state
+                    app.ai_model_editor.models_collapsed = false;
+                }
 
                 ui.add_space(8.0);
 
@@ -298,91 +387,6 @@ pub fn render_ai_settings_section(
                             });
                     });
                 });
-
-                // Models list - collapsible with background
-                if !app.config.ai_config.models.is_empty() {
-                    ui.add_space(12.0);
-
-                    egui::CollapsingHeader::new(tr(TranslationKey::AiModels, current_lang))
-                        .id_salt("ai_models_collapsible")
-                        .default_open(!app.ai_model_editor.models_collapsed)
-                        .show(ui, |ui| {
-                            // Add background color using a frame
-                            let bg_color = ui.visuals().code_bg_color;
-                            egui::Frame::group(ui.style())
-                                .fill(bg_color)
-                                .show(ui, |ui| {
-                                    egui::ScrollArea::horizontal().max_height(120.0).show(
-                                        ui,
-                                        |ui| {
-                                            egui::Grid::new("ai_models_grid")
-                                                .num_columns(5)
-                                                .spacing([8.0, 4.0])
-                                                .striped(true)
-                                                .show(ui, |ui| {
-                                                    ui.label(tr(
-                                                        TranslationKey::Edit,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::Delete,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiModelName,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiUrl,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiModelId,
-                                                        current_lang,
-                                                    ));
-                                                    ui.end_row();
-
-                                                    let mut model_ids_to_delete: Vec<String> =
-                                                        Vec::new();
-                                                    for model in &app.config.ai_config.models {
-                                                        let model_id = model.id.clone();
-                                                        if ui.button(emoji::action::EDIT).clicked()
-                                                        {
-                                                            app.ai_model_editor
-                                                                .open_for_edit(model);
-                                                        }
-                                                        if ui
-                                                            .button(emoji::action::DELETE)
-                                                            .clicked()
-                                                        {
-                                                            model_ids_to_delete.push(model_id);
-                                                        }
-                                                        ui.label(&model.name);
-                                                        ui.label(&model.get_base_url());
-                                                        ui.label(&model.get_model_id());
-                                                        ui.end_row();
-                                                    }
-                                                    for id in model_ids_to_delete.iter() {
-                                                        app.config.remove_ai_model(id);
-                                                    }
-                                                    if !model_ids_to_delete.is_empty() {
-                                                        if let Err(e) = app.config.save_ai_config()
-                                                        {
-                                                            eprintln!(
-                                                                "Failed to save AI config: {}",
-                                                                e.to_message(current_lang)
-                                                            );
-                                                        }
-                                                    }
-                                                });
-                                        },
-                                    );
-                                });
-                        });
-
-                    // Update collapsed state
-                    app.ai_model_editor.models_collapsed = false;
-                }
             });
         });
 

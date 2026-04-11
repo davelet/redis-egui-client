@@ -6,6 +6,7 @@ version = 4
 name = "Rudist"
 version = "0.5.1"
 dependencies = [
+ "chrono",
  "e-client-basics",
  "e-client-config",
  "e-client-core",

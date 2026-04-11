@@ -43,12 +43,14 @@ You have access to tools that can:
 - rpush: Push a value to the right end of a List
 - select_db: Switch to a different Redis database
 
-When responding:
-- Use tools to fetch actual data from Redis
-- Format your responses clearly
-- Show Redis output in a readable format
-- For key lists, show count and samples
-- For errors, explain what went wrong and suggest fixes
+Rules:
+- Use tools to fetch actual data from Redis. DO NOT invent or guess key names, values, or results.
+- Prefer dedicated tools (set_ttl, hset, sadd, etc.) over raw execute_redis_command.
+- For dangerous operations (delete, flush), always confirm keys first and warn the user.
+- Format responses clearly. Show key counts and samples for key lists.
+- Show key type, TTL, and value preview when inspecting a key.
+- Explain errors clearly and suggest fixes.
+- Default to current database unless user specifies another.
 
 Example interactions:
 - User: "Show me all user keys"
@@ -282,11 +284,19 @@ impl OpenAiRigAgent {
             message = %message,
             "Rig agent AI request: "
         );
-        self.agent
+
+        let result = self.agent
             .prompt(message)
             .max_turns(self.max_turns as usize)
             .with_history(&mut self.history)
-            .await
+            .await;
+
+        match &result {
+            Ok(response) => info!("Rig agent AI response: {}", response),
+            Err(e) => info!("Rig agent AI error: {}", e),
+        }
+
+        result
             .map(AiChatResult::Text)
             .map_err(|e| AiResponseError::from_error_string(&e.to_string()))
     }

@@ -1,11 +1,13 @@
 //! Window types - data structures for the main application window
 use crate::core::AppState;
+use crate::ui::window::log_capture::{start_log_capture, LogCaptureStop};
 use e_client_basics::constants::DEFAULT_SIDE_PANEL_WIDTH;
 use e_client_config::config::ai_config::{AiMode, AiModel};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr};
+use e_client_config::translations::{tr, TranslationKey};
 use e_client_core::AiResponseError;
+use std::sync::atomic;
 
 /// A single entry in the CLI history.
 #[derive(Clone)]
@@ -146,6 +148,102 @@ pub struct AiChatPending {
     pub use_rig_agent: bool,
 }
 
+/// Log viewer state - UI display state only.
+/// Capture logic is in the separate log_capture module.
+pub struct LogViewer {
+    /// Whether log viewer feature is enabled (can be toggled)
+    pub enabled: bool,
+    /// Whether the log viewer panel is visible (open/collapsed)
+    pub visible: bool,
+    /// Buffered log lines (in display order)
+    pub log_lines: Vec<String>,
+    /// Maximum number of lines to keep in buffer
+    pub max_lines: usize,
+    /// Auto-scroll to bottom when new lines arrive
+    pub follow_tail: bool,
+    /// Stop flag for the capture thread (None when not running)
+    stop_flag: Option<LogCaptureStop>,
+    /// Receiver for log lines from the capture thread
+    log_receiver: Option<std::sync::mpsc::Receiver<String>>,
+}
+
+const DEFAULT_MAX_LINES: usize = 300;
+
+impl Default for LogViewer {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            visible: true,
+            log_lines: Vec::new(),
+            max_lines: DEFAULT_MAX_LINES,
+            follow_tail: true,
+            stop_flag: None,
+            log_receiver: None,
+        }
+    }
+}
+
+impl LogViewer {
+    /// Clear all buffered log lines
+    pub fn clear(&mut self) {
+        self.log_lines.clear();
+    }
+
+    /// Drain newly received log lines from the capture thread.
+    /// Call this in the UI thread each frame.
+    /// Safe: uses std::sync::mpsc so try_recv works synchronously.
+    pub fn drain_received(&mut self) {
+        let Some(ref receiver) = self.log_receiver else {
+            return;
+        };
+
+        while let Ok(line) = receiver.try_recv() {
+            if self.log_lines.len() >= self.max_lines {
+                self.log_lines.remove(0);
+            }
+            self.log_lines.push(line);
+        }
+    }
+
+    /// Check if capture is currently running
+    pub fn is_capturing(&self) -> bool {
+        self.stop_flag.is_some()
+    }
+
+    /// Start log capture using the app's log directory.
+    /// Only log lines with timestamps >= `session_start` are emitted.
+    /// Safe to call from the UI thread.
+    pub fn start_capture(&mut self, session_start: chrono::DateTime<chrono::Utc>) {
+        use e_client_logging::LoggingConfig;
+        let app_log_dir = LoggingConfig::default().log_dir;
+
+        self.stop_capture();
+
+        if !self.enabled {
+            return;
+        }
+
+        self.log_lines.clear();
+
+        if let Some((receiver, stop_flag)) = start_log_capture(app_log_dir, session_start) {
+            self.log_receiver = Some(receiver);
+            self.stop_flag = Some(stop_flag);
+        } else {
+            self.log_lines.push("[LogCapture] No log file found".to_string());
+        }
+    }
+
+    /// Stop the log capture thread gracefully.
+    /// Safe to call from any thread.
+    pub fn stop_capture(&mut self) {
+        if let Some(stop_flag) = self.stop_flag.take() {
+            stop_flag.store(true, atomic::Ordering::Relaxed);
+            self.log_lines.push("--- Session ended ---".to_string());
+        }
+        self.log_receiver = None;
+    }
+}
+
 /// Command line panel state
 pub struct CommandLinePanel {
     pub show: bool,
@@ -167,6 +265,8 @@ pub struct CommandLinePanel {
     pub current_mode: AiMode,
     /// Current model ID for this tab - per-tab, not persisted
     pub current_model_id: Option<String>,
+    /// Log viewer for showing live logs during AI chat
+    pub log_viewer: LogViewer,
 }
 
 impl Default for CommandLinePanel {
@@ -184,6 +284,7 @@ impl Default for CommandLinePanel {
             rig_agent: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
             current_mode: AiMode::Agent,
             current_model_id: None,
+            log_viewer: LogViewer::default(),
         }
     }
 }

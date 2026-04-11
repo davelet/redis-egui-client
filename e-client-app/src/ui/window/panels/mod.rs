@@ -2,6 +2,7 @@
 
 pub mod central_panel;
 pub mod command_line_panel;
+pub mod log_viewer_panel;
 pub mod settings_panel;
 pub mod side_panel;
 pub mod status_bar;
@@ -12,6 +13,7 @@ pub mod top_panel;
 pub use central_panel::render_central_panel;
 pub use central_panel::render_error_panel;
 pub use command_line_panel::render_command_line_panel;
+pub(crate) use log_viewer_panel::render_log_viewer;
 pub use side_panel::render_side_panel;
 pub use status_bar::render_status_bar;
 pub use tab_bar::render_tab_bar;

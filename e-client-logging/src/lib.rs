@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use tracing::Level;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 /// Logging configuration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -36,17 +36,14 @@ impl Default for LoggingConfig {
 
 /// Initialize logging with given configuration
 pub fn init_logging(config: &LoggingConfig) -> Result<(), LoggingError> {
-    // Parse log level
     let level: Level = config
         .level
         .parse()
         .map_err(|_| LoggingError::InvalidLevel(config.level.clone()))?;
 
-    // Create env filter for additional filtering
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level.to_string()));
 
-    // Console layer
     let console_layer = if config.enable_console {
         Some(
             fmt::layer()
@@ -59,12 +56,9 @@ pub fn init_logging(config: &LoggingConfig) -> Result<(), LoggingError> {
         None
     };
 
-    // File layer
     let file_layer = if config.enable_file {
-        // Ensure log directory exists
         std::fs::create_dir_all(&config.log_dir).map_err(LoggingError::IoError)?;
 
-        // Create a rolling file appender that rotates daily and keeps 7 days of logs
         let file_appender = RollingFileAppender::builder()
             .rotation(Rotation::DAILY)
             .filename_prefix(&config.file_prefix)
@@ -84,7 +78,6 @@ pub fn init_logging(config: &LoggingConfig) -> Result<(), LoggingError> {
         None
     };
 
-    // Combine layers and set as global subscriber
     tracing_subscriber::registry()
         .with(env_filter)
         .with(console_layer)
@@ -112,7 +105,6 @@ pub enum LoggingError {
     AlreadyInitialized,
 }
 
-/// Helper macro for logging at different levels
 #[macro_export]
 macro_rules! log_event {
     ($level:expr, $($arg:tt)*) => {
@@ -120,17 +112,14 @@ macro_rules! log_event {
     };
 }
 
-/// Log an application start event
 pub fn log_app_start() {
     tracing::info!("Application starting");
 }
 
-/// Log an application shutdown event
 pub fn log_app_shutdown() {
     tracing::info!("Application shutting down");
 }
 
-/// Log a file operation event
 pub fn log_file_operation(operation: &str, path: &std::path::Path, success: bool) {
     if success {
         tracing::info!(operation = %operation, path = %path.display(), "File operation succeeded");
@@ -156,21 +145,15 @@ mod tests {
             enable_file: true,
             enable_console: false,
         };
-        // Should not panic, use try_init to handle re-initialization
-        // Ignore AlreadyInitialized error since tests may run in any order
         let _ = init_logging(&config);
-        // Log something
         tracing::info!("Test log message");
-        // Wait a bit for file write (though it's synchronous)
         thread::sleep(Duration::from_millis(100));
-        // Check that log file exists
         let entries: Vec<_> = std::fs::read_dir(dir.path())
             .unwrap()
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map_or(false, |ext| ext == "log"))
             .collect();
         assert!(!entries.is_empty(), "No log files found");
-        // Read the first log file
         let log_file = std::fs::read_to_string(entries[0].path()).unwrap();
         assert!(
             log_file.contains("Test log message"),
@@ -181,9 +164,7 @@ mod tests {
 
     #[test]
     fn test_re_initialization_safe() {
-        // First initialization
         let result1 = init_logging_default();
-        // Second initialization should fail gracefully with AlreadyInitialized error
         let result2 = init_logging_default();
         assert!(result1.is_ok() || matches!(result1, Err(LoggingError::AlreadyInitialized)));
         assert!(matches!(result2, Err(LoggingError::AlreadyInitialized)));

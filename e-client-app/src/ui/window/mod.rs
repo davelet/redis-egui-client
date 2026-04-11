@@ -14,6 +14,7 @@ pub use types::{AiModelEditor, ElementEditDialog, GimImportDialog, JsonImportPre
 
 pub mod components;
 pub mod copy_feedback;
+mod log_capture;
 mod new_connection_window;
 pub mod panels;
 pub mod shortcut_manager;

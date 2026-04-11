@@ -1,5 +1,6 @@
 use crate::ui::window::RedisApp;
 use crate::ui::window::components::markdown::render_markdown;
+use crate::ui::window::panels::log_viewer_panel::render_log_viewer;
 use crate::ui::window::types::HistoryEntry;
 use e_client_basics::constants::REDIS_COMMANDS;
 use e_client_config::config::ai_config::AiMode;
@@ -149,16 +150,37 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     }
                 }
+
+                ui.separator();
+
+                // Live Logs toggle (right side of the toolbar)
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let log_viewer = &mut app.tabs[active_tab_idx].command_line_panel.log_viewer;
+                    ui.toggle_value(&mut log_viewer.enabled, "📋 Live Logs")
+                        .on_hover_text("Show live logs during AI chat");
+                });
             });
 
             ui.separator();
 
-            // Command history output area
-            let available_height = ui.available_height() - 40.0; // Reserve space for input
+            // Determine layout split between history and log viewer
+            let log_viewer_enabled = app.tabs[active_tab_idx]
+                .command_line_panel
+                .log_viewer
+                .enabled;
+            let history_height_ratio = if log_viewer_enabled { 0.55 } else { 1.0 };
+            let input_reserve = 40.0;
+            let log_section_reserve = if log_viewer_enabled { 120.0 } else { 0.0 };
+
+            let total_available = ui.available_height() - input_reserve - log_section_reserve;
+            let history_height = total_available * history_height_ratio;
+
+            // ── Command history output area ─────────────────────────────────
             egui::ScrollArea::vertical()
+                .id_salt(egui::Id::new("cli_history_scroll"))
                 .auto_shrink([false; 2])
                 .stick_to_bottom(true)
-                .max_height(available_height)
+                .max_height(history_height)
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
                         for entry in &app.tabs[active_tab_idx].command_line_panel.history {
@@ -210,6 +232,13 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = false;
                     }
                 });
+
+            // ── Log viewer section (shown between history and input) ─────────
+            if log_viewer_enabled {
+                ui.add_space(2.0);
+                ui.separator();
+                render_log_viewer(ui, app, active_tab_idx);
+            }
 
             ui.separator();
 
@@ -576,7 +605,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push(HistoryEntry::new(trimmed_input.clone(), "Thinking..."));
+            .push(HistoryEntry::new(trimmed_input.clone(), tr(TranslationKey::AiThinking, current_lang).to_string()));
     }
 
     // Get the history index of the thinking message (if shown)
@@ -613,6 +642,12 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         .command_line_panel
         .current_model_id
         .clone();
+
+    // Start log capture so the user can see live logs during AI chat
+    app.tabs[tab_idx]
+        .command_line_panel
+        .log_viewer
+        .start_capture(chrono::Utc::now());
 
     // Execute AI chat with rig agent asynchronously
     tokio::task::spawn(async move {
@@ -704,14 +739,19 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
 
     // Check if result is ready
     let result = match pending.receiver.try_recv() {
-        Ok(r) => r,
+        Ok(r) => {
+            // AI chat finished — stop log capture
+            app.tabs[tab_idx].command_line_panel.log_viewer.stop_capture();
+            r
+        }
         Err(std::sync::mpsc::TryRecvError::Empty) => {
             // Not ready yet, put it back
             app.tabs[tab_idx].command_line_panel.ai_chat_pending = Some(pending);
             return;
         }
         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-            // Channel disconnected, show error
+            // Channel disconnected, show error and stop capture
+            app.tabs[tab_idx].command_line_panel.log_viewer.stop_capture();
             if let Some(idx) = pending.thinking_idx {
                 app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::new(
                     pending.user_input,
