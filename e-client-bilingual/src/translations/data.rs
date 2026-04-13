@@ -963,11 +963,11 @@ pub fn load_all_translations(
     // CLI Mode labels
     strings.insert(
         TranslationKey::CliModeChat,
-        tr_en_zh("Chat", "对话"),
+        tr_en_zh("Chat", "Chat"),
     );
     strings.insert(
         TranslationKey::CliModeAgent,
-        tr_en_zh("Agent", "代理"),
+        tr_en_zh("Agent", "Agent"),
     );
     strings.insert(
         TranslationKey::CliModeChatHint,

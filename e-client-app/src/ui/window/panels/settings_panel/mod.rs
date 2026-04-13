@@ -36,10 +36,13 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
     let is_editing_shortcut = app.shortcut_state.editing_shortcut.is_some();
 
     // Handle Esc key - cancel editing if in edit mode, otherwise close settings
-    // Priority: help window takes precedence over settings
+    // Priority: help window > GIM dialog > import preview > shortcut editing > settings
     let esc_pressed = ctx.input(|i| i.key_pressed(egui::Key::Escape));
     if esc_pressed && !app.ai_model_editor.show && !app.show_help {
-        if app.json_import_preview.is_some() {
+        if app.gim_import_dialog.show {
+            // Close GIM import dialog only (don't close settings)
+            app.gim_import_dialog.close();
+        } else if app.json_import_preview.is_some() {
             // Close import preview
             app.json_import_preview = None;
         } else if is_editing_shortcut {
