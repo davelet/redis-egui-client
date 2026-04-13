@@ -128,6 +128,9 @@ pub enum ShortcutAction {
     #[serde(rename = "toggle_help")]
     #[strum(serialize = "ToggleHelp")]
     ToggleHelp,
+    #[serde(rename = "toggle_live_logs")]
+    #[strum(serialize = "ToggleLiveLogs")]
+    ToggleLiveLogs,
 }
 
 impl ShortcutAction {
@@ -184,6 +187,7 @@ impl ShortcutAction {
             ShortcutAction::CancelAiCommand => "Left".to_string(),
             ShortcutAction::CloseAiModelEditor => "Esc".to_string(),
             ShortcutAction::ToggleHelp => "F1".to_string(),
+            ShortcutAction::ToggleLiveLogs => format!("{}+L", mod_key),
         }
     }
 
@@ -229,6 +233,7 @@ impl ShortcutAction {
             ShortcutAction::CancelAiCommand => TranslationKey::ShortcutCancelAiCommand,
             ShortcutAction::CloseAiModelEditor => TranslationKey::ShortcutCloseAiModelEditor,
             ShortcutAction::ToggleHelp => TranslationKey::Help,
+            ShortcutAction::ToggleLiveLogs => TranslationKey::ShortcutToggleLiveLogs,
         }
     }
 

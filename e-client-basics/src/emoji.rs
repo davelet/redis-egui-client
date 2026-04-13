@@ -17,7 +17,7 @@ pub mod action {
     /// Settings / Gear (⚙)
     pub const SETTINGS: &str = "\u{2699}";
     /// Warning (⚠️)
-    pub const WARNING: &str = "\u{26A0}\u{FE0F}";
+    pub const WARNING: &str = "\u{26A0}";
 }
 
 /// Navigation icons

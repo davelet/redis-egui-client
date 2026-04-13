@@ -469,6 +469,10 @@ pub fn load_all_translations(
         tr_en_zh("Toggle Command Line", "打开命令行"),
     );
     strings.insert(
+        TranslationKey::ShortcutToggleLiveLogs,
+        tr_en_zh("Toggle Live Logs", "切换日志面板"),
+    );
+    strings.insert(
         TranslationKey::ShortcutCloseCommandLine,
         tr_en_zh("Close Command Line", "关闭命令行"),
     );
@@ -617,7 +621,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiImportAlreadyExists,
-        tr_en_zh("Model already exists", "模型已存在"),
+        tr_en_zh("{} Model already exists", "{} 模型已存在"),
     );
     strings.insert(
         TranslationKey::AiImportOverride,
@@ -654,7 +658,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiImportJsonWarning,
-        tr_en_zh("API keys will NOT be imported. Please re-enter them after import.", "API 密钥不会被导入，请在导入后重新输入。"),
+        tr_en_zh("{} API keys will NOT be imported. Please re-enter them after import.", "{}API 密钥不会被导入，请在导入后重新输入。"),
     );
     strings.insert(
         TranslationKey::AiImportJsonModelCount,
@@ -665,12 +669,20 @@ pub fn load_all_translations(
         tr_en_zh("Import", "导入"),
     );
     strings.insert(
-        TranslationKey::AiImportJsonKeyNote,
-        tr_en_zh("Note: API keys are not stored in JSON for security.", "注意：为安全起见，API 密钥不会存储在 JSON 中。"),
-    );
-    strings.insert(
         TranslationKey::AiImportJsonSuccess,
         tr_en_zh("Import successful!", "导入成功！"),
+    );
+    strings.insert(
+        TranslationKey::AiImportSelectAll,
+        tr_en_zh("Select All", "全选"),
+    );
+    strings.insert(
+        TranslationKey::AiImportDeselectAll,
+        tr_en_zh("Deselect All", "全不选"),
+    );
+    strings.insert(
+        TranslationKey::AiImportInvertSelection,
+        tr_en_zh("Invert Selection", "反选"),
     );
     strings.insert(
         TranslationKey::AiTestFailed,
@@ -946,6 +958,84 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::UseTLS,
         tr_en_zh("Use TLS (rediss://)", "使用 TLS 加密连接"),
+    );
+
+    // CLI Mode labels
+    strings.insert(
+        TranslationKey::CliModeChat,
+        tr_en_zh("Chat", "对话"),
+    );
+    strings.insert(
+        TranslationKey::CliModeAgent,
+        tr_en_zh("Agent", "代理"),
+    );
+    strings.insert(
+        TranslationKey::CliModeChatHint,
+        tr_en_zh("Stateless - translates natural language to Redis commands (no context, no tools)", "无状态 - 将自然语言转换为 Redis 命令（无上下文、无工具）"),
+    );
+    strings.insert(
+        TranslationKey::CliModeAgentHint,
+        tr_en_zh("Stateful - has access to Redis tools for direct operations (requires tool-calling capable models)", "有状态 - 可直接调用 Redis 工具执行操作（需要支持工具调用的模型）"),
+    );
+    strings.insert(
+        TranslationKey::CliTurns,
+        tr_en_zh("{} turns", "{} 轮次"),
+    );
+
+    // Live Logs
+    strings.insert(
+        TranslationKey::LiveLogs,
+        tr_en_zh("Live Logs", "实时日志"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsToggle,
+        tr_en_zh("📋 Live Logs", "📋 实时日志"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsShowHint,
+        tr_en_zh("Show live logs during AI chat", "AI 对话期间显示实时日志"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsClear,
+        tr_en_zh("🗑 Clear", "🗑 清空"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsClearHint,
+        tr_en_zh("Clear log buffer", "清空日志缓冲区"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsFollow,
+        tr_en_zh("📜 Follow", "📜 跟随"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsFollowActive,
+        tr_en_zh("🔽 Follow", "🔽 跟随"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsRecording,
+        tr_en_zh("● Recording", "● 录制中"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsIdle,
+        tr_en_zh("○ Idle", "○ 空闲"),
+    );
+    strings.insert(
+        TranslationKey::LiveLogsEmpty,
+        tr_en_zh("No logs captured for this session", "本次会话尚未捕获日志"),
+    );
+
+    // CLI Status
+    strings.insert(
+        TranslationKey::Executing,
+        tr_en_zh("Executing...", "执行中..."),
+    );
+    strings.insert(
+        TranslationKey::AutoExecuteEnabled,
+        tr_en_zh("(Auto-execute enabled)", "（已启用自动执行）"),
+    );
+    strings.insert(
+        TranslationKey::ExecuteCommandHint,
+        tr_en_zh("Execute the Redis command", "执行 Redis 命令"),
     );
 }
 

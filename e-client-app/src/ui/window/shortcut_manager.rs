@@ -313,6 +313,13 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
         ShortcutAction::ToggleHelp => {
             // Handled at the top level to work even when settings is open
         }
+        ShortcutAction::ToggleLiveLogs => {
+            let active_idx = app.active_tab();
+            if let Some(tab) = app.tabs_mut().get_mut(active_idx) {
+                tab.command_line_panel.log_viewer.enabled =
+                    !tab.command_line_panel.log_viewer.enabled;
+            }
+        }
         ShortcutAction::ConfirmNewConnection => {
             // Handled at the top level when new connection window is open
         }

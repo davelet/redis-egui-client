@@ -140,10 +140,24 @@ pub fn render_ai_settings_section(
                         {
                             match import_ai_config_from_json(&path) {
                                 Ok(config) => {
+                                    let mut selected = vec![false; config.models.len()];
+                                    let mut all_conflict = true;
+                                    for (i, model) in config.models.iter().enumerate() {
+                                        let is_duplicate = app.config.ai_config.models.iter().any(|m| m.name == model.name);
+                                        if !is_duplicate {
+                                            selected[i] = true;
+                                            all_conflict = false;
+                                        }
+                                    }
+                                    if all_conflict {
+                                        for s in &mut selected { *s = true; }
+                                    }
+
                                     // Show preview and confirm dialog
                                     app.json_import_preview = Some(JsonImportPreview {
                                         path,
                                         config,
+                                        selected,
                                     });
                                 }
                                 Err(e) => {
@@ -163,85 +177,83 @@ pub fn render_ai_settings_section(
                 if !app.config.ai_config.models.is_empty() {
                     ui.add_space(4.0);
 
-                    egui::CollapsingHeader::new(tr(TranslationKey::AiModels, current_lang))
-                        .id_salt("ai_models_collapsible")
-                        .default_open(!app.ai_model_editor.models_collapsed)
+                    // Label instead of CollapsingHeader
+                    ui.label(egui::RichText::new(tr(TranslationKey::AiModels, current_lang)).strong());
+                    ui.add_space(4.0);
+
+                    // Add background color using a frame
+                    let bg_color = ui.visuals().code_bg_color;
+                    egui::Frame::group(ui.style())
+                        .fill(bg_color)
                         .show(ui, |ui| {
-                            // Add background color using a frame
-                            let bg_color = ui.visuals().code_bg_color;
-                            egui::Frame::group(ui.style())
-                                .fill(bg_color)
-                                .show(ui, |ui| {
-                                    egui::ScrollArea::horizontal().max_height(120.0).show(
-                                        ui,
-                                        |ui| {
-                                            egui::Grid::new("ai_models_grid")
-                                                .num_columns(5)
-                                                .spacing([8.0, 4.0])
-                                                .striped(true)
-                                                .show(ui, |ui| {
-                                                    ui.label(tr(
-                                                        TranslationKey::Edit,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::Delete,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiModelName,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiUrl,
-                                                        current_lang,
-                                                    ));
-                                                    ui.label(tr(
-                                                        TranslationKey::AiModelId,
-                                                        current_lang,
-                                                    ));
-                                                    ui.end_row();
+                            // max_height ~85.0 shows about 2.5 items vertically
+                            egui::ScrollArea::both().max_height(85.0).show(
+                                ui,
+                                |ui| {
 
-                                                    let mut model_ids_to_delete: Vec<String> =
-                                                        Vec::new();
-                                                    for model in &app.config.ai_config.models {
-                                                        let model_id = model.id.clone();
-                                                        if ui.button(emoji::action::EDIT).clicked()
-                                                        {
-                                                            app.ai_model_editor
-                                                                .open_for_edit(model);
-                                                        }
-                                                        if ui
-                                                            .button(emoji::action::DELETE)
-                                                            .clicked()
-                                                        {
-                                                            model_ids_to_delete.push(model_id);
-                                                        }
-                                                        ui.label(&model.name);
-                                                        ui.label(&model.get_base_url());
-                                                        ui.label(&model.get_model_id());
-                                                        ui.end_row();
-                                                    }
-                                                    for id in model_ids_to_delete.iter() {
-                                                        app.config.remove_ai_model(id);
-                                                    }
-                                                    if !model_ids_to_delete.is_empty() {
-                                                        if let Err(e) = app.config.save_ai_config()
-                                                        {
-                                                            eprintln!(
-                                                                "Failed to save AI config: {}",
-                                                                e.to_message(current_lang)
-                                                            );
-                                                        }
-                                                    }
-                                                });
-                                        },
-                                    );
-                                });
+                                    egui::Grid::new("ai_models_grid")
+                                        .num_columns(5)
+                                        .spacing([8.0, 4.0])
+                                        .striped(true)
+                                        .show(ui, |ui| {
+                                            ui.label(tr(
+                                                TranslationKey::Edit,
+                                                current_lang,
+                                            ));
+                                            ui.label(tr(
+                                                TranslationKey::Delete,
+                                                current_lang,
+                                            ));
+                                            ui.label(tr(
+                                                TranslationKey::AiModelName,
+                                                current_lang,
+                                            ));
+                                            ui.label(tr(
+                                                TranslationKey::AiUrl,
+                                                current_lang,
+                                            ));
+                                            ui.label(tr(
+                                                TranslationKey::AiModelId,
+                                                current_lang,
+                                            ));
+                                            ui.end_row();
+
+                                            let mut model_ids_to_delete: Vec<String> =
+                                                Vec::new();
+                                            for model in &app.config.ai_config.models {
+                                                let model_id = model.id.clone();
+                                                if ui.button(emoji::action::EDIT).clicked()
+                                                {
+                                                    app.ai_model_editor
+                                                        .open_for_edit(model);
+                                                }
+                                                if ui
+                                                    .button(emoji::action::DELETE)
+                                                    .clicked()
+                                                {
+                                                    model_ids_to_delete.push(model_id);
+                                                }
+                                                ui.label(&model.name);
+                                                ui.label(&model.get_base_url());
+                                                ui.label(&model.get_model_id());
+                                                ui.end_row();
+                                            }
+                                            for id in model_ids_to_delete.iter() {
+                                                app.config.remove_ai_model(id);
+                                            }
+                                            if !model_ids_to_delete.is_empty() {
+                                                if let Err(e) = app.config.save_ai_config()
+                                                {
+                                                    eprintln!(
+                                                        "Failed to save AI config: {}",
+                                                        e.to_message(current_lang)
+                                                    );
+                                                }
+                                            }
+                                        });
+                                },
+                            );
                         });
-
-                    // Update collapsed state
-                    app.ai_model_editor.models_collapsed = false;
                 }
 
                 ui.add_space(8.0);
@@ -860,10 +872,10 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
 
                 if model_exists {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("⚠️ ")
+                        ui.label(egui::RichText::new(tr_fmt(TranslationKey::AiImportAlreadyExists, current_lang, &[emoji::action::WARNING]))
                             .color(ui.visuals().warn_fg_color));
-                        ui.label(egui::RichText::new(tr(TranslationKey::AiImportAlreadyExists, current_lang))
-                            .weak());
+                        ui.label(egui::RichText::new(format!("({})", tr(TranslationKey::AiImportOverride, current_lang)))
+                            .color(ui.visuals().warn_fg_color));
                     });
                     ui.add_space(5.0);
                 }
@@ -946,25 +958,23 @@ fn import_ai_config_from_json(path: &Path) -> Result<AiConfig, String> {
 
 /// Render JSON import preview dialog
 pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, current_lang: Language) {
-    let preview = match app.json_import_preview.take() {
+    let mut preview = match app.json_import_preview.take() {
         Some(p) => p,
         None => return,
     };
 
     egui::Window::new(tr(TranslationKey::AiImportJsonTitle, current_lang))
+        .id(egui::Id::new("json_import_preview_window"))
         .anchor(egui::Align2::CENTER_TOP, [0.0, 50.0])
         .resizable(false)
         .collapsible(false)
+        .fixed_size([450.0, 250.0])
         .show(ctx, |ui| {
-            ui.set_min_width(400.0);
-            ui.set_max_width(500.0);
+            ui.set_width(450.0);
 
             // Warning message
             ui.add(egui::Label::new(
-                egui::RichText::new(format!(
-                    "⚠️ {}",
-                    tr(TranslationKey::AiImportJsonWarning, current_lang)
-                ))
+                egui::RichText::new(tr_fmt(TranslationKey::AiImportJsonWarning, current_lang, &[emoji::action::WARNING]))
                 .color(ui.visuals().warn_fg_color)
                 .small(),
             ));
@@ -978,22 +988,107 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
             ));
             ui.add_space(10.0);
 
+            // Bulk selection actions
+            ui.horizontal(|ui| {
+                if ui.button(tr(TranslationKey::AiImportSelectAll, current_lang)).clicked() {
+                    for s in &mut preview.selected { *s = true; }
+                }
+                if ui.button(tr(TranslationKey::AiImportDeselectAll, current_lang)).clicked() {
+                    for s in &mut preview.selected { *s = false; }
+                }
+                if ui.button(tr(TranslationKey::AiImportInvertSelection, current_lang)).clicked() {
+                    for s in &mut preview.selected { *s = !*s; }
+                }
+            });
+            ui.add_space(5.0);
+
             // Model list
-            egui::ScrollArea::vertical()
-                .max_height(200.0)
+            let bg_color = ui.visuals().code_bg_color;
+            egui::Frame::group(ui.style())
+                .fill(bg_color)
                 .show(ui, |ui| {
-                    for model in &preview.config.models {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("• {}", model.name));
-                            ui.label(
-                                egui::RichText::new(format!("({})", model.provider))
-                                    .weak(),
-                            );
+                    let bg_color = ui.visuals().code_bg_color;
+                    egui::Frame::group(ui.style())
+                        .fill(bg_color)
+                        .show(ui, |ui| {
+                            egui::ScrollArea::vertical()
+                                .id_salt("json_import_preview_scroll")
+                                .max_height(120.0)
+                                .auto_shrink([false; 2])
+                                .show(ui, |ui| {
+                                    // Adapt checkbox colors based on background luminance
+                                    let bg = ui.visuals().code_bg_color;
+                                    let luminance = (bg.r() as u16 + bg.g() as u16 + bg.b() as u16) / 3;
+                                    let is_light_bg = luminance > 128;
+
+                                    let (border_color, check_color, text_color, box_fill, box_fill_hover, box_fill_active) = if is_light_bg {
+                                        // Light background: use dark colors
+                                        (
+                                            egui::Color32::from_gray(80),   // border
+                                            egui::Color32::from_gray(30),   // checkmark
+                                            egui::Color32::from_gray(20),   // label text
+                                            egui::Color32::from_gray(230),  // box fill
+                                            egui::Color32::from_gray(210),  // box fill hover
+                                            egui::Color32::from_gray(190),  // box fill active
+                                        )
+                                    } else {
+                                        // Dark background: use light colors
+                                        (
+                                            egui::Color32::from_gray(160),
+                                            egui::Color32::from_gray(230),
+                                            egui::Color32::from_gray(220),
+                                            egui::Color32::from_gray(60),
+                                            egui::Color32::from_gray(80),
+                                            egui::Color32::from_gray(100),
+                                        )
+                                    };
+
+                                    let v = ui.visuals_mut();
+                                    // inactive (default)
+                                    v.widgets.inactive.fg_stroke = egui::Stroke::new(1.5, check_color);
+                                    v.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, border_color);
+                                    v.widgets.inactive.bg_fill = box_fill;
+                                    // hovered
+                                    v.widgets.hovered.fg_stroke = egui::Stroke::new(1.5, check_color);
+                                    v.widgets.hovered.bg_stroke = egui::Stroke::new(1.5, border_color);
+                                    v.widgets.hovered.bg_fill = box_fill_hover;
+                                    // active (pressed)
+                                    v.widgets.active.fg_stroke = egui::Stroke::new(2.0, check_color);
+                                    v.widgets.active.bg_stroke = egui::Stroke::new(1.5, border_color);
+                                    v.widgets.active.bg_fill = box_fill_active;
+                                    // noninteractive
+                                    v.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, border_color);
+                                    v.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, border_color);
+                                    v.widgets.noninteractive.bg_fill = box_fill;
+
+                                    for (i, model) in preview.config.models.iter().enumerate() {
+                                        let is_duplicate = app.config.ai_config.models.iter().any(|m| m.name == model.name);
+                                        ui.horizontal(|ui| {
+                                            ui.checkbox(&mut preview.selected[i],
+                                                egui::RichText::new(format!("• {}", model.name)).color(text_color));
+                                            ui.label(
+                                                egui::RichText::new(format!("({})", model.provider))
+                                                    .color(text_color.linear_multiply(0.6)),
+                                            );
+                                            if is_duplicate {
+                                                ui.add_space(5.0);
+                                                ui.label(
+                                                    egui::RichText::new(tr_fmt(TranslationKey::AiImportAlreadyExists, current_lang, &[emoji::action::WARNING]))
+                                                        .color(ui.visuals().warn_fg_color)
+                                                );
+                                                ui.label(
+                                                    egui::RichText::new(format!("({})", tr(TranslationKey::AiImportOverride, current_lang)))
+                                                        .color(ui.visuals().warn_fg_color)
+                                                );
+                                            }
+                                        });
+                                        ui.label(
+                                            egui::RichText::new(format!("  Model: {}", model.model_id)).weak(),
+                                        );
+                                        ui.add_space(4.0);
+                                    }
+                                });
                         });
-                        ui.label(
-                            egui::RichText::new(format!("  Model: {}", model.model_id)).weak(),
-                        );
-                    }
                 });
 
             ui.add_space(15.0);
@@ -1004,28 +1099,29 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 cancel_clicked = ui.button(tr(TranslationKey::Cancel, current_lang)).clicked();
                 ui.add_space(10.0);
-                confirm_clicked = ui
-                    .button(
+                
+                let any_selected = preview.selected.iter().any(|&s| s);
+                confirm_clicked = ui.add_enabled(
+                    any_selected,
+                    egui::Button::new(
                         egui::RichText::new(tr(TranslationKey::AiImportJsonConfirm, current_lang))
-                            .strong(),
+                            .strong()
                     )
-                    .clicked();
+                )
+                .clicked();
             });
-            ui.add_space(5.0);
-            ui.label(
-                egui::RichText::new(tr(TranslationKey::AiImportJsonKeyNote, current_lang))
-                    .weak()
-                    .small(),
-            );
 
             // Handle button clicks outside closure
             if cancel_clicked {
                 // Do nothing, just close
             } else if confirm_clicked {
-                // Merge models: add new ones, skip duplicates by name
-                for model in preview.config.models {
-                    // Check if model with same name exists
-                    if !app.config.ai_config.models.iter().any(|m| m.name == model.name) {
+                // Merge models: add new ones, overwrite duplicates by name
+                let selected_flags = preview.selected;
+                for (i, model) in preview.config.models.into_iter().enumerate() {
+                    if selected_flags[i] {
+                        if let Some(id) = app.config.ai_config.models.iter().find(|m| m.name == model.name).map(|m| m.id.clone()) {
+                            app.config.remove_ai_model(&id);
+                        }
                         app.config.add_ai_model(model);
                     }
                 }
@@ -1042,6 +1138,8 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
                         tr(TranslationKey::AiImportJsonSuccess, current_lang).to_string(),
                     );
                 }
+            } else {
+                app.json_import_preview = Some(preview);
             }
         });
 }

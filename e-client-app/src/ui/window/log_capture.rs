@@ -63,9 +63,35 @@ fn tail_log_file_thread(
     let reader = BufReader::with_capacity(8192, file);
     let mut lines = reader.lines();
 
+    // Grace period: after stop flag is set, keep reading for 1 more second
+    // to capture any final log writes (e.g., AI response completion)
+    let grace_period_ms = 1000;
+    let check_interval_ms = 100;
+    let max_iterations = grace_period_ms / check_interval_ms;
+
     loop {
-        // Check stop flag
         if stop_flag.load(Ordering::Relaxed) {
+            // Grace period: drain any remaining lines for 1 second before exiting
+            let mut grace_iterations = 0;
+            loop {
+                let mut found_line = false;
+                while let Some(result) = lines.next() {
+                    if let Ok(line) = result {
+                        if !line.trim().is_empty() {
+                            let _ = log_tx.send(line);
+                        }
+                        found_line = true;
+                    }
+                }
+                if !found_line {
+                    // EOF — sleep and retry
+                    thread::sleep(std::time::Duration::from_millis(check_interval_ms));
+                }
+                grace_iterations += 1;
+                if grace_iterations >= max_iterations {
+                    break;
+                }
+            }
             break;
         }
 

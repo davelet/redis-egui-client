@@ -1,8 +1,12 @@
 use crate::ui::window::RedisApp;
+use e_client_config::translations::{TranslationKey, tr};
 
 /// Render the log viewer panel inside the command line panel.
 /// Shows live logs while AI chat is active.
 pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) {
+    // Get language before mutable borrow
+    let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
+
     let panel = &mut app.tabs[tab_idx].command_line_panel;
     let log_viewer = &mut panel.log_viewer;
 
@@ -12,26 +16,34 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
     // ── Top control bar ───────────────────────────────────────────────────
     ui.horizontal(|ui| {
         ui.label(
-            egui::RichText::new("Live Logs")
+            egui::RichText::new(tr(TranslationKey::LiveLogs, current_lang))
                 .small()
                 .color(egui::Color32::GRAY),
         );
 
         // Clear button
-        if ui.button("🗑 Clear").on_hover_text("Clear log buffer").clicked() {
+        if ui.button(tr(TranslationKey::LiveLogsClear, current_lang))
+            .on_hover_text(tr(TranslationKey::LiveLogsClearHint, current_lang))
+            .clicked()
+        {
             log_viewer.clear();
         }
 
         // Follow tail toggle
-        let follow_label = if log_viewer.follow_tail { "🔽 Follow" } else { "📜 Follow" };
+        let follow_label = if log_viewer.follow_tail {
+            tr(TranslationKey::LiveLogsFollowActive, current_lang)
+        } else {
+            tr(TranslationKey::LiveLogsFollow, current_lang)
+        };
         ui.toggle_value(&mut log_viewer.follow_tail, follow_label);
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.add_space(12.0);
             // Status indicator
             let (text, color) = if log_viewer.is_capturing() {
-                ("● Recording", egui::Color32::from_rgb(80, 200, 80))
+                (tr(TranslationKey::LiveLogsRecording, current_lang), egui::Color32::from_rgb(80, 200, 80))
             } else {
-                ("○ Idle", egui::Color32::GRAY)
+                (tr(TranslationKey::LiveLogsIdle, current_lang), egui::Color32::GRAY)
             };
             ui.label(egui::RichText::new(text).small().color(color));
         });
@@ -45,7 +57,7 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         ui.vertical_centered(|ui| {
             ui.add_space(4.0);
             ui.label(
-                egui::RichText::new("No logs captured for this session")
+                egui::RichText::new(tr(TranslationKey::LiveLogsEmpty, current_lang))
                     .small()
                     .color(egui::Color32::GRAY),
             );
@@ -58,6 +70,7 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         .id_salt(egui::Id::new("cli_log_viewer_scroll"))
         .auto_shrink([false; 2])
         .stick_to_bottom(log_viewer.follow_tail)
+        .max_height(200.0)
         .show(ui, |ui| {
             for line in &log_viewer.log_lines {
                 let (color, prefix) = color_by_level(line);

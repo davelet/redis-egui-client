@@ -165,6 +165,9 @@ pub struct LogViewer {
     stop_flag: Option<LogCaptureStop>,
     /// Receiver for log lines from the capture thread
     log_receiver: Option<std::sync::mpsc::Receiver<String>>,
+    /// Timestamp (Instant) when the user cancelled a pending AI command confirmation.
+    /// Capture stops after a short delay to allow final log entries to be displayed.
+    pub log_cancel_time: Option<std::time::Instant>,
 }
 
 const DEFAULT_MAX_LINES: usize = 300;
@@ -179,6 +182,7 @@ impl Default for LogViewer {
             follow_tail: true,
             stop_flag: None,
             log_receiver: None,
+            log_cancel_time: None,
         }
     }
 }
@@ -218,6 +222,7 @@ impl LogViewer {
         let app_log_dir = LoggingConfig::default().log_dir;
 
         self.stop_capture();
+        self.log_cancel_time = None;
 
         if !self.enabled {
             return;
@@ -300,7 +305,6 @@ pub struct AiModelEditor {
     pub provider: String,
     pub provider_search: String,
     pub temperature: f32,
-    pub models_collapsed: bool,
     pub testing_connection: bool,
     pub test_result: Option<Result<(), String>>,
     pub test_result_receiver: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
@@ -318,7 +322,6 @@ impl Default for AiModelEditor {
             provider: "Custom".to_string(),
             provider_search: String::new(),
             temperature: 0.7,
-            models_collapsed: true,
             testing_connection: false,
             test_result: None,
             test_result_receiver: None,
@@ -441,4 +444,6 @@ pub struct JsonImportPreview {
     pub path: std::path::PathBuf,
     /// The loaded config (API keys will be None)
     pub config: e_client_config::config::ai_config::AiConfig,
+    /// Selection state for each imported model
+    pub selected: Vec<bool>,
 }

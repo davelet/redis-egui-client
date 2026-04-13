@@ -39,7 +39,10 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
     // Priority: help window takes precedence over settings
     let esc_pressed = ctx.input(|i| i.key_pressed(egui::Key::Escape));
     if esc_pressed && !app.ai_model_editor.show && !app.show_help {
-        if is_editing_shortcut {
+        if app.json_import_preview.is_some() {
+            // Close import preview
+            app.json_import_preview = None;
+        } else if is_editing_shortcut {
             // Cancel editing
             app.shortcut_state.editing_shortcut = None;
             app.shortcut_state.shortcut_input_buffer.clear();
