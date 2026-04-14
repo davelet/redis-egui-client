@@ -816,6 +816,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bulk-model-management-json-importexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk Model Management (JSON Import/Export)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bulk Model Management (JSON Import/Export)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exporting-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporting Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#importing-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Importing Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1573,6 +1612,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bulk-model-management-json-importexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk Model Management (JSON Import/Export)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bulk Model Management (JSON Import/Export)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exporting-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporting Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#importing-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Importing Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1679,6 +1757,7 @@
 <p><strong>Example Interaction</strong>:
 - User: "Show me all user keys"
 - AI: Uses <code>filter_keys</code> tool with pattern <code>user:*</code>, gets results, and displays them directly.</p>
+<p><strong>Interruption</strong>: If the AI Agent is taking many turns or performing unintended operations, you can immediately stop it by clicking the red square (<strong>🟥</strong>) button next to the status message.</p>
 <h3 id="switching-modes">Switching Modes</h3>
 <p>You can switch between modes using the mode toggle in the command line panel (Chat/Agent buttons). Mode selection is per-tab and not persisted - each new CLI session starts in Agent mode.</p>
 <p><strong>Switching modes</strong> will automatically clear the existing agent state to ensure statelessness.</p>
@@ -1995,6 +2074,29 @@
 <p><strong>Costs</strong>: Monitor your API usage to avoid unexpected charges.</p>
 </li>
 </ol>
+<h2 id="bulk-model-management-json-importexport">Bulk Model Management (JSON Import/Export)</h2>
+<p>You can manage your list of AI models in bulk using JSON import and export. This is useful for sharing configurations between machines or quickly adding multiple models.</p>
+<h3 id="exporting-models">Exporting Models</h3>
+<ol>
+<li>Open Settings -&gt; <strong>AI Settings</strong>.</li>
+<li>Click the <strong>Export Models</strong> button at the bottom of the model list.</li>
+<li>Your current model list (excluding API keys) will be copied to your clipboard as a JSON array.</li>
+</ol>
+<h3 id="importing-models">Importing Models</h3>
+<ol>
+<li>Prepare a JSON file or copy a JSON array of model definitions to your clipboard.</li>
+<li>Click the <strong>Import Models</strong> button.</li>
+<li>A preview dialog will appear showing the models found in the JSON.</li>
+<li>You can select which models to import. The systems automatically handles conflicts:</li>
+<li>If a model with the same Name and URL already exists, it will be skipped.</li>
+<li>You can choose to "Select All", "Invert Selection", or manually toggle models.</li>
+<li>Click <strong>Import Selection</strong> to add them to your configuration.</li>
+</ol>
+<blockquote>
+<p>[!NOTE]
+<strong>API Key Security</strong>: For security reasons, API keys are <strong>never included</strong> in JSON exports. After importing a model, you must manually enter its API key to activate it.</p>
+</blockquote>
+<hr />
 <h2 id="troubleshooting">Troubleshooting</h2>
 <h3 id="api-key-not-found">API Key Not Found</h3>
 <p>If you encounter "API key not found" errors after configuring a model:

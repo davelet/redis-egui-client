@@ -533,6 +533,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#manual-interruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Interruption
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#smart-input-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1046,6 +1057,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#manual-interruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Interruption
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#smart-input-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1213,7 +1235,20 @@ AI:  → DEL user:123:profile  (uses currently selected key)
 <p>The panel includes:
 - <strong>History area</strong>: Previous commands and AI responses
 - <strong>Input field</strong>: Enter Redis commands or natural language
-- <strong>Mode toggle</strong>: Switch between Chat and Agent modes</p>
+- <strong>Mode toggle</strong>: Switch between Chat and Agent modes
+- <strong>Manual Interrupt</strong>: A red square button (<strong>🟥</strong>) appears next to the "Thinking..." status. Click it to immediately abort long-running requests or stop the AI agent.</p>
+<hr />
+<h2 id="manual-interruption">Manual Interruption</h2>
+<p>If the AI is taking too long to think or if an Agent starts performing unintended operations, you can manually stop the process:</p>
+<ol>
+<li>Look for the red square button (<strong>🟥</strong>) appearing next to the status text in the history area.</li>
+<li>Click the button to immediately <strong>abort</strong> the remote request and <strong>stop</strong> log capture.</li>
+<li>The status will update to <strong>(Interrupted)</strong>.</li>
+</ol>
+<blockquote>
+<p>[!NOTE]
+To prevent accidental interruption, no keyboard shortcut is provided for this action. It must be triggered by manually clicking the button.</p>
+</blockquote>
 <hr />
 <h2 id="smart-input-detection">Smart Input Detection</h2>
 <p>The AI intelligently detects your input type:</p>
