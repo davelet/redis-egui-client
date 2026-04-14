@@ -126,9 +126,15 @@ Example:
 # What's in session:123?
 → get_key_info("session:123")
 
-# Delete expired cache
 → filter_keys("cache:*") → delete_keys([...])
 ```
+
+### Interrupting AI
+
+If an AI request is taking too long or an Agent is performing unintended operations:
+- Click the red square button (**🟥**) appearing next to the status.
+- This will immediately abort the request and stop any background processes.
+- **Note:** No keyboard shortcut is provided to prevent accidental interruption.
 
 ---
 

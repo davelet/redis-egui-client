@@ -55,9 +55,8 @@ Works with OpenAI, Claude, Ollama (local), OpenRouter, and any OpenAI-compatible
 
 ### Essential Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
 | `Cmd/Ctrl + E` | **Toggle AI Panel** ← Start here |
+| `Cmd/Ctrl + L` | **Toggle Live Logs** |
 | `Cmd/Ctrl + T` | New Tab |
 | `Cmd/Ctrl + W` | Close Tab |
 | `Cmd/Ctrl + R` | Refresh Key |
@@ -73,6 +72,7 @@ All shortcuts are customizable in Settings (`Cmd/Ctrl + ,`).
 
 ## 🎯 Smooth User Experience
 
+- **Live Logs** - Real-time terminal output during AI chat and Redis execution
 - **Toast Notifications** - Connection errors, warnings with hover-to-pause
 - **Multi-Tab Workflow** - Independent sessions, color-coded environments
 - **Lazy Loading** - Large datasets load smoothly, UI never freezes

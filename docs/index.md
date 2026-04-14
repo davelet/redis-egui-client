@@ -45,6 +45,7 @@ Minimal mouse, maximum speed:
 - **Full Type Support** - String, List, Hash, Set, ZSet
 - **Lazy Loading** - Smooth performance with large datasets
 - **Smart JSON** - Auto-format on view, compress on save
+- **Live Logs** - Real-time terminal output during AI chat and Redis execution
 - **Toast Notifications** - Visual feedback with hover-to-pause
 
 ---

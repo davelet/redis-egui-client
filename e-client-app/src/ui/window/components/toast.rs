@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use e_client_basics::emoji::action;
+
 use egui::{Align2, Color32, RichText, Vec2};
 
 /// A simple toast notification
@@ -24,7 +26,7 @@ impl ToastType {
     pub fn icon(&self) -> &'static str {
         match self {
             ToastType::Info => "ℹ",
-            ToastType::Warning => "⚠",
+            ToastType::Warning => action::WARNING,
             ToastType::Error => "✖",
             ToastType::Success => "✔",
         }

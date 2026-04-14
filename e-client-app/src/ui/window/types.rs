@@ -14,6 +14,8 @@ use std::sync::atomic;
 pub struct HistoryEntry {
     pub command: String,
     pub result: String,
+    /// Optional translation key for consistent styling across language changes
+    pub translation_key: Option<TranslationKey>,
 }
 
 impl HistoryEntry {
@@ -21,7 +23,13 @@ impl HistoryEntry {
         Self {
             command: command.into(),
             result: result.into(),
+            translation_key: None,
         }
+    }
+
+    pub fn with_translation_key(mut self, key: TranslationKey) -> Self {
+        self.translation_key = Some(key);
+        self
     }
 }
 
@@ -143,6 +151,8 @@ pub struct AiChatPending {
     pub context: Option<String>,
     pub confirm_before_execute: bool,
     pub receiver: std::sync::mpsc::Receiver<Result<String, AiResponseError>>,
+    /// Join handle for the async task, used for cancellation
+    pub handle: tokio::task::JoinHandle<()>,
     /// Flag to indicate if this is using rig-agent (for multi-round conversation)
     #[allow(dead_code)]
     pub use_rig_agent: bool,
@@ -156,7 +166,7 @@ pub struct LogViewer {
     /// Whether the log viewer panel is visible (open/collapsed)
     pub visible: bool,
     /// Buffered log lines (in display order)
-    pub log_lines: Vec<String>,
+    pub log_lines: std::collections::VecDeque<String>,
     /// Maximum number of lines to keep in buffer
     pub max_lines: usize,
     /// Auto-scroll to bottom when new lines arrive
@@ -177,7 +187,7 @@ impl Default for LogViewer {
         Self {
             enabled: true,
             visible: true,
-            log_lines: Vec::new(),
+            log_lines: std::collections::VecDeque::new(),
             max_lines: DEFAULT_MAX_LINES,
             follow_tail: true,
             stop_flag: None,
@@ -202,10 +212,12 @@ impl LogViewer {
         };
 
         while let Ok(line) = receiver.try_recv() {
-            if self.log_lines.len() >= self.max_lines {
-                self.log_lines.remove(0);
-            }
-            self.log_lines.push(line);
+            self.log_lines.push_back(line);
+        }
+
+        // Trim excess from the front (O(1) with VecDeque)
+        while self.log_lines.len() > self.max_lines {
+            self.log_lines.pop_front();
         }
     }
 
@@ -215,26 +227,22 @@ impl LogViewer {
     }
 
     /// Start log capture using the app's log directory.
-    /// Only log lines with timestamps >= `session_start` are emitted.
+    /// Tails from the current end of file (only captures new lines).
     /// Safe to call from the UI thread.
-    pub fn start_capture(&mut self, session_start: chrono::DateTime<chrono::Utc>) {
+    pub fn start_capture(&mut self) {
         use e_client_logging::LoggingConfig;
         let app_log_dir = LoggingConfig::default().log_dir;
 
         self.stop_capture();
         self.log_cancel_time = None;
 
-        if !self.enabled {
-            return;
-        }
-
         self.log_lines.clear();
 
-        if let Some((receiver, stop_flag)) = start_log_capture(app_log_dir, session_start) {
+        if let Some((receiver, stop_flag)) = start_log_capture(app_log_dir) {
             self.log_receiver = Some(receiver);
             self.stop_flag = Some(stop_flag);
         } else {
-            self.log_lines.push("[LogCapture] No log file found".to_string());
+            self.log_lines.push_back("[LogCapture] No log file found".to_string());
         }
     }
 
@@ -243,7 +251,7 @@ impl LogViewer {
     pub fn stop_capture(&mut self) {
         if let Some(stop_flag) = self.stop_flag.take() {
             stop_flag.store(true, atomic::Ordering::Relaxed);
-            self.log_lines.push("--- Session ended ---".to_string());
+            self.log_lines.push_back("--- Session ended ---".to_string());
         }
         self.log_receiver = None;
     }
@@ -272,6 +280,8 @@ pub struct CommandLinePanel {
     pub current_model_id: Option<String>,
     /// Log viewer for showing live logs during AI chat
     pub log_viewer: LogViewer,
+    /// Flag to request aborting a pending AI chat (set by UI, consumed by process_ai_chat_results)
+    pub abort_requested: bool,
 }
 
 impl Default for CommandLinePanel {
@@ -290,6 +300,7 @@ impl Default for CommandLinePanel {
             current_mode: AiMode::Agent,
             current_model_id: None,
             log_viewer: LogViewer::default(),
+            abort_requested: false,
         }
     }
 }

@@ -9,17 +9,20 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 | `Ctrl/Cmd + T` | New Tab | Open a new blank tab |
 | `Ctrl/Cmd + W` | Close Tab | Close the current active tab |
 | `Ctrl/Cmd + N` | New Connection | Open the new connection dialog |
+| `Ctrl/Cmd + Enter` | Confirm New Connection | Confirm and save in new connection dialog |
 | `Ctrl/Cmd + R` | Refresh Key | Reload the currently selected key's value and TTL |
 | `Ctrl/Cmd + F` | Focus Filter | Quickly focus the key filter input box |
 | `Ctrl/Cmd + E` | Toggle Command Line | Open or close the CLI panel (AI command input) |
+| `Ctrl/Cmd + L` | Toggle Live Logs | Show/hide the terminal output panel in CLI |
 | `Ctrl/Cmd + ,` | Open Settings | Open the settings window |
 | `Ctrl/Cmd + Shift + D` | Remove Duplicate Tabs | Close duplicate tabs connected to the same Redis instance |
 | `F5` | Refresh Key List | Reload the entire key list from the sidebar |
-| `Esc` | Close Settings / Command Line | Close settings window, or close CLI panel (context-dependent) |
+| `Esc` | Close / Cancel | Close settings, close CLI, or cancel new connection |
 | `Cmd/Ctrl + 1-9` | Switch to Tab | Switch to tab 1 through 9 |
 | `Cmd/Ctrl + 0` | Switch to Last Tab | Switch to the previously active tab |
 | `1-9` | Quick Connect | Connect to saved connection 1 through 9 (no modifier) |
 | `0` | Connect All Unclosed | Reconnect all previously connected connections |
+| `↑/↓` | History Navigation | Navigate through previous CLI commands |
 | `→` (Right Arrow) | Execute AI Command | Execute the AI-suggested command (non-customizable) |
 | `←` (Left Arrow) | Cancel AI Command | Cancel the AI command confirmation dialog (non-customizable) |
 
@@ -28,6 +31,7 @@ Rudist supports customizable keyboard shortcuts. Default configuration:
 - Use `Cmd` key on macOS, `Ctrl` key on Windows/Linux
 - `Ctrl/Cmd + R` only refreshes the currently selected key; `F5` refreshes the entire key list
 - `Esc` behavior depends on context: when settings is open, it closes settings; otherwise, it closes the CLI panel (if open)
+- **Stopping AI**: There is **no keyboard shortcut** to abort an AI request; this must be done by clicking the red square (🟥) button next to the "Thinking" status.
 - Some shortcuts (Tab switching 1-9, Quick Connect 0-9, AI commands, Refresh Key List) are fixed and cannot be customized
 
 ## Customizing Shortcuts

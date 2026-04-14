@@ -114,6 +114,20 @@ The panel includes:
 - **History area**: Previous commands and AI responses
 - **Input field**: Enter Redis commands or natural language
 - **Mode toggle**: Switch between Chat and Agent modes
+- **Manual Interrupt**: A red square button (**🟥**) appears next to the "Thinking..." status. Click it to immediately abort long-running requests or stop the AI agent.
+
+---
+
+## Manual Interruption
+
+If the AI is taking too long to think or if an Agent starts performing unintended operations, you can manually stop the process:
+
+1. Look for the red square button (**🟥**) appearing next to the status text in the history area.
+2. Click the button to immediately **abort** the remote request and **stop** log capture.
+3. The status will update to **(Interrupted)**.
+
+> [!NOTE]
+> To prevent accidental interruption, no keyboard shortcut is provided for this action. It must be triggered by manually clicking the button.
 
 ---
 

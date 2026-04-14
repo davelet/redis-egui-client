@@ -298,4 +298,6 @@ pub enum TranslationKey {
     Executing,
     AutoExecuteEnabled,
     ExecuteCommandHint,
+    AiInterrupted,
+    AiStop,
 }

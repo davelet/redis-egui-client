@@ -74,9 +74,8 @@ pub struct ModelPreview {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{AiModel, AiProviderType};
+    use crate::config::ai_config::{AiModel, AiProviderType};
     use std::fs;
-    use tempfile::tempdir;
 
     #[test]
     fn test_export_import_roundtrip() {
@@ -91,9 +90,9 @@ mod tests {
         
         config.add_model(model1);
         config.enabled = true;
-        
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("config.json");
+
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!("ai_config_test_{}.json", std::process::id()));
         
         // Export
         export_to_json(&config, &path).unwrap();
@@ -111,5 +110,8 @@ mod tests {
         // Verify file doesn't contain the API key
         let file_content = fs::read_to_string(&path).unwrap();
         assert!(!file_content.contains("secret-key"));
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(&path);
     }
 }

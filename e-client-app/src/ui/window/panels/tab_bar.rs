@@ -69,7 +69,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                 ui.horizontal(|ui| {
                                     // Show color indicator before the button
                                     if let Some(color) = color {
-                                        ui.colored_label(*color, "●");
+                                        ui.colored_label(*color, emoji::status::DOT);
                                     }
 
                                     let button = if *is_active {
@@ -193,11 +193,11 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                     for (idx, is_active, tab_text, color, _) in &tab_infos {
                         let mut label_text = tab_text.clone();
                         if *is_active {
-                            label_text = format!("● {}", tab_text);
+                            label_text = format!("{} {}", emoji::status::DOT, tab_text);
                         }
                         let response = ui.horizontal(|ui| {
                             if let Some(color) = color {
-                                ui.colored_label(*color, "●");
+                                ui.colored_label(*color, emoji::status::DOT);
                             }
                             if ui.selectable_label(*is_active, &label_text).clicked() {
                                 switch_to_tab = Some(*idx);

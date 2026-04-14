@@ -59,6 +59,8 @@ Redis Client supports two distinct modes for AI interaction:
 - User: "Show me all user keys"
 - AI: Uses `filter_keys` tool with pattern `user:*`, gets results, and displays them directly.
 
+**Interruption**: If the AI Agent is taking many turns or performing unintended operations, you can immediately stop it by clicking the red square (**🟥**) button next to the status message.
+
 ### Switching Modes
 
 You can switch between modes using the mode toggle in the command line panel (Chat/Agent buttons). Mode selection is per-tab and not persisted - each new CLI session starts in Agent mode.
@@ -279,6 +281,29 @@ Some proxy services provide OpenAI-compatible access to Gemini.
 4. **Rate Limits**: Be aware of API rate limits for each provider.
 
 5. **Costs**: Monitor your API usage to avoid unexpected charges.
+
+## Bulk Model Management (JSON Import/Export)
+
+You can manage your list of AI models in bulk using JSON import and export. This is useful for sharing configurations between machines or quickly adding multiple models.
+
+### Exporting Models
+1. Open Settings -> **AI Settings**.
+2. Click the **Export Models** button at the bottom of the model list.
+3. Your current model list (excluding API keys) will be copied to your clipboard as a JSON array.
+
+### Importing Models
+1. Prepare a JSON file or copy a JSON array of model definitions to your clipboard.
+2. Click the **Import Models** button.
+3. A preview dialog will appear showing the models found in the JSON.
+4. You can select which models to import. The systems automatically handles conflicts:
+   - If a model with the same Name and URL already exists, it will be skipped.
+   - You can choose to "Select All", "Invert Selection", or manually toggle models.
+5. Click **Import Selection** to add them to your configuration.
+
+> [!NOTE]
+> **API Key Security**: For security reasons, API keys are **never included** in JSON exports. After importing a model, you must manually enter its API key to activate it.
+
+---
 
 ## Troubleshooting
 

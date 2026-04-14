@@ -39,6 +39,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
     // Early return if panel is hidden for current tab
     if !app.tabs[active_tab_idx].command_line_panel.show {
+        // Still drain log lines so capture thread doesn't fall behind
+        app.tabs[active_tab_idx].command_line_panel.log_viewer.drain_received();
         return;
     }
 
@@ -144,230 +146,270 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     });
 
-                // Turn counter (Agent mode only, right-aligned)
-                let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
-                if current_mode == AiMode::Agent {
-                    let rig_agent = app.tabs[active_tab_idx].command_line_panel.rig_agent.clone();
-                    if let Ok(agent_guard) = rig_agent.try_lock() {
-                        if let Some(ref agent) = *agent_guard {
-                            let turns = agent.turn_count();
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Right-aligned section: Live Logs toggle + optional turn counter.
+                // Everything is in ONE right_to_left block so nothing overflows the panel.
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    // Live Logs toggle (rightmost item)
+                    let log_viewer = &mut app.tabs[active_tab_idx].command_line_panel.log_viewer;
+                    ui.toggle_value(&mut log_viewer.enabled, tr(TranslationKey::LiveLogsToggle, current_lang))
+                        .on_hover_text(tr(TranslationKey::LiveLogsShowHint, current_lang));
+
+                    // Turn counter (Agent mode only, shown to the left of the toggle)
+                    let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
+                    if current_mode == AiMode::Agent {
+                        let rig_agent = app.tabs[active_tab_idx].command_line_panel.rig_agent.clone();
+                        if let Ok(agent_guard) = rig_agent.try_lock() {
+                            if let Some(ref agent) = *agent_guard {
+                                let turns = agent.turn_count();
+                                ui.separator();
                                 ui.label(
                                     egui::RichText::new(tr_fmt(TranslationKey::CliTurns, current_lang, &[&turns.to_string()]))
                                         .small()
                                         .color(egui::Color32::GRAY),
                                 );
-                            });
+                            }
                         }
                     }
-                }
-
-                ui.separator();
-
-                // Live Logs toggle (right side of the toolbar)
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let log_viewer = &mut app.tabs[active_tab_idx].command_line_panel.log_viewer;
-                    ui.toggle_value(&mut log_viewer.enabled, tr(TranslationKey::LiveLogsToggle, current_lang))
-                        .on_hover_text(tr(TranslationKey::LiveLogsShowHint, current_lang));
                 });
             });
 
             ui.separator();
 
-            // ── History + Input: nested bottom panel locks input to panel bottom ──
-            // The outer TopBottomPanel is auto-size (no exact_height), so the whole
-            // panel shrinks/grows as the log viewer is toggled. The inner nested
-            // TopBottomPanel.bottom always keeps the input at the panel bottom,
-            // regardless of how much history content there is.
-            egui::TopBottomPanel::bottom("cli_input_panel")
-                .exact_height(ui.available_height())
-                .show_inside(ui, |ui| {
-                    // ── Command history output area ─────────────────────────────────
-                    egui::ScrollArea::vertical()
-                        .id_salt(egui::Id::new("cli_history_scroll"))
-                        .auto_shrink([true; 2])
-                        .stick_to_bottom(true)
-                        .show(ui, |ui| {
-                            ui.set_min_height(ui.available_height());
-                            ui.vertical(|ui| {
-                                for entry in
-                                    &app.tabs[active_tab_idx].command_line_panel.history
-                                {
-                            let cmd = &entry.command;
-                            let result = &entry.result;
-                            // Command line
-                            ui.horizontal(|ui| {
-                                ui.label(
-                                    egui::RichText::new("> ")
-                                        .color(egui::Color32::from_rgb(100, 200, 100))
-                                        .monospace(),
-                                );
-                                ui.label(
-                                    egui::RichText::new(cmd)
-                                        .color(egui::Color32::BLUE)
-                                        .monospace(),
-                                );
-                            });
-                            // Result line
-                            ui.vertical(|ui| {
-                                ui.add_space(2.0);
-                                let render_as_md = app.config.ai_config.render_markdown;
-                                if render_as_md {
-                                    render_markdown(result, ui);
-                                } else {
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.add_space(16.0);
-                                        ui.label(
-                                            egui::RichText::new(result)
-                                                .color(if result.starts_with("ERR:") || result.starts_with("Error:") {
+            // ── History + Log Viewer + Input ────────────────────────────────
+            //
+            // Layout strategy: pin the input row at the very bottom using a
+            // bottom_up sub-UI so its position is stable whether or not the
+            // log viewer is open.  History and log fill the remaining space.
+
+            // Always drain log lines so the capture thread doesn't fall behind.
+            app.tabs[active_tab_idx].command_line_panel.log_viewer.drain_received();
+
+            let log_viewer_enabled = app.tabs[active_tab_idx].command_line_panel.log_viewer.enabled;
+
+            // ── Pinned input row at the bottom ──────────────────────────────
+            // We render the input first in a bottom_up layout so it always
+            // sits flush against the panel's bottom edge.
+            let total_height = ui.available_height();
+            let input_row_height = 28.0;
+            // Reserve space at the bottom for separator + input row.
+            let body_height = total_height - input_row_height - ui.spacing().item_spacing.y * 2.0 - 1.0; // 1 px separator
+
+            // ── Scrollable body (history + optional log) ────────────────────
+            ui.allocate_ui(egui::vec2(ui.available_width(), body_height), |ui| {
+                let log_height_reserve = if log_viewer_enabled { 150.0 } else { 0.0 };
+                let history_max = (body_height - log_height_reserve).max(40.0);
+
+                // Command history output area
+                egui::ScrollArea::vertical()
+                    .id_salt(egui::Id::new("cli_history_scroll"))
+                    .auto_shrink([false; 2])
+                    .stick_to_bottom(true)
+                    .max_height(history_max)
+                    .show(ui, |ui| {
+                        ui.vertical(|ui| {
+                            // Clone history to avoid borrow issues when we need mutable access for abort
+                            let history_snapshot: Vec<_> = app.tabs[active_tab_idx].command_line_panel.history.iter()
+                                .map(|e| (e.command.clone(), e.result.clone(), e.translation_key))
+                                .collect();
+                            for (cmd, result, translation_key) in &history_snapshot {
+                                let entry_translation_key = *translation_key;
+                                let cmd = cmd;
+                                let result = result;
+                                // Command line
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        egui::RichText::new("> ")
+                                            .color(egui::Color32::from_rgb(100, 200, 100))
+                                            .monospace(),
+                                    );
+                                    ui.label(
+                                        egui::RichText::new(cmd)
+                                            .color(egui::Color32::BLUE)
+                                            .monospace(),
+                                    );
+                                });
+                                // Result line
+                                ui.vertical(|ui| {
+                                    ui.add_space(2.0);
+                                    let is_thinking = entry_translation_key == Some(TranslationKey::AiThinking);
+
+                                    if is_thinking {
+                                        ui.horizontal_wrapped(|ui| {
+                                            ui.add_space(16.0);
+                                            let result_color = egui::Color32::from_rgb(150, 150, 150); // gray for thinking
+                                            let thinking_text = tr(TranslationKey::AiThinking, current_lang);
+
+                                            // Show thinking indicator with inline Stop button
+                                            ui.label(
+                                                egui::RichText::new(thinking_text)
+                                                    .color(result_color)
+                                                    .monospace(),
+                                            );
+
+                                            // Inline Stop button next to thinking text
+                                            let stop_text = tr(TranslationKey::AiStop, current_lang);
+                                            if ui.button(egui::RichText::new(" 🟥").color(egui::Color32::RED))
+                                                .on_hover_text(stop_text)
+                                                .clicked() {
+                                                // Set a flag to abort after the loop
+                                                app.tabs[active_tab_idx].command_line_panel.abort_requested = true;
+                                            }
+                                        });
+                                    } else {
+                                        let render_as_md = app.config.ai_config.render_markdown;
+                                        if render_as_md {
+                                            render_markdown(result, ui);
+                                        } else {
+                                            ui.horizontal_wrapped(|ui| {
+                                                ui.add_space(16.0);
+
+                                                // Determine styling based on translation key or content
+                                                let result_color = if result.starts_with("ERR:") || result.starts_with("Error:") {
                                                     egui::Color32::from_rgb(255, 100, 100)
-                                                } else if result == "Thinking..." {
-                                                    egui::Color32::from_rgb(150, 150, 150)
+                                                } else if result.contains(&tr(TranslationKey::AiInterrupted, current_lang)) {
+                                                    egui::Color32::from_rgb(200, 150, 150)
                                                 } else {
                                                     egui::Color32::BLACK
-                                                })
-                                                .monospace(),
-                                        ).on_hover_text(result.clone());
-                                    });
-                                }
-                            });
-                            ui.add_space(4.0);
+                                                };
+
+                                                ui.label(
+                                                    egui::RichText::new(result)
+                                                        .color(result_color)
+                                                        .monospace(),
+                                                ).on_hover_text(result.clone());
+                                            });
+                                        }
+                                    }
+                                });
+                                ui.add_space(4.0);
+                            }
+                        });
+
+                        // Auto-scroll to bottom when new content is added
+                        if app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom {
+                            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+                            app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = false;
                         }
                     });
 
-                    // Auto-scroll to bottom when new content is added
-                    if app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom {
-                        ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
-                        app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = false;
+                // Log viewer section (shown between history and input)
+                if log_viewer_enabled {
+                    ui.add_space(2.0);
+                    ui.separator();
+                    render_log_viewer(ui, app, active_tab_idx);
+                }
+            });
+
+            ui.separator();
+
+            // ── Input row (always at the bottom) ────────────────────────────
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new("> ")
+                        .color(egui::Color32::from_rgb(100, 200, 100))
+                        .monospace()
+                        .size(14.0),
+                );
+
+                let input_width = ui.available_width();
+                let response = ui.add_sized(
+                    [input_width, ui.available_height()],
+                    egui::TextEdit::singleline(
+                        &mut app.tabs[active_tab_idx].command_line_panel.input,
+                    )
+                    .font(egui::TextStyle::Monospace)
+                    .hint_text(tr(TranslationKey::CommandLineHint, current_lang))
+                    .id(egui::Id::new("command_line_input")),
+                );
+
+                // Set focus to input when panel is shown
+                if app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom {
+                    response.request_focus();
+                }
+
+                // Handle Up/Down keys for history navigation
+                if response.has_focus() {
+                    let mut history_changed = false;
+                    if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
+                        let panel = &mut app.tabs[active_tab_idx].command_line_panel;
+                        if !panel.history.is_empty() {
+                            if panel.history_index.is_none() {
+                                panel.saved_input = panel.input.clone();
+                                panel.history_index = Some(panel.history.len() - 1);
+                                history_changed = true;
+                            } else if let Some(idx) = panel.history_index {
+                                if idx > 0 {
+                                    panel.history_index = Some(idx - 1);
+                                    history_changed = true;
+                                }
+                            }
+                            if history_changed {
+                                if let Some(idx) = panel.history_index {
+                                    panel.input = panel.history[idx].command.clone();
+                                }
+                            }
+                        }
+                    } else if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
+                        let panel = &mut app.tabs[active_tab_idx].command_line_panel;
+                        if let Some(idx) = panel.history_index {
+                            if idx + 1 < panel.history.len() {
+                                panel.history_index = Some(idx + 1);
+                                panel.input = panel.history[idx + 1].command.clone();
+                                history_changed = true;
+                            } else {
+                                panel.history_index = None;
+                                panel.input = panel.saved_input.clone();
+                                history_changed = true;
+                            }
+                        }
                     }
-                });
 
-                // ── Log viewer section (shown between history and input) ─────────
-                egui::TopBottomPanel::bottom("cli_log_panel")
-                    .show_inside(ui, |ui| {
-                        ui.add_space(2.0);
-                        ui.separator();
-                        render_log_viewer(ui, app, active_tab_idx);
-                    });
-
-                ui.separator();
-
-                // Command input area
-                egui::TopBottomPanel::bottom("cli_input_area")
-                    .show_inside(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(
-                                egui::RichText::new("> ")
-                                    .color(egui::Color32::from_rgb(100, 200, 100))
-                                    .monospace()
-                                    .size(14.0),
-                            );
-
-                            let response = ui.add_sized(
-                                ui.available_size(),
-                                egui::TextEdit::singleline(
-                                    &mut app.tabs[active_tab_idx].command_line_panel.input,
-                                )
-                                .font(egui::TextStyle::Monospace)
-                                .hint_text(tr(TranslationKey::CommandLineHint, current_lang))
-                                .id(egui::Id::new("command_line_input")),
-                            );
-
-                            // Set focus to input when panel is shown
-                            if app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom {
-                                response.request_focus();
-                            }
-
-                            // Handle Up/Down keys for history
-                            if response.has_focus() {
-                                let mut history_changed = false;
-                                if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
-                                    let panel = &mut app.tabs[active_tab_idx].command_line_panel;
-                                    if !panel.history.is_empty() {
-                                        if panel.history_index.is_none() {
-                                            panel.saved_input = panel.input.clone();
-                                            panel.history_index = Some(panel.history.len() - 1);
-                                            history_changed = true;
-                                        } else if let Some(idx) = panel.history_index {
-                                            if idx > 0 {
-                                                panel.history_index = Some(idx - 1);
-                                                history_changed = true;
-                                            }
-                                        }
-                                        if history_changed {
-                                            if let Some(idx) = panel.history_index {
-                                                panel.input = panel.history[idx].command.clone();
-                                            }
-                                        }
-                                    }
-                                } else if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
-                                    let panel = &mut app.tabs[active_tab_idx].command_line_panel;
-                                    if let Some(idx) = panel.history_index {
-                                        if idx + 1 < panel.history.len() {
-                                            panel.history_index = Some(idx + 1);
-                                            panel.input = panel.history[idx + 1].command.clone();
-                                            history_changed = true;
-                                        } else {
-                                            panel.history_index = None;
-                                            panel.input = panel.saved_input.clone();
-                                            history_changed = true;
-                                        }
-                                    }
-                                }
-
-                                if history_changed {
-                                    if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
-                                        let ccursor = egui::text::CCursor::new(
-                                            app.tabs[active_tab_idx]
-                                                .command_line_panel
-                                                .input
-                                                .chars()
-                                                .count(),
-                                        );
-                                        state.cursor.set_char_range(Some(
-                                            egui::text_selection::CCursorRange::one(ccursor),
-                                        ));
-                                        state.store(ui.ctx(), response.id);
-                                    }
-                                }
-                            }
-
-                            // Handle Enter key to execute command
-                            if response.lost_focus()
-                                && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                            {
-                                let command = app.tabs[active_tab_idx]
+                    if history_changed {
+                        if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
+                            let ccursor = egui::text::CCursor::new(
+                                app.tabs[active_tab_idx]
                                     .command_line_panel
                                     .input
-                                    .trim()
-                                    .to_string();
-                                if !command.is_empty() {
-                                    execute_command(app, active_tab_idx, command);
-                                    app.tabs[active_tab_idx].command_line_panel.input.clear();
-                                    app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = true;
-                                    app.tabs[active_tab_idx].command_line_panel.history_index = None;
-                                    app.tabs[active_tab_idx]
-                                        .command_line_panel
-                                        .saved_input
-                                        .clear();
-                                }
-                                response.request_focus();
-                            }
+                                    .chars()
+                                    .count(),
+                            );
+                            state.cursor.set_char_range(Some(
+                                egui::text_selection::CCursorRange::one(ccursor),
+                            ));
+                            state.store(ui.ctx(), response.id);
+                        }
+                    }
+                }
 
-                            // Handle Esc key to close panel
-                            if !app.show_settings
-                                && app.tabs[active_tab_idx]
-                                    .command_line_panel
-                                    .pending_ai_command
-                                    .is_none()
-                                && ui.input(|i| i.key_pressed(egui::Key::Escape))
-                            {
-                                app.tabs[active_tab_idx].command_line_panel.show = false;
-                            }
-                        });
-                    });
-            }); // closes nested TopBottomPanel "cli_input_panel"
-        }); // closes outer TopBottomPanel
+                // Handle Enter key to execute command
+                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    let command = app.tabs[active_tab_idx]
+                        .command_line_panel
+                        .input
+                        .trim()
+                        .to_string();
+                    if !command.is_empty() {
+                        execute_command(app, active_tab_idx, command);
+                        app.tabs[active_tab_idx].command_line_panel.input.clear();
+                        app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = true;
+                        app.tabs[active_tab_idx].command_line_panel.history_index = None;
+                        app.tabs[active_tab_idx].command_line_panel.saved_input.clear();
+                    }
+                    response.request_focus();
+                }
+
+                // Handle Esc key to close panel
+                if !app.show_settings
+                    && app.tabs[active_tab_idx]
+                        .command_line_panel
+                        .pending_ai_command
+                        .is_none()
+                    && ui.input(|i| i.key_pressed(egui::Key::Escape))
+                {
+                    app.tabs[active_tab_idx].command_line_panel.show = false;
+                }
+            });
+        }); // closes outer TopBottomPanel "command_line_panel"
 }
 
 /// Render AI command confirmation dialog
@@ -629,7 +671,8 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         app.tabs[tab_idx]
             .command_line_panel
             .history
-            .push(HistoryEntry::new(trimmed_input.clone(), tr(TranslationKey::AiThinking, current_lang).to_string()));
+            .push(HistoryEntry::new(trimmed_input.clone(), tr(TranslationKey::AiThinking, current_lang).to_string())
+                .with_translation_key(TranslationKey::AiThinking));
     }
 
     // Get the history index of the thinking message (if shown)
@@ -646,17 +689,6 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     // Create channel for async result
     let (tx, rx) = std::sync::mpsc::channel();
 
-    // Store pending state
-    app.tabs[tab_idx].command_line_panel.ai_chat_pending =
-        Some(crate::ui::window::types::AiChatPending {
-            thinking_idx,
-            user_input: trimmed_input,
-            context: None,
-            confirm_before_execute,
-            receiver: rx,
-            use_rig_agent: true,
-        });
-
     // Get references needed for async task
     let redis_client = std::sync::Arc::new(app.tabs[tab_idx].state.redis_client.clone());
     let ai_config_clone = ai_config.clone();
@@ -667,14 +699,28 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         .current_model_id
         .clone();
 
+    // Store pending state BEFORE spawning to prevent race condition
+    // We'll update the handle after spawn completes
+    app.tabs[tab_idx].command_line_panel.ai_chat_pending =
+        Some(crate::ui::window::types::AiChatPending {
+            thinking_idx,
+            user_input: user_input.clone(),
+            context: None,
+            confirm_before_execute,
+            receiver: rx,
+            handle: tokio::task::spawn(async {}), // placeholder, will be replaced
+            use_rig_agent: true,
+        });
+
     // Start log capture so the user can see live logs during AI chat
     app.tabs[tab_idx]
         .command_line_panel
         .log_viewer
-        .start_capture(chrono::Utc::now());
+        .start_capture();
 
     // Execute AI chat with rig agent asynchronously
-    tokio::task::spawn(async move {
+    let task_user_input = user_input.clone();
+    let handle = tokio::task::spawn(async move {
         // Try to get or create the rig agent
         let mut agent_opt = rig_agent_arc.lock().await;
 
@@ -729,7 +775,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
         // Now we have an agent (or had one), chat with it
         let response = if let Some(ref mut agent) = *agent_opt {
-            agent.chat(&user_input).await
+            agent.chat(&task_user_input).await
         } else {
             // This shouldn't happen, but handle it gracefully
             let _ = tx.send(Err(AiResponseError::NoModelConfigured));
@@ -752,10 +798,49 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
         let _ = tx.send(chat_response);
     });
+
+    // Update pending with the actual handle
+    if let Some(ref mut pending) = app.tabs[tab_idx].command_line_panel.ai_chat_pending {
+        pending.handle = handle;
+    }
+}
+
+/// Abort a pending AI chat operation
+pub fn abort_ai_chat(app: &mut RedisApp, tab_idx: usize) {
+    if let Some(pending) = app.tabs[tab_idx].command_line_panel.ai_chat_pending.take() {
+        // 1. Abort the async task
+        pending.handle.abort();
+
+        // 2. Stop log capture
+        app.tabs[tab_idx]
+            .command_line_panel
+            .log_viewer
+            .stop_capture();
+
+        // 3. Update history if there was a thinking indicator
+        if let Some(history_idx) = pending.thinking_idx {
+            if history_idx < app.tabs[tab_idx].command_line_panel.history.len() {
+                let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
+                let interrupted_text = tr(TranslationKey::AiInterrupted, current_lang);
+                let entry = &mut app.tabs[tab_idx].command_line_panel.history[history_idx];
+                entry.result = format!("_({})_", interrupted_text);
+                entry.translation_key = None;
+            }
+        }
+    }
 }
 
 /// Process pending AI chat results (call this each frame)
 pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
+    // Check if abort was requested
+    if app.tabs[tab_idx].command_line_panel.abort_requested {
+        app.tabs[tab_idx].command_line_panel.abort_requested = false;
+        if app.tabs[tab_idx].command_line_panel.ai_chat_pending.is_some() {
+            abort_ai_chat(app, tab_idx);
+            return;
+        }
+    }
+
     let pending = match app.tabs[tab_idx].command_line_panel.ai_chat_pending.take() {
         Some(p) => p,
         None => return,

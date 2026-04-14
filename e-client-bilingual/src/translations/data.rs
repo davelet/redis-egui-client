@@ -1037,6 +1037,14 @@ pub fn load_all_translations(
         TranslationKey::ExecuteCommandHint,
         tr_en_zh("Execute the Redis command", "执行 Redis 命令"),
     );
+    strings.insert(
+        TranslationKey::AiInterrupted,
+        tr_en_zh("Interrupted", "已中断"),
+    );
+    strings.insert(
+        TranslationKey::AiStop,
+        tr_en_zh("Stop", "停止"),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants

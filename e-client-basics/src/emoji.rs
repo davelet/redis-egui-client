@@ -18,6 +18,12 @@ pub mod action {
     pub const SETTINGS: &str = "\u{2699}";
     /// Warning (⚠️)
     pub const WARNING: &str = "\u{26A0}";
+    /// Import from file (📥)
+    pub const IMPORT: &str = "\u{1F4E5}";
+    /// Import folder / Browse (📂)
+    pub const IMPORT_FOLDER: &str = "\u{1F4C2}";
+    /// Export / Upload (📤)
+    pub const EXPORT: &str = "\u{1F4E4}";
 }
 
 /// Navigation icons
@@ -32,6 +38,8 @@ pub mod status {
     pub const CONNECTED: &str = "\u{2713}";
     /// Disconnected / Cross (✗)
     pub const DISCONNECTED: &str = "\u{2717}";
+    /// Active / Dot (●)
+    pub const DOT: &str = "\u{25CF}";
 }
 
 /// Web/Link icons

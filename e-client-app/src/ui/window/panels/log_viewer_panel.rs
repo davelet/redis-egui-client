@@ -37,9 +37,10 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         };
         ui.toggle_value(&mut log_viewer.follow_tail, follow_label);
 
+        // Status indicator — right-aligned so it never overflows the panel.
+        // Use right_to_left instead of allocate_space + label, which used to
+        // push the label off-screen by consuming all remaining width first.
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.add_space(12.0);
-            // Status indicator
             let (text, color) = if log_viewer.is_capturing() {
                 (tr(TranslationKey::LiveLogsRecording, current_lang), egui::Color32::from_rgb(80, 200, 80))
             } else {
@@ -73,9 +74,9 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         .max_height(200.0)
         .show(ui, |ui| {
             for line in &log_viewer.log_lines {
-                let (color, prefix) = color_by_level(line);
+                let color = color_by_level(line);
                 ui.label(
-                    egui::RichText::new(format!("{}{}", prefix, line))
+                    egui::RichText::new(line)
                         .monospace()
                         .small()
                         .color(color),
@@ -84,18 +85,18 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         });
 }
 
-/// Choose display color and prefix based on log level keywords.
-fn color_by_level(line: &str) -> (egui::Color32, &'static str) {
+/// Choose display color based on log level keywords.
+fn color_by_level(line: &str) -> egui::Color32 {
     let l = line.to_lowercase();
     if l.contains("error") || l.contains("err:") || l.contains("failed") || l.contains("panic") {
-        (egui::Color32::from_rgb(230, 50, 50), "✗ ")
+        egui::Color32::from_rgb(230, 50, 50)
     } else if l.contains("warn") {
-        (egui::Color32::from_rgb(220, 160, 30), "⚠ ")
+        egui::Color32::from_rgb(220, 160, 30)
     } else if l.contains("debug") || l.contains("trace") {
-        (egui::Color32::from_rgb(140, 140, 140), "▸ ")
+        egui::Color32::from_rgb(140, 140, 140)
     } else if l.contains("info") {
-        (egui::Color32::from_rgb(60, 130, 220), "· ")
+        egui::Color32::from_rgb(60, 130, 220)
     } else {
-        (egui::Color32::from_rgb(80, 80, 80), "  ")
+        egui::Color32::from_rgb(80, 80, 80)
     }
 }

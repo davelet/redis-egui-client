@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use e_client_basics::emoji;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
@@ -268,7 +269,7 @@ fn render_connection_row(
 fn render_color_indicator(ui: &mut egui::Ui, color: &Option<String>) {
     if let Some(color_hex) = color {
         if let Some(color) = parse_color_hex(color_hex) {
-            ui.colored_label(color, "●");
+            ui.colored_label(color, emoji::status::DOT);
         }
     }
 }

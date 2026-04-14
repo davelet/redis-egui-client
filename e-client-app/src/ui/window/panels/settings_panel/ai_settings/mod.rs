@@ -94,7 +94,8 @@ pub fn render_ai_settings_section(
                     // GIM Import button
                     if ui
                         .button(format!(
-                            "📥 {}",
+                            "{} {}",
+                            emoji::action::IMPORT_FOLDER,
                             tr(TranslationKey::AiImportFromGim, current_lang)
                         ))
                         .on_hover_text(tr(TranslationKey::AiImportFromGimTooltip, current_lang))
@@ -108,7 +109,8 @@ pub fn render_ai_settings_section(
                     // JSON Export button
                     if ui
                         .button(format!(
-                            "📤 {}",
+                            "{} {}",
+                            emoji::action::EXPORT,
                             tr(TranslationKey::AiExportJson, current_lang)
                         ))
                         .on_hover_text(tr(TranslationKey::AiExportJsonTooltip, current_lang))
@@ -136,7 +138,8 @@ pub fn render_ai_settings_section(
                     // JSON Import button
                     if ui
                         .button(format!(
-                            "📂 {}",
+                            "{} {}",
+                            emoji::action::IMPORT,
                             tr(TranslationKey::AiImportJson, current_lang)
                         ))
                         .on_hover_text(tr(TranslationKey::AiImportJsonTooltip, current_lang))

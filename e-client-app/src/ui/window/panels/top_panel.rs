@@ -61,7 +61,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 if let Some(conn) = app.config.connections.get(idx) {
                     if let Some(color_hex) = &conn.color {
                         if let Some(color) = parse_color_hex(color_hex) {
-                            ui.colored_label(color, "●");
+                            ui.colored_label(color, emoji::status::DOT);
                         }
                     }
                 }
@@ -86,7 +86,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 // Show color indicator for each connection in dropdown
                                 if let Some(color_hex) = &conn.color {
                                     if let Some(color) = parse_color_hex(color_hex) {
-                                        ui.colored_label(color, "●");
+                                        ui.colored_label(color, emoji::status::DOT);
                                     }
                                 } else {
                                     ui.label("  "); // Placeholder for alignment

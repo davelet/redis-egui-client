@@ -7,7 +7,6 @@ use std::sync::mpsc::{self, Sender, Receiver};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, Ordering};
 use std::thread;
-use chrono::{DateTime, Utc};
 
 /// Shared stop flag for the capture thread.
 /// Call `.store(true, ...)` to request graceful stop.
@@ -19,7 +18,6 @@ pub type LogCaptureStop = Arc<AtomicBool>;
 /// to stop the thread. Drain `log_rx` from the UI thread each frame.
 pub fn start_log_capture(
     app_log_dir: PathBuf,
-    _session_start: DateTime<Utc>,
 ) -> Option<(Receiver<String>, LogCaptureStop)> {
     let log_file = find_latest_log_file(&app_log_dir)?;
 
@@ -63,33 +61,16 @@ fn tail_log_file_thread(
     let reader = BufReader::with_capacity(8192, file);
     let mut lines = reader.lines();
 
-    // Grace period: after stop flag is set, keep reading for 1 more second
-    // to capture any final log writes (e.g., AI response completion)
-    let grace_period_ms = 1000;
-    let check_interval_ms = 100;
-    let max_iterations = grace_period_ms / check_interval_ms;
-
     loop {
         if stop_flag.load(Ordering::Relaxed) {
-            // Grace period: drain any remaining lines for 1 second before exiting
-            let mut grace_iterations = 0;
-            loop {
-                let mut found_line = false;
-                while let Some(result) = lines.next() {
-                    if let Ok(line) = result {
-                        if !line.trim().is_empty() {
-                            let _ = log_tx.send(line);
-                        }
-                        found_line = true;
+            // Grace period: drain any remaining lines from the buffer and exit.
+            // BufReader::lines() won't re-read after EOF, so this just drains
+            // what's already buffered.
+            while let Some(result) = lines.next() {
+                if let Ok(line) = result {
+                    if !line.trim().is_empty() {
+                        let _ = log_tx.send(line);
                     }
-                }
-                if !found_line {
-                    // EOF — sleep and retry
-                    thread::sleep(std::time::Duration::from_millis(check_interval_ms));
-                }
-                grace_iterations += 1;
-                if grace_iterations >= max_iterations {
-                    break;
                 }
             }
             break;
