@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Rudist"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "chrono",
  "e-client-basics",
@@ -1177,6 +1177,7 @@ dependencies = [
 name = "e-client-core"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dirs",
  "e-client-basics",
  "e-client-bilingual",
@@ -1185,6 +1186,7 @@ dependencies = [
  "reqwest",
  "rig-core",
  "rig-derive",
+ "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -4344,6 +4346,12 @@ dependencies = [
  "core-foundation-sys",
  "libc",
 ]
+
+[[package]]
+name = "semver"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
 
 [[package]]
 name = "serde"

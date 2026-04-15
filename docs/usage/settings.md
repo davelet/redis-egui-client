@@ -22,6 +22,21 @@
 - Supports letters, numbers, F1-F12 function keys
 - Supports modifier combinations (Ctrl/Cmd, Alt, Shift)
 
+## Update Settings
+
+The app automatically checks for new versions from GitHub Releases.
+
+- **Check on startup**: Automatically check for updates when the app starts
+- **Check interval**: Daily / Weekly / Monthly
+- **Manual check**: Click "Check for Updates" to check immediately
+
+When a new version is found:
+
+- A **green version number** appears next to the settings button in the top toolbar. Click it to open the Release page.
+- The Update section in Settings shows version details and actions.
+
+**Skip version**: Click "Skip this version" to stop receiving notifications for that version. View and cancel skipped versions in Settings.
+
 ## Best Practices
 
 1. **Environment Marking**: Set prominent red markers for production environment connections

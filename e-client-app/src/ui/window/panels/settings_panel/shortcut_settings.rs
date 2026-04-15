@@ -175,9 +175,9 @@ pub fn render_shortcut_settings(
     let is_capturing = app.shortcut_state.editing_shortcut.is_some();
 
     // Show hint about underlined shortcuts only if there are customized shortcuts
-    let has_customized_shortcuts = ShortcutAction::all_actions()
-        .iter()
-        .any(|(action, _)| !action.is_non_editable() && app.config.settings.shortcuts.is_customized(action));
+    let has_customized_shortcuts = ShortcutAction::all_actions().iter().any(|(action, _)| {
+        !action.is_non_editable() && app.config.settings.shortcuts.is_customized(action)
+    });
     if has_customized_shortcuts {
         ui.horizontal(|ui| {
             ui.label(

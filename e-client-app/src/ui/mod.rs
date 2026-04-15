@@ -69,7 +69,7 @@ fn detect_windows_theme() -> egui::Visuals {
     }
 }
 
-pub(crate) fn start_app() -> eframe::Result {
+pub(crate) fn start_app(tokio_handle: tokio::runtime::Handle) -> eframe::Result {
     // Load configuration
     let config = Config::load();
     if config.is_err() {
@@ -111,7 +111,7 @@ pub(crate) fn start_app() -> eframe::Result {
             // Configure fonts for better Chinese and English display
             font::setup_chinese_fonts(&cc.egui_ctx)?;
 
-            Ok(Box::new(RedisApp::with_config(config)))
+            Ok(Box::new(RedisApp::with_config(config, tokio_handle)))
         }),
     )
 }

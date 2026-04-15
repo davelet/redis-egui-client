@@ -1,11 +1,11 @@
 //! Window types - data structures for the main application window
 use crate::core::AppState;
-use crate::ui::window::log_capture::{start_log_capture, LogCaptureStop};
+use crate::ui::window::log_capture::{LogCaptureStop, start_log_capture};
 use e_client_basics::constants::DEFAULT_SIDE_PANEL_WIDTH;
 use e_client_config::config::ai_config::{AiMode, AiModel};
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 use e_client_core::AiResponseError;
 use std::sync::atomic;
 
@@ -242,7 +242,8 @@ impl LogViewer {
             self.log_receiver = Some(receiver);
             self.stop_flag = Some(stop_flag);
         } else {
-            self.log_lines.push_back("[LogCapture] No log file found".to_string());
+            self.log_lines
+                .push_back("[LogCapture] No log file found".to_string());
         }
     }
 
@@ -251,7 +252,8 @@ impl LogViewer {
     pub fn stop_capture(&mut self) {
         if let Some(stop_flag) = self.stop_flag.take() {
             stop_flag.store(true, atomic::Ordering::Relaxed);
-            self.log_lines.push_back("--- Session ended ---".to_string());
+            self.log_lines
+                .push_back("--- Session ended ---".to_string());
         }
         self.log_receiver = None;
     }

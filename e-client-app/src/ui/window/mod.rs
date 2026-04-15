@@ -1,7 +1,8 @@
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
-use e_client_basics::constants::UI_REPAINT_INTERVAL_MS;
+use e_client_basics::constants::{GITHUB_RELEASES_URL, UI_REPAINT_INTERVAL_MS};
 use e_client_config::config::Config;
 use e_client_config::language::Language;
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 // Re-export panel functions for convenient access
 pub use panels::{
@@ -10,7 +11,9 @@ pub use panels::{
 };
 
 // Re-export types
-pub use types::{AiModelEditor, ElementEditDialog, GimImportDialog, JsonImportPreview, NewKeyDialog, RedisTab};
+pub use types::{
+    AiModelEditor, ElementEditDialog, GimImportDialog, JsonImportPreview, NewKeyDialog, RedisTab,
+};
 
 pub mod components;
 pub mod copy_feedback;
@@ -57,16 +60,29 @@ pub struct RedisApp {
     help_selected_section: Option<usize>,
     // Toast notifications
     pub toasts: components::toast::ToastManager,
+    /// Pending update check result (set by async task, consumed by UI)
+    pub pending_update_result: Option<e_client_core::updater::UpdateCheckResult>,
+    /// Whether an update check is currently in progress
+    pub update_check_in_progress: bool,
+    /// Whether the startup update check has been triggered
+    startup_update_check_triggered: bool,
+    /// Channel receiver for update check results (consumed in update())
+    update_result_receiver: std::sync::mpsc::Receiver<e_client_core::updater::UpdateCheckResult>,
+    /// Tokio runtime handle for spawning async tasks
+    pub tokio_handle: tokio::runtime::Handle,
+    /// Shared sender for update results (used by both UI and periodic checks)
+    pub background_update_sender:
+        std::sync::Arc<std::sync::mpsc::Sender<e_client_core::updater::UpdateCheckResult>>,
 }
 
 /// Settings panel expandable sections
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsSection {
-    General,
     Connection,
     Display,
     Ai,
     Shortcuts,
+    Update,
 }
 
 impl eframe::App for RedisApp {
@@ -105,6 +121,44 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        // Trigger startup update check (only once, on first frame)
+        if !self.startup_update_check_triggered {
+            self.startup_update_check_triggered = true;
+            if self.config.settings.update_config.enabled {
+                trigger_update_check(self);
+            }
+        }
+
+        // Periodic update check: if enabled and no check is in progress,
+        // check whether enough time has elapsed since the last check.
+        // Uses config.last_check (persisted RFC3339) as the single source of truth.
+        if self.config.settings.update_config.enabled && !self.update_check_in_progress {
+            let should_check =
+                if let Some(ref last_check) = self.config.settings.update_config.last_check {
+                    if let Ok(last_check_time) = chrono::DateTime::parse_from_rfc3339(last_check) {
+                        let now = chrono::Utc::now();
+                        let elapsed = now.signed_duration_since(last_check_time);
+                        let hours = elapsed.num_hours() as u64;
+                        hours >= self.config.settings.update_config.check_interval_hours as u64
+                    } else {
+                        true // Malformed timestamp — treat as "never checked", trigger immediately
+                    }
+                } else {
+                    true // No last_check recorded — trigger immediately
+                };
+            if should_check {
+                trigger_update_check(self);
+            }
+        }
+
+        // Ensure periodic repaint so we can detect when the interval elapses
+        if self.config.settings.update_config.enabled {
+            ctx.request_repaint_after(std::time::Duration::from_secs(60));
+        }
+
+        // Process pending update check results
+        process_pending_update_result(self, ctx);
+
         // Sync connection state and update tab name/color when connected successfully
         for (idx, tab) in self.tabs.iter_mut().enumerate() {
             if idx < self.prev_connected_states.len() {
@@ -237,7 +291,7 @@ impl RedisApp {
         self.show_help = show;
     }
 
-    pub fn with_config(config: Config) -> Self {
+    pub fn with_config(config: Config, tokio_handle: tokio::runtime::Handle) -> Self {
         let global_language = if !config.settings.language.is_empty() {
             Language::file_name_to_lang(&config.settings.language)
         } else {
@@ -250,6 +304,10 @@ impl RedisApp {
 
         // Create initial tab
         let initial_tab = RedisTab::new(0, global_language);
+
+        // Create channel for update check results
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let shared_sender = std::sync::Arc::new(sender);
 
         Self {
             tabs: vec![initial_tab],
@@ -275,6 +333,12 @@ impl RedisApp {
             show_help: false,
             help_selected_section: None,
             toasts: components::toast::ToastManager::new(),
+            pending_update_result: None,
+            update_check_in_progress: false,
+            startup_update_check_triggered: false,
+            update_result_receiver: receiver,
+            tokio_handle,
+            background_update_sender: shared_sender,
         }
     }
 
@@ -354,8 +418,6 @@ impl RedisApp {
     }
 
     pub fn close_tab(&mut self, index: usize, ctx: &egui::Context) {
-        use e_client_config::translations::{TranslationKey, tr};
-
         if self.tabs.len() <= 1 {
             // Close the last tab and exit the application
             if let Some(tab) = self.tabs.get(index) {
@@ -627,7 +689,6 @@ impl RedisApp {
     }
 
     pub fn update_language(&mut self, lang: Language) {
-        use e_client_config::translations::{TranslationKey, tr};
         self.global_language = lang;
         // Update all tabs' language and names
         for tab in self.tabs.iter_mut() {
@@ -638,6 +699,98 @@ impl RedisApp {
             }
         }
     }
+}
+
+/// Trigger an async update check
+fn trigger_update_check(app: &mut RedisApp) {
+    if app.update_check_in_progress {
+        return;
+    }
+    app.update_check_in_progress = true;
+
+    // Record check time for periodic scheduling — persists RFC3339 so it survives restarts
+    app.config
+        .update_last_check(chrono::Utc::now().to_rfc3339());
+
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let update_config = app.config.settings.update_config.clone();
+    let sender = app.background_update_sender.clone();
+
+    app.tokio_handle.spawn(async move {
+        let result =
+            e_client_core::updater::check_for_updates(&current_version, &update_config).await;
+        let _ = sender.send(result);
+    });
+}
+
+/// Process any pending update check results and show toasts
+fn process_pending_update_result(app: &mut RedisApp, ctx: &egui::Context) {
+    // Try to receive a result
+    if let Ok(result) = app.update_result_receiver.try_recv() {
+        app.update_check_in_progress = false;
+
+        // Update last_check timestamp
+        let now = chrono::Utc::now().to_rfc3339();
+        app.config.update_last_check(now);
+
+        match &result {
+            e_client_core::updater::UpdateCheckResult::UpdateAvailable { latest_version } => {
+                let latest_version = latest_version.clone();
+                app.pending_update_result = Some(result);
+                // Show toast notification
+                let lang = app.global_language;
+                let msg = tr(TranslationKey::UpdateAvailable, lang).to_string();
+                app.toasts
+                    .info(tr(TranslationKey::UpdateChecker, lang).to_string(), msg);
+                // Request repaint to show the update notification UI
+                ctx.request_repaint();
+            }
+            e_client_core::updater::UpdateCheckResult::Skipped { latest_version: _ } => {
+                // Silently ignored — user chose to skip this version
+            }
+            e_client_core::updater::UpdateCheckResult::UpToDate => {
+                // No action needed — user is on the latest version
+            }
+            e_client_core::updater::UpdateCheckResult::CheckFailed => {
+                // Silently ignored — network error or other issue
+            }
+        }
+    }
+}
+
+/// Handle update action from UI (skip version, open release page, etc.)
+pub fn handle_update_action(app: &mut RedisApp, action: UpdateAction) {
+    match action {
+        UpdateAction::SkipVersion(version) => {
+            app.config.update_skip_version(Some(version));
+            app.pending_update_result = None;
+            let lang = app.global_language;
+            app.toasts.info(
+                tr(TranslationKey::UpdateChecker, lang).to_string(),
+                tr(TranslationKey::UpdateSkipped, lang).to_string(),
+            );
+        }
+        UpdateAction::OpenReleasePage(version) => {
+            let url = format!("{}/tag/{}", GITHUB_RELEASES_URL, version);
+            let _ = open::that(&url);
+            app.pending_update_result = None;
+        }
+        UpdateAction::Dismiss => {
+            app.pending_update_result = None;
+        }
+        UpdateAction::CheckManually => {
+            app.pending_update_result = None;
+            trigger_update_check(app);
+        }
+    }
+}
+
+/// Actions the user can take on an update notification
+pub enum UpdateAction {
+    SkipVersion(String),
+    OpenReleasePage(String),
+    Dismiss,
+    CheckManually,
 }
 
 impl Drop for RedisApp {

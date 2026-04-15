@@ -14,6 +14,7 @@ fn main() -> Result<(), eframe::Error> {
     log_app_start();
 
     let runtime = Runtime::new().unwrap();
+    let handle = runtime.handle().clone();
     let _guard = runtime.enter();
 
     std::thread::spawn(move || {
@@ -24,7 +25,7 @@ fn main() -> Result<(), eframe::Error> {
         });
     });
 
-    let result = start_app();
+    let result = start_app(handle);
 
     log_app_shutdown();
     result

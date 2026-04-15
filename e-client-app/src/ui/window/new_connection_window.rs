@@ -269,20 +269,16 @@ impl NewConnectionWindowWindow {
     /// If successful, the window will be closed and fields cleared.
     pub(crate) fn try_save(&mut self, app: &mut Config, current_lang: Language) -> bool {
         if self.new_connection_name.trim().is_empty() {
-            self.error_message = Some(
-                tr(TranslationKey::PleaseEnterConnectionName, current_lang)
-                    .to_string(),
-            );
+            self.error_message =
+                Some(tr(TranslationKey::PleaseEnterConnectionName, current_lang).to_string());
             return false;
         }
 
         if self.quick_connect_mode && !self.edit_mode {
             // Quick connect mode validation
             if self.quick_connect_url.trim().is_empty() {
-                self.error_message = Some(
-                    tr(TranslationKey::InvalidConnectionString, current_lang)
-                        .to_string(),
-                );
+                self.error_message =
+                    Some(tr(TranslationKey::InvalidConnectionString, current_lang).to_string());
                 return false;
             }
             // Parse URL and create connection
@@ -302,30 +298,20 @@ impl NewConnectionWindowWindow {
                     }
                 },
                 Err(_) => {
-                    self.error_message = Some(
-                        tr(
-                            TranslationKey::InvalidConnectionString,
-                            current_lang,
-                        )
-                        .to_string(),
-                    );
+                    self.error_message =
+                        Some(tr(TranslationKey::InvalidConnectionString, current_lang).to_string());
                     false
                 }
             }
         } else if self.new_connection_url.trim().is_empty() {
-            self.error_message = Some(
-                tr(TranslationKey::PleaseEnterConnectionAddress, current_lang)
-                    .to_string(),
-            );
+            self.error_message =
+                Some(tr(TranslationKey::PleaseEnterConnectionAddress, current_lang).to_string());
             false
         } else {
             let result = if self.edit_mode {
                 // Edit existing connection
                 if let Some(old_name) = &self.editing_connection_name {
-                    app.update_single_connection(
-                        old_name,
-                        self.build_connection(),
-                    )
+                    app.update_single_connection(old_name, self.build_connection())
                 } else {
                     Err(e_client_config::error::ConfigError::ConnectionNotFound)
                 }

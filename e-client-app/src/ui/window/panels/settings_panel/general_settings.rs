@@ -1,10 +1,11 @@
 //! General settings UI components
 
 use crate::ui::theme_to_visuals;
+use crate::ui::window::{UpdateAction, handle_update_action};
 use e_client_config::config::Theme;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use super::super::super::RedisApp;
 
@@ -79,6 +80,114 @@ pub fn render_general_settings(
             });
             ui.end_row();
         });
+}
+
+/// Render update checker settings
+pub fn render_update_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
+    // Checkbox: Check on startup
+    let mut enabled = app.config.settings.update_config.enabled;
+    if ui
+        .checkbox(
+            &mut enabled,
+            tr(TranslationKey::UpdateCheckOnStartup, current_lang),
+        )
+        .changed()
+    {
+        app.config.update_check_enabled(enabled);
+    }
+
+    // Check interval dropdown
+    if enabled {
+        ui.horizontal(|ui| {
+            ui.label(tr(TranslationKey::UpdateCheckInterval, current_lang));
+
+            let current_hours = app.config.settings.update_config.check_interval_hours;
+            let intervals = [
+                (
+                    24,
+                    tr(TranslationKey::UpdateCheckIntervalDaily, current_lang),
+                ),
+                (
+                    168,
+                    tr(TranslationKey::UpdateCheckIntervalWeekly, current_lang),
+                ),
+                (
+                    720,
+                    tr(TranslationKey::UpdateCheckIntervalMonthly, current_lang),
+                ),
+            ];
+
+            let selected_idx = intervals
+                .iter()
+                .position(|(h, _)| *h == current_hours)
+                .unwrap_or(0);
+
+            egui::ComboBox::from_id_salt("update_check_interval")
+                .selected_text(intervals[selected_idx].1)
+                .show_ui(ui, |ui| {
+                    for (idx, (hours, label)) in intervals.iter().enumerate() {
+                        if ui.selectable_label(selected_idx == idx, *label).clicked() {
+                            app.config.update_check_interval(*hours);
+                        }
+                    }
+                });
+        });
+    }
+
+    // Skip version display (when user already skipped a version)
+    if let Some(skip_ver) = app.config.settings.update_config.skip_version.clone() {
+        ui.horizontal(|ui| {
+            ui.label(tr(TranslationKey::UpdateSkipVersion, current_lang));
+            ui.label(format!(" ({})", skip_ver));
+            if ui.small_button("✖").clicked() {
+                app.config.update_skip_version(None);
+            }
+        });
+    }
+
+    // Skip this version button (when an update is available)
+    if let Some(e_client_core::updater::UpdateCheckResult::UpdateAvailable { latest_version }) =
+        &app.pending_update_result
+    {
+        let latest_version = latest_version.clone();
+        // Don't show if this version is already skipped
+        let already_skipped = app
+            .config
+            .settings
+            .update_config
+            .skip_version
+            .as_deref()
+            == Some(latest_version.as_str());
+        if !already_skipped {
+            ui.horizontal(|ui| {
+                ui.label(tr(TranslationKey::UpdateAvailable, current_lang));
+                if ui
+                    .button(tr(TranslationKey::UpdateSkipVersion, current_lang))
+                    .clicked()
+                {
+                    handle_update_action(
+                        app,
+                        UpdateAction::SkipVersion(latest_version.clone()),
+                    );
+                }
+            });
+        }
+    }
+
+    // Manual check button
+    ui.horizontal(|ui| {
+        if ui
+            .button(tr(TranslationKey::UpdateCheckManually, current_lang))
+            .clicked()
+        {
+            handle_update_action(app, UpdateAction::CheckManually);
+        }
+
+        // Show progress if checking
+        if app.update_check_in_progress {
+            ui.spinner();
+        }
+    });
 }
 
 /// Get display name for theme in current language

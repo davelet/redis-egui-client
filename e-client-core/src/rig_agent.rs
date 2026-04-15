@@ -285,7 +285,8 @@ impl OpenAiRigAgent {
             "Rig agent AI request: "
         );
 
-        let result = self.agent
+        let result = self
+            .agent
             .prompt(message)
             .max_turns(self.max_turns as usize)
             .with_history(&mut self.history)

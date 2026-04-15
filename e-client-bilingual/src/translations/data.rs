@@ -482,7 +482,10 @@ pub fn load_all_translations(
         TranslationKey::AiSettings,
         tr_en_zh("AI Settings", "AI 设置"),
     );
-    strings.insert(TranslationKey::AiModels, tr_en_zh("AI Model List", "AI 模型清单"));
+    strings.insert(
+        TranslationKey::AiModels,
+        tr_en_zh("AI Model List", "AI 模型清单"),
+    );
     strings.insert(
         TranslationKey::AiAddModel,
         tr_en_zh("Add Model", "添加模型"),
@@ -583,18 +586,12 @@ pub fn load_all_translations(
         TranslationKey::AiImportingTitle,
         tr_en_zh("Import from GIM", "从 GIM 导入"),
     );
-    strings.insert(
-        TranslationKey::AiImportModelName,
-        tr_en_zh("Model", "模型"),
-    );
+    strings.insert(TranslationKey::AiImportModelName, tr_en_zh("Model", "模型"));
     strings.insert(
         TranslationKey::AiImportProvider,
         tr_en_zh("Provider", "提供商"),
     );
-    strings.insert(
-        TranslationKey::AiImportUrl,
-        tr_en_zh("URL", "地址"),
-    );
+    strings.insert(TranslationKey::AiImportUrl, tr_en_zh("URL", "地址"));
     strings.insert(
         TranslationKey::AiImportApiKey,
         tr_en_zh("API Key", "API 密钥"),
@@ -617,7 +614,10 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiImportNotFound,
-        tr_en_zh("GIM configuration not found at ~/.config/gim/config.toml", "未找到 GIM 配置文件 (~/.config/gim/config.toml)"),
+        tr_en_zh(
+            "GIM configuration not found at ~/.config/gim/config.toml",
+            "未找到 GIM 配置文件 (~/.config/gim/config.toml)",
+        ),
     );
     strings.insert(
         TranslationKey::AiImportAlreadyExists,
@@ -627,15 +627,9 @@ pub fn load_all_translations(
         TranslationKey::AiImportOverride,
         tr_en_zh("Override existing", "覆盖现有"),
     );
-    strings.insert(
-        TranslationKey::AiImportSkip,
-        tr_en_zh("Skip", "跳过"),
-    );
+    strings.insert(TranslationKey::AiImportSkip, tr_en_zh("Skip", "跳过"));
     // JSON Import/Export
-    strings.insert(
-        TranslationKey::AiExportJson,
-        tr_en_zh("Export", "导出"),
-    );
+    strings.insert(TranslationKey::AiExportJson, tr_en_zh("Export", "导出"));
     strings.insert(
         TranslationKey::AiExportJsonTooltip,
         tr_en_zh("Export AI config to JSON file", "导出 AI 配置到 JSON 文件"),
@@ -644,13 +638,13 @@ pub fn load_all_translations(
         TranslationKey::AiExportSuccess,
         tr_en_zh("Export successful!", "导出成功！"),
     );
-    strings.insert(
-        TranslationKey::AiImportJson,
-        tr_en_zh("Import", "导入"),
-    );
+    strings.insert(TranslationKey::AiImportJson, tr_en_zh("Import", "导入"));
     strings.insert(
         TranslationKey::AiImportJsonTooltip,
-        tr_en_zh("Import AI config from JSON file", "从 JSON 文件导入 AI 配置"),
+        tr_en_zh(
+            "Import AI config from JSON file",
+            "从 JSON 文件导入 AI 配置",
+        ),
     );
     strings.insert(
         TranslationKey::AiImportJsonTitle,
@@ -658,7 +652,10 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiImportJsonWarning,
-        tr_en_zh("{} API keys will NOT be imported. Please re-enter them after import.", "{}API 密钥不会被导入，请在导入后重新输入。"),
+        tr_en_zh(
+            "{} API keys will NOT be imported. Please re-enter them after import.",
+            "{}API 密钥不会被导入，请在导入后重新输入。",
+        ),
     );
     strings.insert(
         TranslationKey::AiImportJsonModelCount,
@@ -840,7 +837,10 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::ShortcutUnderlineHint,
-        tr_en_zh("Underlined items indicate customized shortcuts", "带下划线的项表示已自定义的快捷键"),
+        tr_en_zh(
+            "Underlined items indicate customized shortcuts",
+            "带下划线的项表示已自定义的快捷键",
+        ),
     );
     strings.insert(
         TranslationKey::SupportUs,
@@ -860,7 +860,10 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::GitIntelligenceMessageDesc,
-        tr_en_zh("AI-powered commit message generator", "AI 驱动的提交信息生成器"),
+        tr_en_zh(
+            "AI-powered commit message generator",
+            "AI 驱动的提交信息生成器",
+        ),
     );
     strings.insert(
         TranslationKey::ShortcutRemoveDuplicateAndInvalidTabs,
@@ -961,32 +964,23 @@ pub fn load_all_translations(
     );
 
     // CLI Mode labels
-    strings.insert(
-        TranslationKey::CliModeChat,
-        tr_en_zh("Chat", "Chat"),
-    );
-    strings.insert(
-        TranslationKey::CliModeAgent,
-        tr_en_zh("Agent", "Agent"),
-    );
+    strings.insert(TranslationKey::CliModeChat, tr_en_zh("Chat", "Chat"));
+    strings.insert(TranslationKey::CliModeAgent, tr_en_zh("Agent", "Agent"));
     strings.insert(
         TranslationKey::CliModeChatHint,
-        tr_en_zh("Stateless - translates natural language to Redis commands (no context, no tools)", "无状态 - 将自然语言转换为 Redis 命令（无上下文、无工具）"),
+        tr_en_zh(
+            "Stateless - translates natural language to Redis commands (no context, no tools)",
+            "无状态 - 将自然语言转换为 Redis 命令（无上下文、无工具）",
+        ),
     );
     strings.insert(
         TranslationKey::CliModeAgentHint,
         tr_en_zh("Stateful - has access to Redis tools for direct operations (requires tool-calling capable models)", "有状态 - 可直接调用 Redis 工具执行操作（需要支持工具调用的模型）"),
     );
-    strings.insert(
-        TranslationKey::CliTurns,
-        tr_en_zh("{} turns", "{} 轮次"),
-    );
+    strings.insert(TranslationKey::CliTurns, tr_en_zh("{} turns", "{} 轮次"));
 
     // Live Logs
-    strings.insert(
-        TranslationKey::LiveLogs,
-        tr_en_zh("Live Logs", "实时日志"),
-    );
+    strings.insert(TranslationKey::LiveLogs, tr_en_zh("Live Logs", "实时日志"));
     strings.insert(
         TranslationKey::LiveLogsToggle,
         tr_en_zh("📋 Live Logs", "📋 实时日志"),
@@ -995,10 +989,7 @@ pub fn load_all_translations(
         TranslationKey::LiveLogsShowHint,
         tr_en_zh("Show live logs during AI chat", "AI 对话期间显示实时日志"),
     );
-    strings.insert(
-        TranslationKey::LiveLogsClear,
-        tr_en_zh("🗑 Clear", "🗑 清空"),
-    );
+    strings.insert(TranslationKey::LiveLogsClear, tr_en_zh("🗑 Clear", "🗑 清空"));
     strings.insert(
         TranslationKey::LiveLogsClearHint,
         tr_en_zh("Clear log buffer", "清空日志缓冲区"),
@@ -1015,10 +1006,7 @@ pub fn load_all_translations(
         TranslationKey::LiveLogsRecording,
         tr_en_zh("● Recording", "● 录制中"),
     );
-    strings.insert(
-        TranslationKey::LiveLogsIdle,
-        tr_en_zh("○ Idle", "○ 空闲"),
-    );
+    strings.insert(TranslationKey::LiveLogsIdle, tr_en_zh("○ Idle", "○ 空闲"));
     strings.insert(
         TranslationKey::LiveLogsEmpty,
         tr_en_zh("No logs captured for this session", "本次会话尚未捕获日志"),
@@ -1041,9 +1029,71 @@ pub fn load_all_translations(
         TranslationKey::AiInterrupted,
         tr_en_zh("Interrupted", "已中断"),
     );
+    strings.insert(TranslationKey::AiStop, tr_en_zh("Stop", "停止"));
+
+    // Update Checker translations
     strings.insert(
-        TranslationKey::AiStop,
-        tr_en_zh("Stop", "停止"),
+        TranslationKey::UpdateChecker,
+        tr_en_zh("Update Checker", "更新检查"),
+    );
+    strings.insert(
+        TranslationKey::UpdateAvailable,
+        tr_en_zh(
+            "New version available. Click the version number in the top right to download.",
+            "发现新版本，可以点击右上角版本号进行下载",
+        ),
+    );
+    strings.insert(
+        TranslationKey::UpdateUpToDate,
+        tr_en_zh("You are using the latest version", "当前已是最新版本"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckFailed,
+        tr_en_zh("Failed to check for updates", "检查更新失败"),
+    );
+    strings.insert(
+        TranslationKey::UpdateSkipped,
+        tr_en_zh(
+            "Version skipped. You will not be reminded again.",
+            "已跳过该版本，不会再提醒",
+        ),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckOnStartup,
+        tr_en_zh("Check for updates on startup", "启动时检查更新"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckInterval,
+        tr_en_zh("Check interval", "检查频率"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckIntervalDaily,
+        tr_en_zh("Daily", "每天"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckIntervalWeekly,
+        tr_en_zh("Weekly", "每周"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckIntervalMonthly,
+        tr_en_zh("Monthly", "每月"),
+    );
+    strings.insert(
+        TranslationKey::UpdateCheckManually,
+        tr_en_zh("Check for Updates", "检查更新"),
+    );
+    strings.insert(
+        TranslationKey::UpdateSkipVersion,
+        tr_en_zh("Skip this version", "跳过此版本"),
+    );
+    strings.insert(
+        TranslationKey::UpdateOpenReleases,
+        tr_en_zh("View Releases", "查看发布"),
+    );
+    strings.insert(TranslationKey::UpdateDismiss, tr_en_zh("Dismiss", "关闭"));
+    strings.insert(
+        TranslationKey::UpdateSettings,
+        tr_en_zh("Update Settings", "更新设置"),
     );
 }
 

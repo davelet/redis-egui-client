@@ -174,6 +174,21 @@ All shortcuts can be customized in Settings. Press the button below to open the 
 - **Auto refresh TTL** - Automatically refresh TTL display for keys
 - **Auto expand composite types** - Automatically expand Hash, List, Set, ZSet when member count is below threshold
 
+### Update Settings
+
+The app can automatically check for new versions from GitHub Releases.
+
+- **Check for updates on startup** - Automatically check for new versions when the app starts
+- **Check interval** - Set the frequency for automatic checks (Daily / Weekly / Monthly)
+- **Manual check** - Click "Check for Updates" to check immediately
+
+When a new version is available:
+
+- A **green version number** (e.g., `v1.2.0`) appears next to the settings button in the top toolbar. Click it to open the specific Release page for download.
+- The Update section in the Settings panel shows the new version info and action buttons.
+
+**Skip version:** If you don't want to upgrade to a particular version, click "Skip this version" and you won't be reminded again. You can view skipped versions in the Settings panel and click ✖ to cancel the skip.
+
 ### Keyboard Customization
 
 All customizable shortcuts can be modified in Settings. Click the shortcut input and press the new key combination.

@@ -22,7 +22,8 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         );
 
         // Clear button
-        if ui.button(tr(TranslationKey::LiveLogsClear, current_lang))
+        if ui
+            .button(tr(TranslationKey::LiveLogsClear, current_lang))
             .on_hover_text(tr(TranslationKey::LiveLogsClearHint, current_lang))
             .clicked()
         {
@@ -42,9 +43,15 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         // push the label off-screen by consuming all remaining width first.
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             let (text, color) = if log_viewer.is_capturing() {
-                (tr(TranslationKey::LiveLogsRecording, current_lang), egui::Color32::from_rgb(80, 200, 80))
+                (
+                    tr(TranslationKey::LiveLogsRecording, current_lang),
+                    egui::Color32::from_rgb(80, 200, 80),
+                )
             } else {
-                (tr(TranslationKey::LiveLogsIdle, current_lang), egui::Color32::GRAY)
+                (
+                    tr(TranslationKey::LiveLogsIdle, current_lang),
+                    egui::Color32::GRAY,
+                )
             };
             ui.label(egui::RichText::new(text).small().color(color));
         });
@@ -75,12 +82,7 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         .show(ui, |ui| {
             for line in &log_viewer.log_lines {
                 let color = color_by_level(line);
-                ui.label(
-                    egui::RichText::new(line)
-                        .monospace()
-                        .small()
-                        .color(color),
-                );
+                ui.label(egui::RichText::new(line).monospace().small().color(color));
             }
         });
 }

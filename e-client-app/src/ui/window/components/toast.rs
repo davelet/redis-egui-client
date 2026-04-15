@@ -202,7 +202,10 @@ impl ToastManager {
 
                             let bar_progress = egui::Rect::from_min_max(
                                 egui::pos2(min_rect.min.x, min_rect.max.y),
-                                egui::pos2(min_rect.min.x + min_rect.width() * progress, min_rect.max.y + 2.0),
+                                egui::pos2(
+                                    min_rect.min.x + min_rect.width() * progress,
+                                    min_rect.max.y + 2.0,
+                                ),
                             );
                             ui.painter().rect_filled(bar_progress, 0.0, accent_color);
                         })

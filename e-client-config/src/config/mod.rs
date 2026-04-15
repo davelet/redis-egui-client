@@ -1,15 +1,16 @@
 pub mod ai_config;
-pub mod gim_importer;
-pub mod json_importer;
 mod app_window;
 mod connected_preference;
 mod connections;
+pub mod gim_importer;
+pub mod json_importer;
 mod open_connections;
 pub mod shortcuts;
 mod theme;
 mod user_config;
 
 pub use theme::Theme;
+pub use user_config::UpdateConfig;
 
 use crate::config::ai_config::AiConfig;
 use crate::config::connected_preference::{ConnectedPreferences, ConnectionPreference};
@@ -446,6 +447,30 @@ impl Config {
     pub fn reset_user_settings() -> Result<(), ConfigError> {
         let c = Config::default();
         c.save_user_settings()
+    }
+
+    /// Update the update checker enabled flag
+    pub fn update_check_enabled(&mut self, enabled: bool) {
+        self.settings.update_config.enabled = enabled;
+        self.dirty_settings = true;
+    }
+
+    /// Update the check interval in hours
+    pub fn update_check_interval(&mut self, hours: u32) {
+        self.settings.update_config.check_interval_hours = hours;
+        self.dirty_settings = true;
+    }
+
+    /// Set a version to skip
+    pub fn update_skip_version(&mut self, version: Option<String>) {
+        self.settings.update_config.skip_version = version;
+        self.dirty_settings = true;
+    }
+
+    /// Update the last check timestamp
+    pub fn update_last_check(&mut self, timestamp: String) {
+        self.settings.update_config.last_check = Some(timestamp);
+        self.dirty_settings = true;
     }
 }
 

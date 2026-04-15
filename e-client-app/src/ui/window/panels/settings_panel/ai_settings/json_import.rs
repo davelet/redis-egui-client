@@ -22,8 +22,7 @@ pub(super) fn export_ai_config_to_json(app: &mut RedisApp) -> Option<Result<(), 
     };
 
     Some(
-        json_importer::export_to_json(&app.config.ai_config, &path)
-            .map_err(|e| format!("{:?}", e)),
+        json_importer::export_to_json(&app.config.ai_config, &path).map_err(|e| format!("{:?}", e)),
     )
 }
 
@@ -50,7 +49,11 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
 
             // Warning message
             ui.add(egui::Label::new(
-                egui::RichText::new(tr_fmt(TranslationKey::AiImportJsonWarning, current_lang, &[emoji::action::WARNING]))
+                egui::RichText::new(tr_fmt(
+                    TranslationKey::AiImportJsonWarning,
+                    current_lang,
+                    &[emoji::action::WARNING],
+                ))
                 .color(ui.visuals().warn_fg_color)
                 .small(),
             ));
@@ -66,14 +69,29 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
 
             // Bulk selection actions
             ui.horizontal(|ui| {
-                if ui.button(tr(TranslationKey::AiImportSelectAll, current_lang)).clicked() {
-                    for s in &mut preview.selected { *s = true; }
+                if ui
+                    .button(tr(TranslationKey::AiImportSelectAll, current_lang))
+                    .clicked()
+                {
+                    for s in &mut preview.selected {
+                        *s = true;
+                    }
                 }
-                if ui.button(tr(TranslationKey::AiImportDeselectAll, current_lang)).clicked() {
-                    for s in &mut preview.selected { *s = false; }
+                if ui
+                    .button(tr(TranslationKey::AiImportDeselectAll, current_lang))
+                    .clicked()
+                {
+                    for s in &mut preview.selected {
+                        *s = false;
+                    }
                 }
-                if ui.button(tr(TranslationKey::AiImportInvertSelection, current_lang)).clicked() {
-                    for s in &mut preview.selected { *s = !*s; }
+                if ui
+                    .button(tr(TranslationKey::AiImportInvertSelection, current_lang))
+                    .clicked()
+                {
+                    for s in &mut preview.selected {
+                        *s = !*s;
+                    }
                 }
             });
             ui.add_space(5.0);
@@ -94,18 +112,26 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
                                 .show(ui, |ui| {
                                     // Adapt checkbox colors based on background luminance
                                     let bg = ui.visuals().code_bg_color;
-                                    let luminance = (bg.r() as u16 + bg.g() as u16 + bg.b() as u16) / 3;
+                                    let luminance =
+                                        (bg.r() as u16 + bg.g() as u16 + bg.b() as u16) / 3;
                                     let is_light_bg = luminance > 128;
 
-                                    let (border_color, check_color, text_color, box_fill, box_fill_hover, box_fill_active) = if is_light_bg {
+                                    let (
+                                        border_color,
+                                        check_color,
+                                        text_color,
+                                        box_fill,
+                                        box_fill_hover,
+                                        box_fill_active,
+                                    ) = if is_light_bg {
                                         // Light background: use dark colors
                                         (
-                                            egui::Color32::from_gray(80),   // border
-                                            egui::Color32::from_gray(30),   // checkmark
-                                            egui::Color32::from_gray(20),   // label text
-                                            egui::Color32::from_gray(230),  // box fill
-                                            egui::Color32::from_gray(210),  // box fill hover
-                                            egui::Color32::from_gray(190),  // box fill active
+                                            egui::Color32::from_gray(80),  // border
+                                            egui::Color32::from_gray(30),  // checkmark
+                                            egui::Color32::from_gray(20),  // label text
+                                            egui::Color32::from_gray(230), // box fill
+                                            egui::Color32::from_gray(210), // box fill hover
+                                            egui::Color32::from_gray(190), // box fill active
                                         )
                                     } else {
                                         // Dark background: use light colors
@@ -121,45 +147,78 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
 
                                     let v = ui.visuals_mut();
                                     // inactive (default)
-                                    v.widgets.inactive.fg_stroke = egui::Stroke::new(1.5, check_color);
-                                    v.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, border_color);
+                                    v.widgets.inactive.fg_stroke =
+                                        egui::Stroke::new(1.5, check_color);
+                                    v.widgets.inactive.bg_stroke =
+                                        egui::Stroke::new(1.0, border_color);
                                     v.widgets.inactive.bg_fill = box_fill;
                                     // hovered
-                                    v.widgets.hovered.fg_stroke = egui::Stroke::new(1.5, check_color);
-                                    v.widgets.hovered.bg_stroke = egui::Stroke::new(1.5, border_color);
+                                    v.widgets.hovered.fg_stroke =
+                                        egui::Stroke::new(1.5, check_color);
+                                    v.widgets.hovered.bg_stroke =
+                                        egui::Stroke::new(1.5, border_color);
                                     v.widgets.hovered.bg_fill = box_fill_hover;
                                     // active (pressed)
-                                    v.widgets.active.fg_stroke = egui::Stroke::new(2.0, check_color);
-                                    v.widgets.active.bg_stroke = egui::Stroke::new(1.5, border_color);
+                                    v.widgets.active.fg_stroke =
+                                        egui::Stroke::new(2.0, check_color);
+                                    v.widgets.active.bg_stroke =
+                                        egui::Stroke::new(1.5, border_color);
                                     v.widgets.active.bg_fill = box_fill_active;
                                     // noninteractive
-                                    v.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, border_color);
-                                    v.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, border_color);
+                                    v.widgets.noninteractive.fg_stroke =
+                                        egui::Stroke::new(1.0, border_color);
+                                    v.widgets.noninteractive.bg_stroke =
+                                        egui::Stroke::new(1.0, border_color);
                                     v.widgets.noninteractive.bg_fill = box_fill;
 
                                     for (i, model) in preview.config.models.iter().enumerate() {
-                                        let is_duplicate = app.config.ai_config.models.iter().any(|m| m.name == model.name);
+                                        let is_duplicate = app
+                                            .config
+                                            .ai_config
+                                            .models
+                                            .iter()
+                                            .any(|m| m.name == model.name);
                                         ui.horizontal(|ui| {
-                                            ui.checkbox(&mut preview.selected[i],
-                                                egui::RichText::new(format!("• {}", model.name)).color(text_color));
+                                            ui.checkbox(
+                                                &mut preview.selected[i],
+                                                egui::RichText::new(format!("• {}", model.name))
+                                                    .color(text_color),
+                                            );
                                             ui.label(
-                                                egui::RichText::new(format!("({})", model.provider))
-                                                    .color(text_color.linear_multiply(0.6)),
+                                                egui::RichText::new(format!(
+                                                    "({})",
+                                                    model.provider
+                                                ))
+                                                .color(text_color.linear_multiply(0.6)),
                                             );
                                             if is_duplicate {
                                                 ui.add_space(5.0);
                                                 ui.label(
-                                                    egui::RichText::new(tr_fmt(TranslationKey::AiImportAlreadyExists, current_lang, &[emoji::action::WARNING]))
-                                                        .color(ui.visuals().warn_fg_color)
+                                                    egui::RichText::new(tr_fmt(
+                                                        TranslationKey::AiImportAlreadyExists,
+                                                        current_lang,
+                                                        &[emoji::action::WARNING],
+                                                    ))
+                                                    .color(ui.visuals().warn_fg_color),
                                                 );
                                                 ui.label(
-                                                    egui::RichText::new(format!("({})", tr(TranslationKey::AiImportOverride, current_lang)))
-                                                        .color(ui.visuals().warn_fg_color)
+                                                    egui::RichText::new(format!(
+                                                        "({})",
+                                                        tr(
+                                                            TranslationKey::AiImportOverride,
+                                                            current_lang
+                                                        )
+                                                    ))
+                                                    .color(ui.visuals().warn_fg_color),
                                                 );
                                             }
                                         });
                                         ui.label(
-                                            egui::RichText::new(format!("  Model: {}", model.model_id)).weak(),
+                                            egui::RichText::new(format!(
+                                                "  Model: {}",
+                                                model.model_id
+                                            ))
+                                            .weak(),
                                         );
                                         ui.add_space(4.0);
                                     }
@@ -173,18 +232,24 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
             let mut confirm_clicked = false;
             let mut cancel_clicked = false;
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                cancel_clicked = ui.button(tr(TranslationKey::Cancel, current_lang)).clicked();
+                cancel_clicked = ui
+                    .button(tr(TranslationKey::Cancel, current_lang))
+                    .clicked();
                 ui.add_space(10.0);
-                
+
                 let any_selected = preview.selected.iter().any(|&s| s);
-                confirm_clicked = ui.add_enabled(
-                    any_selected,
-                    egui::Button::new(
-                        egui::RichText::new(tr(TranslationKey::AiImportJsonConfirm, current_lang))
-                            .strong()
+                confirm_clicked = ui
+                    .add_enabled(
+                        any_selected,
+                        egui::Button::new(
+                            egui::RichText::new(tr(
+                                TranslationKey::AiImportJsonConfirm,
+                                current_lang,
+                            ))
+                            .strong(),
+                        ),
                     )
-                )
-                .clicked();
+                    .clicked();
             });
 
             // Handle button clicks outside closure
@@ -195,7 +260,14 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
                 let selected_flags = preview.selected;
                 for (i, model) in preview.config.models.into_iter().enumerate() {
                     if selected_flags[i] {
-                        if let Some(id) = app.config.ai_config.models.iter().find(|m| m.name == model.name).map(|m| m.id.clone()) {
+                        if let Some(id) = app
+                            .config
+                            .ai_config
+                            .models
+                            .iter()
+                            .find(|m| m.name == model.name)
+                            .map(|m| m.id.clone())
+                        {
                             app.config.remove_ai_model(&id);
                         }
                         app.config.add_ai_model(model);
@@ -204,10 +276,8 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
 
                 // Save config
                 if let Err(e) = app.config.save_ai_config() {
-                    app.toasts.error(
-                        "json_import".to_string(),
-                        format!("Save failed: {:?}", e),
-                    );
+                    app.toasts
+                        .error("json_import".to_string(), format!("Save failed: {:?}", e));
                 } else {
                     app.toasts.success(
                         "json_import".to_string(),

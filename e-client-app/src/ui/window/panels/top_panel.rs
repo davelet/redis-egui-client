@@ -12,6 +12,7 @@ use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use std::sync::OnceLock;
 
 use super::settings_panel::{SettingsSection, render_settings_window};
+use crate::ui::window::{UpdateAction, handle_update_action};
 
 /// Cached donate image texture
 static DONATE_TEXTURE: OnceLock<std::sync::Arc<egui::TextureHandle>> = OnceLock::new();
@@ -27,7 +28,11 @@ fn get_donate_texture(ctx: &egui::Context) -> std::sync::Arc<egui::TextureHandle
             let rgba = image.to_rgba8();
             let size = [rgba.width() as _, rgba.height() as _];
             let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
-            std::sync::Arc::new(ctx.load_texture("donate", color_image, egui::TextureOptions::default()))
+            std::sync::Arc::new(ctx.load_texture(
+                "donate",
+                color_image,
+                egui::TextureOptions::default(),
+            ))
         })
         .clone()
 }
@@ -216,10 +221,27 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             });
 
-            // Right side - Settings button
+            // Right side - Update indicator + Settings button
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Settings button (rightmost)
                 if ui.button(emoji::action::SETTINGS).clicked() {
                     app.show_settings = true;
+                }
+
+                // Update available indicator (left of settings)
+                if let Some(e_client_core::updater::UpdateCheckResult::UpdateAvailable {
+                    latest_version,
+                }) = &app.pending_update_result
+                {
+                    let version_str = latest_version.clone();
+                    let update_btn = ui.add(
+                        egui::Button::new(
+                            egui::RichText::new(&version_str).color(egui::Color32::from_rgb(0x4C, 0xAF, 0x50)),
+                        ),
+                    );
+                    if update_btn.clicked() {
+                        handle_update_action(app, UpdateAction::OpenReleasePage(version_str));
+                    }
                 }
             });
         });
@@ -363,7 +385,11 @@ fn render_help_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Lan
                         ui.add_space(8.0);
 
                         // WeChat donation
-                        ui.label(egui::RichText::new(tr(TranslationKey::SupportUs, current_lang)).size(12.0).weak());
+                        ui.label(
+                            egui::RichText::new(tr(TranslationKey::SupportUs, current_lang))
+                                .size(12.0)
+                                .weak(),
+                        );
                         ui.add_space(4.0);
 
                         // Load and display donate image (cached)
@@ -378,13 +404,24 @@ fn render_help_window(app: &mut RedisApp, ctx: &egui::Context, current_lang: Lan
                         ui.add_space(12.0);
 
                         // Recommended tool
-                        ui.label(egui::RichText::new(tr(TranslationKey::Recommended, current_lang)).size(12.0).weak());
+                        ui.label(
+                            egui::RichText::new(tr(TranslationKey::Recommended, current_lang))
+                                .size(12.0)
+                                .weak(),
+                        );
                         ui.add_space(4.0);
                         ui.hyperlink_to(
                             tr(TranslationKey::GitIntelligenceMessage, current_lang),
                             "https://git-intelligence-message.pages.dev/",
                         );
-                        ui.label(egui::RichText::new(tr(TranslationKey::GitIntelligenceMessageDesc, current_lang)).size(11.0).weak());
+                        ui.label(
+                            egui::RichText::new(tr(
+                                TranslationKey::GitIntelligenceMessageDesc,
+                                current_lang,
+                            ))
+                            .size(11.0)
+                            .weak(),
+                        );
                     });
                 });
 

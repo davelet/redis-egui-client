@@ -6,10 +6,12 @@ pub mod display_settings;
 pub mod general_settings;
 pub mod shortcut_settings;
 
-pub use ai_settings::{render_ai_settings_section, render_gim_import_dialog, render_json_import_preview};
+pub use ai_settings::{
+    render_ai_settings_section, render_gim_import_dialog, render_json_import_preview,
+};
 pub use connection_settings::render_connection_settings;
 pub use display_settings::render_display_settings;
-pub use general_settings::render_general_settings;
+pub use general_settings::{render_general_settings, render_update_settings};
 pub use shortcut_settings::{SUPPORTED_KEYS, parse_key_from_str, render_shortcut_settings};
 
 use e_client_config::config::shortcuts::ShortcutAction;
@@ -120,7 +122,8 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     // Connection settings
                     {
                         let header_text = tr(TranslationKey::SavedConnections, current_lang);
-                        let is_open = app.settings_expanded_section == Some(SettingsSection::Connection);
+                        let is_open =
+                            app.settings_expanded_section == Some(SettingsSection::Connection);
                         let response = egui::CollapsingHeader::new(header_text)
                             .id_salt("settings_connection_collapsible")
                             .open(Some(is_open))
@@ -142,7 +145,8 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     // Display settings
                     {
                         let header_text = tr(TranslationKey::DisplaySettings, current_lang);
-                        let is_open = app.settings_expanded_section == Some(SettingsSection::Display);
+                        let is_open =
+                            app.settings_expanded_section == Some(SettingsSection::Display);
                         let response = egui::CollapsingHeader::new(header_text)
                             .id_salt("settings_display_collapsible")
                             .open(Some(is_open))
@@ -186,7 +190,8 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     // Keyboard shortcuts
                     {
                         let header_text = tr(TranslationKey::KeyboardShortcuts, current_lang);
-                        let is_open = app.settings_expanded_section == Some(SettingsSection::Shortcuts);
+                        let is_open =
+                            app.settings_expanded_section == Some(SettingsSection::Shortcuts);
                         let response = egui::CollapsingHeader::new(header_text)
                             .id_salt("settings_shortcuts_collapsible")
                             .open(Some(is_open))
@@ -200,6 +205,29 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                                 app.settings_expanded_section = None;
                             } else {
                                 app.settings_expanded_section = Some(SettingsSection::Shortcuts);
+                            }
+                        }
+                        ui.separator();
+                    }
+
+                    // Update settings
+                    {
+                        let header_text = tr(TranslationKey::UpdateSettings, current_lang);
+                        let is_open =
+                            app.settings_expanded_section == Some(SettingsSection::Update);
+                        let response = egui::CollapsingHeader::new(header_text)
+                            .id_salt("settings_update_collapsible")
+                            .open(Some(is_open))
+                            .show(ui, |ui| {
+                                ui.add_space(8.0);
+                                render_update_settings(app, ui, current_lang);
+                            });
+
+                        if response.header_response.clicked() {
+                            if app.settings_expanded_section == Some(SettingsSection::Update) {
+                                app.settings_expanded_section = None;
+                            } else {
+                                app.settings_expanded_section = Some(SettingsSection::Update);
                             }
                         }
                         ui.separator();

@@ -6,11 +6,7 @@ use e_client_config::translations::{TranslationKey, tr};
 use super::super::super::RedisApp;
 
 /// Render connection settings section
-pub fn render_connection_settings(
-    app: &mut RedisApp,
-    ui: &mut egui::Ui,
-    current_lang: Language,
-) {
+pub fn render_connection_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
     // Open connections in new tab setting
     egui::Grid::new("open_in_new_tab_grid")
         .num_columns(2)

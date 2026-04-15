@@ -3,9 +3,9 @@
 
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::PathBuf;
-use std::sync::mpsc::{self, Sender, Receiver};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, Ordering};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 /// Shared stop flag for the capture thread.
@@ -16,9 +16,7 @@ pub type LogCaptureStop = Arc<AtomicBool>;
 ///
 /// Returns `(log_rx, stop_flag)`. Drop the `stop_flag` or set it to `true`
 /// to stop the thread. Drain `log_rx` from the UI thread each frame.
-pub fn start_log_capture(
-    app_log_dir: PathBuf,
-) -> Option<(Receiver<String>, LogCaptureStop)> {
+pub fn start_log_capture(app_log_dir: PathBuf) -> Option<(Receiver<String>, LogCaptureStop)> {
     let log_file = find_latest_log_file(&app_log_dir)?;
 
     let (log_tx, log_rx): (Sender<String>, Receiver<String>) = mpsc::channel();
@@ -40,11 +38,7 @@ pub fn start_log_capture(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Runs in a plain thread. Reads the log file line by line, starting from the end.
-fn tail_log_file_thread(
-    log_file: PathBuf,
-    stop_flag: LogCaptureStop,
-    log_tx: Sender<String>,
-) {
+fn tail_log_file_thread(log_file: PathBuf, stop_flag: LogCaptureStop, log_tx: Sender<String>) {
     let _ = log_tx.send("[LogCapture] Tailing from session start...".to_string());
 
     let mut file = match std::fs::File::open(&log_file) {
@@ -105,9 +99,7 @@ fn find_latest_log_file(log_dir: &std::path::Path) -> Option<std::path::PathBuf>
         return None;
     }
 
-    log_files.sort_by_key(|e| {
-        std::cmp::Reverse(e.metadata().ok().and_then(|m| m.modified().ok()))
-    });
+    log_files.sort_by_key(|e| std::cmp::Reverse(e.metadata().ok().and_then(|m| m.modified().ok())));
 
     Some(log_files.into_iter().next().unwrap().path())
 }

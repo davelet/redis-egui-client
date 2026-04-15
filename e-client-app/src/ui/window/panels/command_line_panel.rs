@@ -40,7 +40,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
     // Early return if panel is hidden for current tab
     if !app.tabs[active_tab_idx].command_line_panel.show {
         // Still drain log lines so capture thread doesn't fall behind
-        app.tabs[active_tab_idx].command_line_panel.log_viewer.drain_received();
+        app.tabs[active_tab_idx]
+            .command_line_panel
+            .log_viewer
+            .drain_received();
         return;
     }
 
@@ -57,7 +60,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         .log_cancel_time
     {
         if cancel_time.elapsed().as_secs() >= 3 {
-            app.tabs[active_tab_idx].command_line_panel.log_viewer.stop_capture();
+            app.tabs[active_tab_idx]
+                .command_line_panel
+                .log_viewer
+                .stop_capture();
         }
     }
 
@@ -92,7 +98,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 );
                 let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
                 if ui
-                    .selectable_label(current_mode == AiMode::Chat, tr(TranslationKey::CliModeChat, current_lang))
+                    .selectable_label(
+                        current_mode == AiMode::Chat,
+                        tr(TranslationKey::CliModeChat, current_lang),
+                    )
                     .on_hover_text(tr(TranslationKey::CliModeChatHint, current_lang))
                     .clicked()
                     && current_mode != AiMode::Chat
@@ -101,7 +110,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     clear_agent(app, active_tab_idx);
                 }
                 if ui
-                    .selectable_label(current_mode == AiMode::Agent, tr(TranslationKey::CliModeAgent, current_lang))
+                    .selectable_label(
+                        current_mode == AiMode::Agent,
+                        tr(TranslationKey::CliModeAgent, current_lang),
+                    )
                     .on_hover_text(tr(TranslationKey::CliModeAgentHint, current_lang))
                     .clicked()
                     && current_mode != AiMode::Agent
@@ -118,12 +130,20 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         .small()
                         .color(egui::Color32::GRAY),
                 );
-                let current_model_id = app.tabs[active_tab_idx].command_line_panel.current_model_id.clone();
+                let current_model_id = app.tabs[active_tab_idx]
+                    .command_line_panel
+                    .current_model_id
+                    .clone();
                 let active_model_name = current_model_id
                     .as_ref()
                     .and_then(|id| app.config.ai_config.models.iter().find(|m| &m.id == id))
                     .map(|m| m.name.as_str())
-                    .or_else(|| app.config.ai_config.get_active_model().map(|m| m.name.as_str()))
+                    .or_else(|| {
+                        app.config
+                            .ai_config
+                            .get_active_model()
+                            .map(|m| m.name.as_str())
+                    })
                     .unwrap_or("--");
                 egui::ComboBox::from_id_salt("cli_ai_model_selector")
                     .selected_text(active_model_name)
@@ -133,7 +153,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         for model in &app.config.ai_config.models {
                             let is_selected = current_model_id.as_deref() == Some(&model.id)
                                 || (current_model_id.is_none()
-                                    && app.config.ai_config.active_model_id.as_deref() == Some(&model.id));
+                                    && app.config.ai_config.active_model_id.as_deref()
+                                        == Some(&model.id));
                             ui.selectable_label(is_selected, &model.name)
                                 .clicked()
                                 .then(|| {
@@ -151,21 +172,31 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     // Live Logs toggle (rightmost item)
                     let log_viewer = &mut app.tabs[active_tab_idx].command_line_panel.log_viewer;
-                    ui.toggle_value(&mut log_viewer.enabled, tr(TranslationKey::LiveLogsToggle, current_lang))
-                        .on_hover_text(tr(TranslationKey::LiveLogsShowHint, current_lang));
+                    ui.toggle_value(
+                        &mut log_viewer.enabled,
+                        tr(TranslationKey::LiveLogsToggle, current_lang),
+                    )
+                    .on_hover_text(tr(TranslationKey::LiveLogsShowHint, current_lang));
 
                     // Turn counter (Agent mode only, shown to the left of the toggle)
                     let current_mode = app.tabs[active_tab_idx].command_line_panel.current_mode;
                     if current_mode == AiMode::Agent {
-                        let rig_agent = app.tabs[active_tab_idx].command_line_panel.rig_agent.clone();
+                        let rig_agent = app.tabs[active_tab_idx]
+                            .command_line_panel
+                            .rig_agent
+                            .clone();
                         if let Ok(agent_guard) = rig_agent.try_lock() {
                             if let Some(ref agent) = *agent_guard {
                                 let turns = agent.turn_count();
                                 ui.separator();
                                 ui.label(
-                                    egui::RichText::new(tr_fmt(TranslationKey::CliTurns, current_lang, &[&turns.to_string()]))
-                                        .small()
-                                        .color(egui::Color32::GRAY),
+                                    egui::RichText::new(tr_fmt(
+                                        TranslationKey::CliTurns,
+                                        current_lang,
+                                        &[&turns.to_string()],
+                                    ))
+                                    .small()
+                                    .color(egui::Color32::GRAY),
                                 );
                             }
                         }
@@ -182,9 +213,15 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
             // log viewer is open.  History and log fill the remaining space.
 
             // Always drain log lines so the capture thread doesn't fall behind.
-            app.tabs[active_tab_idx].command_line_panel.log_viewer.drain_received();
+            app.tabs[active_tab_idx]
+                .command_line_panel
+                .log_viewer
+                .drain_received();
 
-            let log_viewer_enabled = app.tabs[active_tab_idx].command_line_panel.log_viewer.enabled;
+            let log_viewer_enabled = app.tabs[active_tab_idx]
+                .command_line_panel
+                .log_viewer
+                .enabled;
 
             // ── Pinned input row at the bottom ──────────────────────────────
             // We render the input first in a bottom_up layout so it always
@@ -192,7 +229,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
             let total_height = ui.available_height();
             let input_row_height = 28.0;
             // Reserve space at the bottom for separator + input row.
-            let body_height = total_height - input_row_height - ui.spacing().item_spacing.y * 2.0 - 1.0; // 1 px separator
+            let body_height =
+                total_height - input_row_height - ui.spacing().item_spacing.y * 2.0 - 1.0; // 1 px separator
 
             // ── Scrollable body (history + optional log) ────────────────────
             ui.allocate_ui(egui::vec2(ui.available_width(), body_height), |ui| {
@@ -208,7 +246,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     .show(ui, |ui| {
                         ui.vertical(|ui| {
                             // Clone history to avoid borrow issues when we need mutable access for abort
-                            let history_snapshot: Vec<_> = app.tabs[active_tab_idx].command_line_panel.history.iter()
+                            let history_snapshot: Vec<_> = app.tabs[active_tab_idx]
+                                .command_line_panel
+                                .history
+                                .iter()
                                 .map(|e| (e.command.clone(), e.result.clone(), e.translation_key))
                                 .collect();
                             for (cmd, result, translation_key) in &history_snapshot {
@@ -231,13 +272,16 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 // Result line
                                 ui.vertical(|ui| {
                                     ui.add_space(2.0);
-                                    let is_thinking = entry_translation_key == Some(TranslationKey::AiThinking);
+                                    let is_thinking =
+                                        entry_translation_key == Some(TranslationKey::AiThinking);
 
                                     if is_thinking {
                                         ui.horizontal_wrapped(|ui| {
                                             ui.add_space(16.0);
-                                            let result_color = egui::Color32::from_rgb(150, 150, 150); // gray for thinking
-                                            let thinking_text = tr(TranslationKey::AiThinking, current_lang);
+                                            let result_color =
+                                                egui::Color32::from_rgb(150, 150, 150); // gray for thinking
+                                            let thinking_text =
+                                                tr(TranslationKey::AiThinking, current_lang);
 
                                             // Show thinking indicator with inline Stop button
                                             ui.label(
@@ -247,12 +291,20 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                             );
 
                                             // Inline Stop button next to thinking text
-                                            let stop_text = tr(TranslationKey::AiStop, current_lang);
-                                            if ui.button(egui::RichText::new(" 🟥").color(egui::Color32::RED))
+                                            let stop_text =
+                                                tr(TranslationKey::AiStop, current_lang);
+                                            if ui
+                                                .button(
+                                                    egui::RichText::new(" 🟥")
+                                                        .color(egui::Color32::RED),
+                                                )
                                                 .on_hover_text(stop_text)
-                                                .clicked() {
+                                                .clicked()
+                                            {
                                                 // Set a flag to abort after the loop
-                                                app.tabs[active_tab_idx].command_line_panel.abort_requested = true;
+                                                app.tabs[active_tab_idx]
+                                                    .command_line_panel
+                                                    .abort_requested = true;
                                             }
                                         });
                                     } else {
@@ -264,9 +316,14 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                 ui.add_space(16.0);
 
                                                 // Determine styling based on translation key or content
-                                                let result_color = if result.starts_with("ERR:") || result.starts_with("Error:") {
+                                                let result_color = if result.starts_with("ERR:")
+                                                    || result.starts_with("Error:")
+                                                {
                                                     egui::Color32::from_rgb(255, 100, 100)
-                                                } else if result.contains(&tr(TranslationKey::AiInterrupted, current_lang)) {
+                                                } else if result.contains(&tr(
+                                                    TranslationKey::AiInterrupted,
+                                                    current_lang,
+                                                )) {
                                                     egui::Color32::from_rgb(200, 150, 150)
                                                 } else {
                                                     egui::Color32::BLACK
@@ -276,7 +333,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                     egui::RichText::new(result)
                                                         .color(result_color)
                                                         .monospace(),
-                                                ).on_hover_text(result.clone());
+                                                )
+                                                .on_hover_text(result.clone());
                                             });
                                         }
                                     }
@@ -393,7 +451,10 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         app.tabs[active_tab_idx].command_line_panel.input.clear();
                         app.tabs[active_tab_idx].command_line_panel.scroll_to_bottom = true;
                         app.tabs[active_tab_idx].command_line_panel.history_index = None;
-                        app.tabs[active_tab_idx].command_line_panel.saved_input.clear();
+                        app.tabs[active_tab_idx]
+                            .command_line_panel
+                            .saved_input
+                            .clear();
                     }
                     response.request_focus();
                 }
@@ -450,8 +511,10 @@ fn render_ai_confirm_dialog(
             }
             Some(DialogAction::Cancel) => {
                 app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
-                app.tabs[tab_idx].command_line_panel.log_viewer.log_cancel_time =
-                    Some(std::time::Instant::now());
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .log_viewer
+                    .log_cancel_time = Some(std::time::Instant::now());
             }
             None => {}
         }
@@ -519,24 +582,32 @@ fn render_ai_confirm_dialog(
                                 execute_redis_command(app, tab_idx, redis_cmd.to_string());
                             }
 
-                            execute_btn.on_hover_text(tr(TranslationKey::ExecuteCommandHint, current_lang));
+                            execute_btn.on_hover_text(tr(
+                                TranslationKey::ExecuteCommandHint,
+                                current_lang,
+                            ));
 
                             ui.add_space(8.0);
 
                             let cancel_btn = ui.button(tr(TranslationKey::Cancel, current_lang));
                             if cancel_btn.clicked() {
                                 app.tabs[tab_idx].command_line_panel.pending_ai_command = None;
-                                app.tabs[tab_idx].command_line_panel.log_viewer.log_cancel_time =
-                                    Some(std::time::Instant::now());
+                                app.tabs[tab_idx]
+                                    .command_line_panel
+                                    .log_viewer
+                                    .log_cancel_time = Some(std::time::Instant::now());
                             }
 
                             // Show skip info if not configured to confirm
                             if !confirm_before_execute {
                                 ui.add_space(8.0);
                                 ui.label(
-                                    egui::RichText::new(tr(TranslationKey::AutoExecuteEnabled, current_lang))
-                                        .small()
-                                        .color(egui::Color32::GRAY),
+                                    egui::RichText::new(tr(
+                                        TranslationKey::AutoExecuteEnabled,
+                                        current_lang,
+                                    ))
+                                    .small()
+                                    .color(egui::Color32::GRAY),
                                 );
                             }
                         });
@@ -581,7 +652,10 @@ fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
     app.tabs[tab_idx]
         .command_line_panel
         .history
-        .push(HistoryEntry::new(command.clone(), tr(TranslationKey::Executing, current_lang).to_string()));
+        .push(HistoryEntry::new(
+            command.clone(),
+            tr(TranslationKey::Executing, current_lang).to_string(),
+        ));
     app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(rx);
 
     tokio::task::spawn(async move {
@@ -614,7 +688,10 @@ pub fn process_redis_command_results(app: &mut RedisApp, tab_idx: usize) {
             };
             app.tabs[tab_idx].command_line_panel.history[last_idx].result = final_output;
             // Redis execution complete — stop log capture
-            app.tabs[tab_idx].command_line_panel.log_viewer.stop_capture();
+            app.tabs[tab_idx]
+                .command_line_panel
+                .log_viewer
+                .stop_capture();
         }
         Err(std::sync::mpsc::TryRecvError::Empty) => {
             app.tabs[tab_idx].command_line_panel.redis_command_pending = Some(pending);
@@ -624,7 +701,10 @@ pub fn process_redis_command_results(app: &mut RedisApp, tab_idx: usize) {
             app.tabs[tab_idx].command_line_panel.history[last_idx].result =
                 "ERR: Command execution failed - channel disconnected".to_string();
             // Redis execution failed — stop log capture
-            app.tabs[tab_idx].command_line_panel.log_viewer.stop_capture();
+            app.tabs[tab_idx]
+                .command_line_panel
+                .log_viewer
+                .stop_capture();
         }
     }
 }
@@ -668,11 +748,13 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
 
     // Show thinking indicator only if configured
     if ai_config.show_ai_thinking {
-        app.tabs[tab_idx]
-            .command_line_panel
-            .history
-            .push(HistoryEntry::new(trimmed_input.clone(), tr(TranslationKey::AiThinking, current_lang).to_string())
-                .with_translation_key(TranslationKey::AiThinking));
+        app.tabs[tab_idx].command_line_panel.history.push(
+            HistoryEntry::new(
+                trimmed_input.clone(),
+                tr(TranslationKey::AiThinking, current_lang).to_string(),
+            )
+            .with_translation_key(TranslationKey::AiThinking),
+        );
     }
 
     // Get the history index of the thinking message (if shown)
@@ -835,7 +917,11 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
     // Check if abort was requested
     if app.tabs[tab_idx].command_line_panel.abort_requested {
         app.tabs[tab_idx].command_line_panel.abort_requested = false;
-        if app.tabs[tab_idx].command_line_panel.ai_chat_pending.is_some() {
+        if app.tabs[tab_idx]
+            .command_line_panel
+            .ai_chat_pending
+            .is_some()
+        {
             abort_ai_chat(app, tab_idx);
             return;
         }
@@ -860,8 +946,10 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
         }
         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
             // Channel disconnected — stop capture with delay so user sees final logs
-            app.tabs[tab_idx].command_line_panel.log_viewer.log_cancel_time =
-                Some(std::time::Instant::now());
+            app.tabs[tab_idx]
+                .command_line_panel
+                .log_viewer
+                .log_cancel_time = Some(std::time::Instant::now());
             if let Some(idx) = pending.thinking_idx {
                 app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::new(
                     pending.user_input,
@@ -889,8 +977,10 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     // Execute without confirmation
                     let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
                     if let Some(idx) = pending.thinking_idx {
-                        app.tabs[tab_idx].command_line_panel.history[idx] =
-                            HistoryEntry::new(pending.user_input.clone(), tr(TranslationKey::Executing, current_lang).to_string());
+                        app.tabs[tab_idx].command_line_panel.history[idx] = HistoryEntry::new(
+                            pending.user_input.clone(),
+                            tr(TranslationKey::Executing, current_lang).to_string(),
+                        );
                     }
 
                     execute_redis_command(app, tab_idx, trimmed_response.to_string());
@@ -912,8 +1002,10 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                         .push(HistoryEntry::new(pending.user_input, response));
                 }
                 // No Redis execution needed — stop capture with delay
-                app.tabs[tab_idx].command_line_panel.log_viewer.log_cancel_time =
-                    Some(std::time::Instant::now());
+                app.tabs[tab_idx]
+                    .command_line_panel
+                    .log_viewer
+                    .log_cancel_time = Some(std::time::Instant::now());
             }
         }
         Err(e) => {

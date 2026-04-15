@@ -8,6 +8,17 @@ pub const ONLINE_DOCS_URL: &str = "https://redis-egui-client.pages.dev/";
 /// GitHub repository URL
 pub const GITHUB_REPO_URL: &str = "https://github.com/davelet/redis-egui-client";
 
+/// GitHub Releases API endpoint for this project.
+pub const GITHUB_RELEASES_LATEST_URL: &str =
+    "https://api.github.com/repos/davelet/redis-egui-client/releases/latest";
+
+/// GitHub Releases page base URL (append `/tag/{version}` for a specific release).
+pub const GITHUB_RELEASES_URL: &str = "https://github.com/davelet/redis-egui-client/releases";
+
+/// GitHub API request headers.
+pub const GITHUB_USER_AGENT: &str = "redis-egui-client-update-checker";
+pub const GITHUB_ACCEPT_HEADER: &str = "application/vnd.github.v3+json";
+
 /// Default Redis URL used when no other is specified
 pub const DEFAULT_REDIS_PORT: &str = "6379";
 

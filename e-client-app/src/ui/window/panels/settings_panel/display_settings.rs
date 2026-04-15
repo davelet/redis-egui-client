@@ -6,11 +6,7 @@ use e_client_config::translations::{TranslationKey, tr};
 use super::super::super::RedisApp;
 
 /// Render display settings section
-pub fn render_display_settings(
-    app: &mut RedisApp,
-    ui: &mut egui::Ui,
-    current_lang: Language,
-) {
+pub fn render_display_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
     // Group keys by colon setting
     egui::Grid::new("group_keys_grid")
         .num_columns(2)

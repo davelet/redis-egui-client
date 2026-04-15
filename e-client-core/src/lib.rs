@@ -3,6 +3,7 @@ pub mod ai_tools;
 pub mod app_state;
 pub mod redis_client;
 pub mod rig_agent;
+pub mod updater;
 
 #[allow(unused)]
 pub use ai_client::{AiClient, ApiProvider, detect_api_provider};

@@ -37,7 +37,10 @@ impl GimAiConfig {
     /// Get the default GIM config file path
     pub fn default_path() -> Result<PathBuf, ConfigError> {
         let home = dirs::home_dir().ok_or(ConfigError::HomeDirMissing)?;
-        Ok(home.join(".config").join(GIM_CONFIG_DIR).join(GIM_CONFIG_FILENAME))
+        Ok(home
+            .join(".config")
+            .join(GIM_CONFIG_DIR)
+            .join(GIM_CONFIG_FILENAME))
     }
 
     /// Load GIM config from a specific path
@@ -48,8 +51,8 @@ impl GimAiConfig {
             return Ok(None);
         }
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| ConfigError::ReadFailed(e.to_string()))?;
+        let content =
+            fs::read_to_string(path).map_err(|e| ConfigError::ReadFailed(e.to_string()))?;
 
         Self::parse(&content)
     }
@@ -81,7 +84,10 @@ impl GimAiConfig {
                 .get("apikey")
                 .and_then(|v| v.as_str())
                 .map(String::from),
-            url: ai_table.get("url").and_then(|v| v.as_str()).map(String::from),
+            url: ai_table
+                .get("url")
+                .and_then(|v| v.as_str())
+                .map(String::from),
         }))
     }
 
@@ -91,7 +97,7 @@ impl GimAiConfig {
     /// API key is included (will be stored in keyring by caller).
     pub fn to_ai_model(&self) -> AiModel {
         let url = self.url.as_deref().unwrap_or("");
-        
+
         // Detect provider: first try URL, then model name
         let provider = if !url.is_empty() {
             AiProviderType::from_url(url)
@@ -160,11 +166,17 @@ impl AiProviderType {
             AiProviderType::Gemini
         } else if url_lower.contains("x.ai") || url_lower.contains("grok") {
             AiProviderType::Grok
-        } else if url_lower.contains("qwen") || url_lower.contains("aliyun") || url_lower.contains("dashscope") {
+        } else if url_lower.contains("qwen")
+            || url_lower.contains("aliyun")
+            || url_lower.contains("dashscope")
+        {
             AiProviderType::Qwen
         } else if url_lower.contains("baichuan") || url_lower.contains("baichuan-ai") {
             AiProviderType::Baichuan
-        } else if url_lower.contains("doubao") || url_lower.contains("volces") || url_lower.contains("ark.cn") {
+        } else if url_lower.contains("doubao")
+            || url_lower.contains("volces")
+            || url_lower.contains("ark.cn")
+        {
             AiProviderType::Doubao
         } else if url_lower.contains("moonshot") || url_lower.contains("moonshot.cn") {
             AiProviderType::Moonshot
@@ -208,7 +220,10 @@ impl AiProviderType {
             AiProviderType::Together
         } else if name_lower.contains("replicate") {
             AiProviderType::Replicate
-        } else if name_lower.contains("huggingface") || name_lower.contains("hf.co") || name_lower.contains("-hf") {
+        } else if name_lower.contains("huggingface")
+            || name_lower.contains("hf.co")
+            || name_lower.contains("-hf")
+        {
             AiProviderType::Huggingface
         } else if name_lower.contains("perplexity") {
             AiProviderType::Perplexity
@@ -216,13 +231,23 @@ impl AiProviderType {
             AiProviderType::Gemini
         } else if name_lower.contains("xai") || name_lower.contains("grok") {
             AiProviderType::Grok
-        } else if name_lower.contains("qwen") || name_lower.contains("qwen-") || name_lower.contains("dashscope") {
+        } else if name_lower.contains("qwen")
+            || name_lower.contains("qwen-")
+            || name_lower.contains("dashscope")
+        {
             AiProviderType::Qwen
         } else if name_lower.contains("baichuan") || name_lower.contains("baichuan-") {
             AiProviderType::Baichuan
-        } else if name_lower.contains("doubao") || name_lower.contains("doubao-") || name_lower.contains("volc") || name_lower.contains("火山") {
+        } else if name_lower.contains("doubao")
+            || name_lower.contains("doubao-")
+            || name_lower.contains("volc")
+            || name_lower.contains("火山")
+        {
             AiProviderType::Doubao
-        } else if name_lower.contains("moonshot") || name_lower.contains("moonshot-") || name_lower.contains("moonshotai") {
+        } else if name_lower.contains("moonshot")
+            || name_lower.contains("moonshot-")
+            || name_lower.contains("moonshotai")
+        {
             AiProviderType::Moonshot
         } else if name_lower.contains("zhipu") || name_lower.contains("智谱") {
             AiProviderType::Zhipu

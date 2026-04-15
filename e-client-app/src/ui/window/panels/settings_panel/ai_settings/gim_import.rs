@@ -12,7 +12,9 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
         return;
     }
 
-    let screen_rect = ctx.input(|i| i.viewport().outer_rect).unwrap_or(egui::Rect::ZERO);
+    let screen_rect = ctx
+        .input(|i| i.viewport().outer_rect)
+        .unwrap_or(egui::Rect::ZERO);
     let top_right = egui::pos2(screen_rect.max.x - 150.0, screen_rect.min.y + 40.0);
 
     egui::Window::new(tr(TranslationKey::AiImportingTitle, current_lang))
@@ -23,7 +25,6 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
         .default_pos(top_right)
         .movable(true)
         .show(ctx, |ui| {
-
             // Check if config was not found
             if let Some(ref error) = app.gim_import_dialog.error_message {
                 if error == "NOT_FOUND" {
@@ -33,7 +34,10 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                         tr(TranslationKey::AiImportNotFound, current_lang),
                     );
                     ui.add_space(10.0);
-                    if ui.button(tr(TranslationKey::Cancel, current_lang)).clicked() {
+                    if ui
+                        .button(tr(TranslationKey::Cancel, current_lang))
+                        .clicked()
+                    {
                         app.gim_import_dialog.close();
                     }
                     return;
@@ -41,10 +45,17 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                     // Show generic error
                     ui.colored_label(
                         ui.visuals().error_fg_color,
-                        format!("{}: {}", tr(TranslationKey::AiImportFailed, current_lang), error),
+                        format!(
+                            "{}: {}",
+                            tr(TranslationKey::AiImportFailed, current_lang),
+                            error
+                        ),
                     );
                     ui.add_space(10.0);
-                    if ui.button(tr(TranslationKey::Cancel, current_lang)).clicked() {
+                    if ui
+                        .button(tr(TranslationKey::Cancel, current_lang))
+                        .clicked()
+                    {
                         app.gim_import_dialog.close();
                     }
                     return;
@@ -62,38 +73,48 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                         ui.label(
                             egui::RichText::new(&converted_model.name)
                                 .strong()
-                                .size(16.0)
+                                .size(16.0),
                         );
                         ui.add_space(8.0);
 
                         // Provider
                         ui.horizontal(|ui| {
                             ui.label(tr(TranslationKey::AiImportProvider, current_lang));
-                            ui.label(egui::RichText::new(converted_model.provider.to_string())
-                                .color(ui.visuals().hyperlink_color));
+                            ui.label(
+                                egui::RichText::new(converted_model.provider.to_string())
+                                    .color(ui.visuals().hyperlink_color),
+                            );
                         });
 
                         // URL
                         ui.horizontal(|ui| {
                             ui.label(tr(TranslationKey::AiImportUrl, current_lang));
-                            ui.label(egui::RichText::new(converted_model.get_base_url())
-                                .small()
-                                .weak());
+                            ui.label(
+                                egui::RichText::new(converted_model.get_base_url())
+                                    .small()
+                                    .weak(),
+                            );
                         });
 
                         // API Key indicator (if present)
                         if gim_config.api_key.is_some() {
                             ui.horizontal(|ui| {
                                 ui.label(tr(TranslationKey::AiImportApiKey, current_lang));
-                                ui.label(egui::RichText::new("••••••••")
-                                    .weak());
-                                ui.label(egui::RichText::new(tr(TranslationKey::AiImportKeychainNote, current_lang))
+                                ui.label(egui::RichText::new("••••••••").weak());
+                                ui.label(
+                                    egui::RichText::new(tr(
+                                        TranslationKey::AiImportKeychainNote,
+                                        current_lang,
+                                    ))
                                     .small()
                                     .weak()
-                                    .italics());
+                                    .italics(),
+                                );
                             });
                         }
-                    }).response.on_hover_text("GIM model configuration");
+                    })
+                    .response
+                    .on_hover_text("GIM model configuration");
 
                     ui.add_space(10.0);
                 }
@@ -109,10 +130,21 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
 
                 if model_exists {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new(tr_fmt(TranslationKey::AiImportAlreadyExists, current_lang, &[emoji::action::WARNING]))
-                            .color(ui.visuals().warn_fg_color));
-                        ui.label(egui::RichText::new(format!("({})", tr(TranslationKey::AiImportOverride, current_lang)))
-                            .color(ui.visuals().warn_fg_color));
+                        ui.label(
+                            egui::RichText::new(tr_fmt(
+                                TranslationKey::AiImportAlreadyExists,
+                                current_lang,
+                                &[emoji::action::WARNING],
+                            ))
+                            .color(ui.visuals().warn_fg_color),
+                        );
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "({})",
+                                tr(TranslationKey::AiImportOverride, current_lang)
+                            ))
+                            .color(ui.visuals().warn_fg_color),
+                        );
                     });
                     ui.add_space(5.0);
                 }
@@ -122,12 +154,19 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                 let mut cancel_clicked = false;
                 ui.horizontal(|ui| {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        cancel_clicked = ui.button(tr(TranslationKey::Cancel, current_lang)).clicked();
+                        cancel_clicked = ui
+                            .button(tr(TranslationKey::Cancel, current_lang))
+                            .clicked();
                         ui.add_space(5.0);
-                        import_clicked = ui.button(
-                            egui::RichText::new(tr(TranslationKey::AiImportConfirm, current_lang))
-                                .strong()
-                        ).clicked();
+                        import_clicked = ui
+                            .button(
+                                egui::RichText::new(tr(
+                                    TranslationKey::AiImportConfirm,
+                                    current_lang,
+                                ))
+                                .strong(),
+                            )
+                            .clicked();
                     });
                 });
 
@@ -140,7 +179,11 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
 
                     // Remove existing model with same name if exists
                     if model_exists {
-                        if let Some(id) = app.config.ai_config.models.iter()
+                        if let Some(id) = app
+                            .config
+                            .ai_config
+                            .models
+                            .iter()
                             .find(|m| m.name == model_name)
                             .map(|m| m.id.clone())
                         {

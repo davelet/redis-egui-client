@@ -43,11 +43,16 @@ pub fn handle_shortcuts(app: &mut RedisApp, ctx: &egui::Context) {
         let is_macos = cfg!(target_os = "macos");
 
         // Check for Confirm New Connection shortcut
-        let confirm_binding = app.config().settings.shortcuts.get_binding(&ShortcutAction::ConfirmNewConnection);
+        let confirm_binding = app
+            .config()
+            .settings
+            .shortcuts
+            .get_binding(&ShortcutAction::ConfirmNewConnection);
         if let Some(parsed) = ParsedShortcut::parse(&confirm_binding) {
             for key in &pressed_keys {
                 let key_str = format!("{:?}", key);
-                let mod_pressed = parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                let mod_pressed =
+                    parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
                 let alt_match = parsed.alt == modifiers.alt;
                 let shift_match = parsed.shift == modifiers.shift;
                 let key_match = parsed.key_matches(&key_str);
@@ -60,7 +65,9 @@ pub fn handle_shortcuts(app: &mut RedisApp, ctx: &egui::Context) {
 
                 if meets_mod_requirement && alt_match && shift_match && key_match {
                     let current_lang = if !app.config.settings.language.is_empty() {
-                        e_client_config::language::Language::file_name_to_lang(&app.config.settings.language)
+                        e_client_config::language::Language::file_name_to_lang(
+                            &app.config.settings.language,
+                        )
                     } else {
                         e_client_config::language::Language::English
                     };
@@ -72,11 +79,16 @@ pub fn handle_shortcuts(app: &mut RedisApp, ctx: &egui::Context) {
         }
 
         // Check for Cancel New Connection shortcut (default: Esc)
-        let cancel_binding = app.config().settings.shortcuts.get_binding(&ShortcutAction::CancelNewConnection);
+        let cancel_binding = app
+            .config()
+            .settings
+            .shortcuts
+            .get_binding(&ShortcutAction::CancelNewConnection);
         if let Some(parsed) = ParsedShortcut::parse(&cancel_binding) {
             for key in &pressed_keys {
                 let key_str = format!("{:?}", key);
-                let mod_pressed = parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
+                let mod_pressed =
+                    parsed.is_mod_pressed(is_macos, modifiers.ctrl, modifiers.command);
                 let alt_match = parsed.alt == modifiers.alt;
                 let shift_match = parsed.shift == modifiers.shift;
                 let key_match = parsed.key_matches(&key_str);
