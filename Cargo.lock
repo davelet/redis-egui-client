@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Rudist"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "chrono",
  "e-client-basics",
@@ -13,6 +13,7 @@ dependencies = [
  "e-client-logging",
  "eframe",
  "egui",
+ "egui-thematic",
  "egui_extras",
  "image",
  "open",
@@ -1274,6 +1275,20 @@ dependencies = [
  "profiling",
  "smallvec",
  "unicode-segmentation",
+]
+
+[[package]]
+name = "egui-thematic"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5435ccc55f3dc80f0bdef4aeaf38dbe10fdbaac9807c47ffcf52acd27297c4aa"
+dependencies = [
+ "egui",
+ "getrandom 0.2.16",
+ "rand 0.8.5",
+ "rfd",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

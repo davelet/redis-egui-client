@@ -2,7 +2,7 @@
 set -e
 
 echo "Building release..."
-cargo build --release -p e-client-app
+cargo build --release -p Rudist
 
 echo "Packaging app and dmg..."
 cargo packager --release --formats app,dmg --manifest-path e-client-app/Cargo.toml --out-dir dist --binaries-dir target/release

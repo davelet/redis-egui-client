@@ -234,11 +234,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }) = &app.pending_update_result
                 {
                     let version_str = latest_version.clone();
-                    let update_btn = ui.add(
-                        egui::Button::new(
-                            egui::RichText::new(&version_str).color(egui::Color32::from_rgb(0x4C, 0xAF, 0x50)),
-                        ),
-                    );
+                    let update_btn = ui.add(egui::Button::new(
+                        egui::RichText::new(&version_str)
+                            .color(egui::Color32::from_rgb(0x4C, 0xAF, 0x50)),
+                    ));
                     if update_btn.clicked() {
                         handle_update_action(app, UpdateAction::OpenReleasePage(version_str));
                     }

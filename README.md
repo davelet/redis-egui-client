@@ -102,7 +102,7 @@ All shortcuts are customizable in Settings (`Cmd/Ctrl + ,`).
 - **Memory Efficient** - Large values loaded on demand
 
 ### Cross-Platform
-- **macOS** - Native .app bundle, Apple Silicon (M1/M2/M3) support
+- **macOS** - Native .app, Apple Silicon (M1/M2/M3) support
 - **Windows** - MSI installer with PATH integration
 
 ---

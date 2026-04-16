@@ -1,244 +1,248 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily};
 use std::sync::Arc;
+fn append_builtin_emoji_fallbacks(fonts: &mut FontDefinitions) {
+    let has_noto_emoji = fonts.font_data.contains_key("NotoEmoji-Regular");
+    let has_emoji_icon_font = fonts.font_data.contains_key("emoji-icon-font");
 
-/// Error type for font loading operations
-#[derive(Debug)]
-pub enum FontError {
-    /// Font file not found
-    NotFound(String),
-    /// Failed to read font file
-    ReadError(std::io::Error),
-    /// Platform not supported
-    UnsupportedPlatform,
-}
-
-impl std::fmt::Display for FontError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FontError::NotFound(path) => write!(f, "Font file not found: {}", path),
-            FontError::ReadError(err) => write!(f, "Failed to read font file: {}", err),
-            FontError::UnsupportedPlatform => write!(f, "Platform not supported"),
+    for family in [FontFamily::Proportional, FontFamily::Monospace] {
+        let entry = fonts.families.entry(family).or_insert_with(Vec::new);
+        if has_noto_emoji && !entry.iter().any(|name| name == "NotoEmoji-Regular") {
+            entry.push("NotoEmoji-Regular".to_owned());
+        }
+        if has_emoji_icon_font && !entry.iter().any(|name| name == "emoji-icon-font") {
+            entry.push("emoji-icon-font".to_owned());
         }
     }
 }
 
-impl std::error::Error for FontError {}
-
-/// Setup Chinese fonts for egui context
+/// Setup fonts for egui context.
 ///
-/// This function will attempt to load system Chinese fonts and configure them
-/// for use with the provided egui context.
+/// Strategy: Load system fonts from disk, register them as FontData, then
+/// build a fallback chain per family. Every name in `families` must have
+/// corresponding FontData in `font_data` — egui panics otherwise.
 ///
-/// # Arguments
-/// * `ctx` - The egui context to configure
-///
-/// # Returns
-/// * `Ok(())` if fonts were successfully loaded
-/// * `Err(FontError)` if font loading failed
-pub fn setup_chinese_fonts(ctx: &Context) -> Result<(), FontError> {
+/// Returns `true` if global monospace is enabled but SFNSMono font was not found.
+pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
     let mut fonts = FontDefinitions::default();
-
-    // Try to load Chinese fonts based on platform
-    let chinese_font_data = load_chinese_font()?;
-
-    // Insert the Chinese font
-    fonts
-        .font_data
-        .insert("chinese".to_owned(), Arc::new(chinese_font_data));
-
-    // Configure font families
-    fonts
-        .families
-        .entry(FontFamily::Proportional)
-        .or_default()
-        .insert(0, "chinese".to_owned());
-    fonts
-        .families
-        .entry(FontFamily::Monospace)
-        .or_default()
-        .insert(0, "chinese".to_owned());
-
-    // Apply the font configuration
-    ctx.set_fonts(fonts);
-
-    Ok(())
-}
-
-/// Load Chinese font data from system
-fn load_chinese_font() -> Result<FontData, FontError> {
-    #[cfg(target_os = "windows")]
-    {
-        load_windows_chinese_font()
-    }
+    let mut missing_monospace_warning = false;
 
     #[cfg(target_os = "macos")]
     {
-        load_macos_chinese_font()
-    }
+        use tracing::{info, warn};
 
-    #[cfg(target_os = "linux")]
-    {
-        load_linux_chinese_font()
-    }
+        // ── macOS ───────────────────────────────────────────────────────────
+        //
+        // Strategy: STHeiti Light (54 MB, Apple's CJK-optimized font) is used as
+        // the PRIMARY font for all glyphs. It covers:
+        //   - All CJK characters (simplified/traditional Chinese, Japanese, Korean)
+        //   - All Latin glyphs with Apple's rendering engine
+        //
+        // SFNS (8 MB) is the SECONDARY font — it supplements Latin glyphs for
+        // users who prefer the pure San Francisco look over STHeiti's style.
+        //
+        // WHY this order: putting STHeiti Light first eliminates mid-run font
+        // switching for CJK. With SFNS first, even common Chinese chars would
+        // trigger a switch to STHeiti Light mid-text, causing baseline mismatch.
+        //
+        // Monospace: only TRUE monospace fonts — sfns_mono, then menlo, then monaco.
+        // STHeiti Light is a proportional font; it must NEVER be in Monospace
+        // families or code/indentation alignment will break.
 
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    {
-        Err(FontError::UnsupportedPlatform)
-    }
-}
+        let stheiti_light_data = std::fs::read("/System/Library/Fonts/STHeiti Light.ttc").ok();
+        let sfns_data = std::fs::read("/System/Library/Fonts/SFNS.ttf").ok();
+        let sfmono_data = std::fs::read("/System/Library/Fonts/SFNSMono.ttf").ok();
 
-#[cfg(target_os = "windows")]
-fn load_windows_chinese_font() -> Result<FontData, FontError> {
-    // List of common Chinese font paths on Windows
-    let font_paths = [
-        r"C:\Windows\Fonts\msyh.ttc",    // Microsoft YaHei
-        r"C:\Windows\Fonts\msyhbd.ttc",  // Microsoft YaHei Bold
-        r"C:\Windows\Fonts\simsun.ttc",  // SimSun
-        r"C:\Windows\Fonts\simhei.ttf",  // SimHei
-        r"C:\Windows\Fonts\simkai.ttf",  // KaiTi
-        r"C:\Windows\Fonts\simfang.ttf", // FangSong
-        r"C:\Windows\Fonts\msjh.ttc",    // Microsoft JhengHei (Traditional Chinese)
-        r"C:\Windows\Fonts\msjhbd.ttc",  // Microsoft JhengHei Bold
-        r"C:\Windows\Fonts\kaiu.ttf",    // DFKai-SB (Traditional Chinese)
-        r"C:\Windows\Fonts\mingliu.ttc", // MingLiU (Traditional Chinese)
-    ];
+        fonts.families.remove(&FontFamily::Proportional);
+        fonts.families.remove(&FontFamily::Monospace);
 
-    for font_path in &font_paths {
-        if let Ok(font_data) = std::fs::read(font_path) {
-            return Ok(FontData::from_owned(font_data));
+        if global_monospace {
+            if let Some(data) = sfmono_data.clone() {
+                let size_kb = data.len() / 1024;
+                fonts
+                    .font_data
+                    .insert("sfns_mono".to_owned(), Arc::new(FontData::from_owned(data)));
+                let entry = fonts
+                    .families
+                    .entry(FontFamily::Proportional)
+                    .or_insert_with(Vec::new);
+                entry.push("sfns_mono".to_owned());
+                info!("Font loaded: SFNSMono.ttf (Monospace primary, {size_kb} KB)");
+            } else {
+                missing_monospace_warning = true;
+                warn!("Font missing: SFNSMono.ttf — global monospace enabled but font not found");
+            }
         }
-    }
-
-    Err(FontError::NotFound(
-        "No Chinese font found on Windows".to_string(),
-    ))
-}
-
-#[cfg(target_os = "macos")]
-fn load_macos_chinese_font() -> Result<FontData, FontError> {
-    let font_paths = [
-        "/System/Library/Fonts/PingFang.ttc",      // PingFang SC
-        "/System/Library/Fonts/STHeiti Light.ttc", // STHeiti
-        "/System/Library/Fonts/STHeiti Medium.ttc",
-        "/System/Library/Fonts/Hiragino Sans GB.ttc", // Hiragino Sans GB
-        "/Library/Fonts/Arial Unicode.ttf",           // Arial Unicode MS
-        "/System/Library/Fonts/Apple LiGothic Medium.ttf", // Apple LiGothic (Traditional)
-    ];
-
-    for font_path in &font_paths {
-        if let Ok(font_data) = std::fs::read(font_path) {
-            return Ok(FontData::from_owned(font_data));
+        // Proportional: STHeiti Light (CJK + Latin primary) → SFNS (Latin supplement),
+        // then egui built-in emoji fallbacks are appended later.
+        if let Some(data) = stheiti_light_data.clone() {
+            let size_kb = data.len() / 1024;
+            fonts.font_data.insert(
+                "stheiti_light".to_owned(),
+                Arc::new(FontData::from_owned(data)),
+            );
+            let entry = fonts
+                .families
+                .entry(FontFamily::Proportional)
+                .or_insert_with(Vec::new);
+            entry.push("stheiti_light".to_owned());
+            info!("Font loaded: STHeiti Light.ttc (Proportional primary, {size_kb} KB)");
+        } else {
+            warn!("Font missing: STHeiti Light.ttc — CJK text may not render correctly");
         }
-    }
-
-    Err(FontError::NotFound(
-        "No Chinese font found on macOS".to_string(),
-    ))
-}
-
-#[cfg(target_os = "linux")]
-fn load_linux_chinese_font() -> Result<FontData, FontError> {
-    // Common Chinese font paths on Linux distributions
-    let font_paths = [
-        "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-        "/usr/share/fonts/truetype/arphic/uming.ttc",
-        "/usr/share/fonts/truetype/arphic/ukai.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        // Ubuntu/Debian paths
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        // CentOS/RHEL paths
-        "/usr/share/fonts/google-droid/DroidSansFallbackFull.ttf",
-        // Arch Linux paths
-        "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-    ];
-
-    for font_path in &font_paths {
-        if let Ok(font_data) = std::fs::read(font_path) {
-            return Ok(FontData::from_owned(font_data));
+        if let Some(data) = sfns_data.clone() {
+            let size_kb = data.len() / 1024;
+            fonts
+                .font_data
+                .insert("sfns".to_owned(), Arc::new(FontData::from_owned(data)));
+            let entry = fonts
+                .families
+                .entry(FontFamily::Proportional)
+                .or_insert_with(Vec::new);
+            entry.push("sfns".to_owned());
+            info!("Font loaded: SFNS.ttf (Proportional supplement, {size_kb} KB)");
+        } else {
+            warn!("Font missing: SFNS.ttf — Latin supplement unavailable");
         }
+
+        // Monospace: true monospace fonts first, then egui built-in emoji fallbacks
+        // are appended later for icon glyphs in buttons.
+        if let Some(data) = sfmono_data {
+            let size_kb = data.len() / 1024;
+            fonts
+                .font_data
+                .insert("sfns_mono".to_owned(), Arc::new(FontData::from_owned(data)));
+            let entry = fonts
+                .families
+                .entry(FontFamily::Monospace)
+                .or_insert_with(Vec::new);
+            entry.push("sfns_mono".to_owned());
+            info!("Font loaded: SFNSMono.ttf (Monospace primary, {size_kb} KB)");
+        } else {
+            warn!("Font missing: SFNSMono.ttf — falling back to menlo for code");
+            if let Ok(data) = std::fs::read("/System/Library/Fonts/Menlo.ttc") {
+                let size_kb = data.len() / 1024;
+                fonts
+                    .font_data
+                    .insert("menlo".to_owned(), Arc::new(FontData::from_owned(data)));
+                let entry = fonts
+                    .families
+                    .entry(FontFamily::Monospace)
+                    .or_insert_with(Vec::new);
+                entry.push("menlo".to_owned());
+                info!("Font loaded: Menlo.ttc (Monospace fallback, {size_kb} KB)");
+            } else if let Ok(data) = std::fs::read("/System/Library/Fonts/Monaco.ttf") {
+                let size_kb = data.len() / 1024;
+                fonts
+                    .font_data
+                    .insert("monaco".to_owned(), Arc::new(FontData::from_owned(data)));
+                let entry = fonts
+                    .families
+                    .entry(FontFamily::Monospace)
+                    .or_insert_with(Vec::new);
+                entry.push("monaco".to_owned());
+                info!("Font loaded: Monaco.ttf (Monospace fallback, {size_kb} KB)");
+            }
+        }
+        if let Some(data) = stheiti_light_data {
+            let size_kb = data.len() / 1024;
+            fonts.font_data.insert(
+                "stheiti_light".to_owned(),
+                Arc::new(FontData::from_owned(data)),
+            );
+            let entry = fonts
+                .families
+                .entry(FontFamily::Monospace)
+                .or_insert_with(Vec::new);
+            entry.push("stheiti_light".to_owned());
+        }
+        if let Some(data) = sfns_data.clone() {
+            let size_kb = data.len() / 1024;
+            fonts
+                .font_data
+                .insert("sfns".to_owned(), Arc::new(FontData::from_owned(data)));
+            let entry = fonts
+                .families
+                .entry(FontFamily::Monospace)
+                .or_insert_with(Vec::new);
+            entry.push("sfns".to_owned());
+            info!("Font loaded: SFNS.ttf (Proportional supplement, {size_kb} KB)");
+        }
+
+        let prop_fonts = fonts.families.get(&FontFamily::Proportional);
+        let mono_fonts = fonts.families.get(&FontFamily::Monospace);
+        info!(
+            "Font families: Proportional={:?}, Monospace={:?}",
+            prop_fonts, mono_fonts
+        );
     }
 
-    Err(FontError::NotFound(
-        "No Chinese font found on Linux".to_string(),
-    ))
-}
-
-/// Setup Chinese fonts with custom font data
-///
-/// This function allows you to provide your own font data instead of
-/// loading from system fonts.
-///
-/// # Arguments
-/// * `ctx` - The egui context to configure
-/// * `font_data` - The font data to use
-/// * `font_name` - Name for the font (optional, defaults to "chinese")
-pub fn setup_custom_chinese_font(ctx: &Context, font_data: Vec<u8>, font_name: Option<&str>) {
-    let mut fonts = FontDefinitions::default();
-    let name = font_name.unwrap_or("chinese");
-
-    fonts
-        .font_data
-        .insert(name.to_owned(), Arc::new(FontData::from_owned(font_data)));
-
-    fonts
-        .families
-        .entry(FontFamily::Proportional)
-        .or_default()
-        .insert(0, name.to_owned());
-    fonts
-        .families
-        .entry(FontFamily::Monospace)
-        .or_default()
-        .insert(0, name.to_owned());
-
-    ctx.set_fonts(fonts);
-}
-
-/// Get available Chinese font paths on the current system
-///
-/// This function returns a list of paths where Chinese fonts might be located
-/// on the current platform. Useful for debugging font loading issues.
-pub fn get_chinese_font_paths() -> Vec<String> {
     #[cfg(target_os = "windows")]
     {
-        vec![
-            r"C:\Windows\Fonts\msyh.ttc".to_string(),
-            r"C:\Windows\Fonts\msyhbd.ttc".to_string(),
-            r"C:\Windows\Fonts\simsun.ttc".to_string(),
-            r"C:\Windows\Fonts\simhei.ttf".to_string(),
-            r"C:\Windows\Fonts\simkai.ttf".to_string(),
-            r"C:\Windows\Fonts\simfang.ttf".to_string(),
-            r"C:\Windows\Fonts\msjh.ttc".to_string(),
-            r"C:\Windows\Fonts\msjhbd.ttc".to_string(),
-        ]
+        use tracing::{info, warn};
+
+        // ── Windows ─────────────────────────────────────────────────────────
+        // Proportional: Microsoft YaHei for CJK. Monospace: Cascadia Code, with
+        // msyh as fallback (CJK glyphs in code blocks when Cascadia is missing).
+
+        let msyh_data = std::fs::read(r"C:\Windows\Fonts\msyh.ttc").ok();
+        let cascadia_data = std::fs::read(r"C:\Windows\Fonts\CascadiaCode-Regular.ttf").ok();
+
+        fonts.families.remove(&FontFamily::Proportional);
+        fonts.families.remove(&FontFamily::Monospace);
+
+        if let Some(data) = msyh_data {
+            let size_kb = data.len() / 1024;
+            fonts
+                .font_data
+                .insert("msyh".to_owned(), Arc::new(FontData::from_owned(data)));
+            let entry = fonts
+                .families
+                .entry(FontFamily::Proportional)
+                .or_insert_with(Vec::new);
+            entry.push("msyh".to_owned());
+            info!("Font loaded: msyh.ttc (Proportional, {size_kb} KB)");
+        } else {
+            warn!("Font missing: msyh.ttc — Chinese text may not render correctly");
+        }
+
+        if let Some(data) = cascadia_data {
+            let size_kb = data.len() / 1024;
+            fonts
+                .font_data
+                .insert("cascadia".to_owned(), Arc::new(FontData::from_owned(data)));
+            let entry = fonts
+                .families
+                .entry(FontFamily::Monospace)
+                .or_insert_with(Vec::new);
+            entry.push("cascadia".to_owned());
+            info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {size_kb} KB)");
+            // Append msyh as CJK fallback for monospace (Cascadia lacks CJK glyphs)
+            if msyh_data.is_some() {
+                let entry = fonts
+                    .families
+                    .entry(FontFamily::Monospace)
+                    .or_insert_with(Vec::new);
+                entry.push("msyh".to_owned());
+            }
+        } else {
+            warn!("Font missing: CascadiaCode-Regular.ttf — falling back to msyh for code");
+            // Re-read msyh for the monospace fallback (it was consumed above).
+            if let Ok(data) = std::fs::read(r"C:\Windows\Fonts\msyh.ttc") {
+                fonts
+                    .font_data
+                    .insert("msyh".to_owned(), Arc::new(FontData::from_owned(data)));
+                let entry = fonts
+                    .families
+                    .entry(FontFamily::Monospace)
+                    .or_insert_with(Vec::new);
+                entry.push("msyh".to_owned());
+            }
+        }
     }
 
-    #[cfg(target_os = "macos")]
-    {
-        vec![
-            "/System/Library/Fonts/PingFang.ttc".to_string(),
-            "/System/Library/Fonts/STHeiti Light.ttc".to_string(),
-            "/System/Library/Fonts/STHeiti Medium.ttc".to_string(),
-            "/System/Library/Fonts/Hiragino Sans GB.ttc".to_string(),
-            "/Library/Fonts/Arial Unicode.ttf".to_string(),
-        ]
-    }
+    append_builtin_emoji_fallbacks(&mut fonts);
 
-    #[cfg(target_os = "linux")]
-    {
-        vec![
-            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf".to_string(),
-            "/usr/share/fonts/truetype/arphic/uming.ttc".to_string(),
-            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc".to_string(),
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc".to_string(),
-        ]
-    }
+    ctx.set_fonts(fonts);
 
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    {
-        vec![]
-    }
+    missing_monospace_warning
 }

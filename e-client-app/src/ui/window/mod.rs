@@ -1,3 +1,4 @@
+use crate::ui::font;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
 use e_client_basics::constants::{GITHUB_RELEASES_URL, UI_REPAINT_INTERVAL_MS};
 use e_client_config::config::Config;
@@ -60,6 +61,8 @@ pub struct RedisApp {
     help_selected_section: Option<usize>,
     // Toast notifications
     pub toasts: components::toast::ToastManager,
+    /// Whether to show missing monospace font warning toast
+    show_missing_monospace_toast: bool,
     /// Pending update check result (set by async task, consumed by UI)
     pub pending_update_result: Option<e_client_core::updater::UpdateCheckResult>,
     /// Whether an update check is currently in progress
@@ -121,6 +124,16 @@ impl eframe::App for RedisApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        // Show missing monospace font warning toast on first frame
+        if self.show_missing_monospace_toast {
+            self.show_missing_monospace_toast = false;
+            let lang = self.global_language;
+            self.toasts.warning(
+                tr(TranslationKey::FontWarningTitle, lang).to_string(),
+                tr(TranslationKey::FontWarningMissingMonospace, lang).to_string(),
+            );
+        }
+
         // Trigger startup update check (only once, on first frame)
         if !self.startup_update_check_triggered {
             self.startup_update_check_triggered = true;
@@ -291,7 +304,14 @@ impl RedisApp {
         self.show_help = show;
     }
 
-    pub fn with_config(config: Config, tokio_handle: tokio::runtime::Handle) -> Self {
+    pub fn with_config(
+        config: Config,
+        tokio_handle: tokio::runtime::Handle,
+        egui_ctx: egui::Context,
+    ) -> Self {
+        let show_missing_monospace_toast =
+            font::setup_fonts(&egui_ctx, config.settings.global_monospace);
+
         let global_language = if !config.settings.language.is_empty() {
             Language::file_name_to_lang(&config.settings.language)
         } else {
@@ -333,6 +353,7 @@ impl RedisApp {
             show_help: false,
             help_selected_section: None,
             toasts: components::toast::ToastManager::new(),
+            show_missing_monospace_toast,
             pending_update_result: None,
             update_check_in_progress: false,
             startup_update_check_triggered: false,

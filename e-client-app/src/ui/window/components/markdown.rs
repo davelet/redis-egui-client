@@ -65,7 +65,7 @@ fn flush_spans(spans: &mut Vec<Span>, ui: &mut egui::Ui) {
             if s.code {
                 rt = rt.code();
             }
-            ui.label(rt);
+            ui.add(egui::Label::new(rt).wrap());
         }
         spans.clear();
         return;
@@ -110,7 +110,7 @@ fn flush_spans(spans: &mut Vec<Span>, ui: &mut egui::Ui) {
         job.append(&s.text, 0.0, fmt);
     }
 
-    ui.label(job);
+    ui.add(egui::Label::new(job).wrap());
     spans.clear();
 }
 
@@ -316,7 +316,10 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                         Some(HeadingLevel::H3) => 15.0,
                         _ => 14.0,
                     };
-                    ui.label(egui::RichText::new(&text_content).size(size).strong());
+                    ui.add(
+                        egui::Label::new(egui::RichText::new(&text_content).size(size).strong())
+                            .wrap(),
+                    );
                 }
                 heading_level = None;
                 ui.add_space(2.0);
@@ -359,7 +362,7 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                 push_span!();
                 // Render the list item: bullet + collected spans on the same line
                 let indent = (list_indent.saturating_sub(1) as f32) * 16.0 + 8.0;
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.add_space(indent);
                     ui.label("•");
                     flush_spans(&mut spans, ui);

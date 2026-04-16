@@ -1,15 +1,15 @@
 //! General settings UI components
 
 use crate::ui::theme_to_visuals;
-use crate::ui::window::{UpdateAction, handle_update_action};
+use crate::ui::window::{handle_update_action, UpdateAction};
 use e_client_config::config::Theme;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_config::translations::{tr, TranslationKey};
 
 use super::super::super::RedisApp;
 
-/// Render general settings section (theme and language only)
+/// Render general settings section (theme, font, and language)
 pub fn render_general_settings(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
@@ -36,7 +36,6 @@ pub fn render_general_settings(
                             {
                                 app.config.settings.theme = *theme;
                                 app.config.mark_settings_dirty();
-                                // Apply theme immediately
                                 let mut style = (*ctx.style()).clone();
                                 style.visuals = theme_to_visuals(*theme);
                                 ctx.set_style(style);
@@ -49,7 +48,26 @@ pub fn render_general_settings(
 
     ui.separator();
 
-    // Language setting - separate grid
+    // Global monospace font setting
+    egui::Grid::new("global_monospace_grid")
+        .num_columns(2)
+        .spacing([40.0, 12.0])
+        .min_col_width(120.0)
+        .show(ui, |ui| {
+            ui.label(tr(TranslationKey::GlobalMonospace, current_lang));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let mut global_monospace = app.config.settings.global_monospace;
+                if ui.checkbox(&mut global_monospace, "").changed() {
+                    app.config.settings.global_monospace = global_monospace;
+                    app.config.mark_settings_dirty();
+                }
+            });
+            ui.end_row();
+        });
+
+    ui.separator();
+
+    // Language setting
     egui::Grid::new("language_grid")
         .num_columns(2)
         .spacing([40.0, 12.0])
@@ -151,12 +169,7 @@ pub fn render_update_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_lan
     {
         let latest_version = latest_version.clone();
         // Don't show if this version is already skipped
-        let already_skipped = app
-            .config
-            .settings
-            .update_config
-            .skip_version
-            .as_deref()
+        let already_skipped = app.config.settings.update_config.skip_version.as_deref()
             == Some(latest_version.as_str());
         if !already_skipped {
             ui.horizontal(|ui| {
@@ -165,10 +178,7 @@ pub fn render_update_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_lan
                     .button(tr(TranslationKey::UpdateSkipVersion, current_lang))
                     .clicked()
                 {
-                    handle_update_action(
-                        app,
-                        UpdateAction::SkipVersion(latest_version.clone()),
-                    );
+                    handle_update_action(app, UpdateAction::SkipVersion(latest_version.clone()));
                 }
             });
         }
@@ -196,5 +206,13 @@ fn theme_display_name(theme: Theme, lang: Language) -> String {
         Theme::System => tr(TranslationKey::ThemeSystem, lang).to_string(),
         Theme::Light => tr(TranslationKey::ThemeLight, lang).to_string(),
         Theme::Dark => tr(TranslationKey::ThemeDark, lang).to_string(),
+        Theme::Dracula => tr(TranslationKey::ThemeDracula, lang).to_string(),
+        Theme::Nord => tr(TranslationKey::ThemeNord, lang).to_string(),
+        Theme::Gruvbox => tr(TranslationKey::ThemeGruvbox, lang).to_string(),
+        Theme::Monokai => tr(TranslationKey::ThemeMonokai, lang).to_string(),
+        Theme::OneDark => tr(TranslationKey::ThemeOneDark, lang).to_string(),
+        Theme::TokyoNight => tr(TranslationKey::ThemeTokyoNight, lang).to_string(),
+        Theme::SolarizedDark => tr(TranslationKey::ThemeSolarizedDark, lang).to_string(),
+        Theme::SolarizedLight => tr(TranslationKey::ThemeSolarizedLight, lang).to_string(),
     }
 }

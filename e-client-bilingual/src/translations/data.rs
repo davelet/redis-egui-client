@@ -418,6 +418,24 @@ pub fn load_all_translations(
             "元素不超过此值时自动展开",
         ),
     );
+    strings.insert(
+        TranslationKey::GlobalMonospace,
+        tr_en_zh(
+            "Use Monospace Font Globally (Restart to take effect)",
+            "全局使用等宽字体（重启后生效）",
+        ),
+    );
+    strings.insert(
+        TranslationKey::FontWarningTitle,
+        tr_en_zh("Font Warning", "字体警告"),
+    );
+    strings.insert(
+        TranslationKey::FontWarningMissingMonospace,
+        tr_en_zh(
+            "Global monospace enabled but SFNSMono font not found",
+            "已启用全局等宽但未找到 SFNSMono 字体",
+        ),
+    );
 
     // Keyboard shortcuts
     strings.insert(
@@ -924,6 +942,26 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::ThemeSystem, tr_en_zh("System", "跟随系统"));
     strings.insert(TranslationKey::ThemeLight, tr_en_zh("Light", "浅色"));
     strings.insert(TranslationKey::ThemeDark, tr_en_zh("Dark", "深色"));
+    strings.insert(TranslationKey::ThemeDracula, tr_en_zh("Dracula", "Dracula"));
+    strings.insert(TranslationKey::ThemeNord, tr_en_zh("Nord", "Nord"));
+    strings.insert(TranslationKey::ThemeGruvbox, tr_en_zh("Gruvbox", "Gruvbox"));
+    strings.insert(TranslationKey::ThemeMonokai, tr_en_zh("Monokai", "Monokai"));
+    strings.insert(
+        TranslationKey::ThemeOneDark,
+        tr_en_zh("One Dark", "One Dark"),
+    );
+    strings.insert(
+        TranslationKey::ThemeTokyoNight,
+        tr_en_zh("Tokyo Night", "Tokyo Night"),
+    );
+    strings.insert(
+        TranslationKey::ThemeSolarizedDark,
+        tr_en_zh("Solarized Dark", "Solarized Dark"),
+    );
+    strings.insert(
+        TranslationKey::ThemeSolarizedLight,
+        tr_en_zh("Solarized Light", "Solarized Light"),
+    );
     strings.insert(
         TranslationKey::DisplaySettings,
         tr_en_zh("Display Settings", "显示设置"),

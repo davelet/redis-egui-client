@@ -152,9 +152,27 @@ All shortcuts can be customized in Settings. Press the button below to open the 
 
 ### Theme
 
-- **Light** - White background
-- **Dark** - Dark background, suitable for nighttime
-- **System** - Follow system theme
+Choose from 11 built-in themes:
+
+| Theme | Description |
+|-------|-------------|
+| **System** | Follow system dark/light preference |
+| **Light** | White background |
+| **Dark** | Dark background |
+| **Dracula** | Purple accent theme |
+| **Nord** | Nordic cold gray-blue |
+| **Gruvbox** | Retro warm colors |
+| **Monokai** | Programming syntax highlighting style |
+| **One Dark** | Atom editor style |
+| **Tokyo Night** | Tokyo night cityscape |
+| **Solarized Dark** | Solarized dark variant |
+| **Solarized Light** | Solarized light variant |
+
+Theme changes apply immediately.
+
+### Global Font
+
+- **Global Monospace** - Apply monospace font to all text (otherwise only for data viewing)
 
 ### Language
 

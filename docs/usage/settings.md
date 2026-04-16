@@ -2,8 +2,27 @@
 
 ## Theme Settings
 
-- Support themes as System/Light/Dark
-- Apply theme immediately on selection
+11 built-in themes available:
+
+| Theme | Description |
+|-------|-------------|
+| **System** | Follow OS dark/light preference (macOS/Windows) |
+| **Light** | White background |
+| **Dark** | Dark background |
+| **Dracula** | Purple accent |
+| **Nord** | Nordic cold gray-blue |
+| **Gruvbox** | Retro warm colors |
+| **Monokai** | Programming highlight style |
+| **One Dark** | Atom editor style |
+| **Tokyo Night** | Tokyo night cityscape |
+| **Solarized Dark/Light** | Solarized color scheme |
+
+Theme changes apply immediately.
+
+### Global Monospace Font
+
+- **Global Monospace** setting in General tab
+- Recommended for data viewing
 
 ## Language Settings
 
