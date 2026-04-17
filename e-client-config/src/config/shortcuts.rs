@@ -68,6 +68,9 @@ pub enum ShortcutAction {
     #[serde(rename = "focus_filter")]
     #[strum(serialize = "FocusFilter")]
     FocusFilter,
+    #[serde(rename = "new_key")]
+    #[strum(serialize = "NewKey")]
+    NewKey,
     #[serde(rename = "close_settings")]
     #[strum(serialize = "CloseSettings")]
     CloseSettings,
@@ -167,8 +170,9 @@ impl ShortcutAction {
             ShortcutAction::CloseTab => format!("{}+W", mod_key),
             ShortcutAction::RefreshKey => format!("{}+R", mod_key),
             ShortcutAction::FocusFilter => format!("{}+F", mod_key),
+            ShortcutAction::NewKey => format!("{}+Shift+N", mod_key),
             ShortcutAction::CloseSettings => "Esc".to_string(),
-            ShortcutAction::OpenSettings => format!("{}+Comma", mod_key),
+            ShortcutAction::OpenSettings => format!("{}+,", mod_key),
             ShortcutAction::ToggleCommandLine => format!("{}+E", mod_key),
             ShortcutAction::CloseCommandLine => "Esc".to_string(),
             ShortcutAction::SwitchToTab1 => format!("{}+1", mod_key),
@@ -211,6 +215,7 @@ impl ShortcutAction {
             ShortcutAction::CloseTab => TranslationKey::ShortcutCloseTab,
             ShortcutAction::RefreshKey => TranslationKey::ShortcutRefreshKey,
             ShortcutAction::FocusFilter => TranslationKey::ShortcutFocusFilter,
+            ShortcutAction::NewKey => TranslationKey::ShortcutNewKey,
             ShortcutAction::CloseSettings => TranslationKey::ShortcutCloseSettings,
             ShortcutAction::OpenSettings => TranslationKey::ShortcutOpenSettings,
             ShortcutAction::ToggleCommandLine => TranslationKey::ShortcutToggleCommandLine,
@@ -331,11 +336,17 @@ impl ShortcutConfig {
             .unwrap_or_else(|| action.default_key());
 
         // Convert to current platform's display format
-        if cfg!(target_os = "macos") {
+        let binding = if cfg!(target_os = "macos") {
             binding.replace("Ctrl+", "Cmd+")
         } else {
             binding.replace("Cmd+", "Ctrl+")
-        }
+        };
+
+        // Convert key names to symbols for display
+        binding
+            .replace("+Comma", "+,")
+            .replace("+Period", "+.")
+            .replace("+Semicolon", "+;")
     }
 
     /// Check if the binding for this action is customized (different from default)
@@ -449,6 +460,13 @@ impl ParsedShortcut {
             } else {
                 self.key.clone()
             };
+        // Handle symbol keys: egui reports "Comma" but config stores ","
+        let normalized_config = match normalized_config.as_str() {
+            "," => "COMMA".to_string(),
+            "." => "PERIOD".to_string(),
+            ";" => "SEMICOLON".to_string(),
+            other => other.to_uppercase(),
+        };
         normalized_config == normalized_input || self.key == normalized_input
     }
 

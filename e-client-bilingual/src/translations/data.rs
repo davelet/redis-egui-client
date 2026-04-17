@@ -459,6 +459,10 @@ pub fn load_all_translations(
         tr_en_zh("Focus Filter", "过滤键"),
     );
     strings.insert(
+        TranslationKey::ShortcutNewKey,
+        tr_en_zh("New Key", "新建键"),
+    );
+    strings.insert(
         TranslationKey::ShortcutPressKeys,
         tr_en_zh("Press keys...", "按快捷键..."),
     );

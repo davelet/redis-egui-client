@@ -6,6 +6,8 @@ pub mod value_renderer;
 pub mod view_mode;
 pub mod welcome_page;
 
+use e_client_config::config::shortcuts::ShortcutAction;
+
 // Re-export main functions
 pub use error_panel::render_error_panel;
 pub use render_edit_mode::render_edit_mode;
@@ -30,10 +32,22 @@ pub fn render_central_panel(app: &mut RedisApp, ctx: &egui::Context) {
     let ttl = app.poll_i64(tab.state.key_ttl.clone());
     let edit_state = tab.state.edit_state.blocking_read().clone();
     let show_open_connections = app.show_open_connections_prompt;
+    let new_conn_shortcut = app
+        .config
+        .settings
+        .shortcuts
+        .get_binding(&ShortcutAction::NewConnection);
 
     egui::CentralPanel::default().show(ctx, |ui| {
         if !connected {
-            render_welcome_page(app, ui, ctx, current_lang, show_open_connections);
+            render_welcome_page(
+                app,
+                ui,
+                ctx,
+                current_lang,
+                show_open_connections,
+                &new_conn_shortcut,
+            );
             return;
         }
 

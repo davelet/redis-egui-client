@@ -14,6 +14,7 @@ pub use display_settings::render_display_settings;
 pub use general_settings::{render_general_settings, render_update_settings};
 pub use shortcut_settings::{SUPPORTED_KEYS, parse_key_from_str, render_shortcut_settings};
 
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr};
@@ -239,13 +240,38 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                 .inner_margin(egui::Margin::same(8))
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        if ui.button(tr(TranslationKey::Close, current_lang)).clicked() {
+                        let close_binding = app
+                            .config
+                            .settings
+                            .shortcuts
+                            .get_binding(&ShortcutAction::CloseSettings);
+                        let help_binding = app
+                            .config
+                            .settings
+                            .shortcuts
+                            .get_binding(&ShortcutAction::ToggleHelp);
+
+                        if ui
+                            .button(format!(
+                                "{}{}",
+                                tr(TranslationKey::Close, current_lang),
+                                get_shortcut_display(&close_binding)
+                            ))
+                            .clicked()
+                        {
                             app.show_settings = false;
                             app.shortcut_state.editing_shortcut = None;
                             app.shortcut_state.shortcut_input_buffer.clear();
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button(tr(TranslationKey::Help, current_lang)).clicked() {
+                            if ui
+                                .button(format!(
+                                    "{}{}",
+                                    tr(TranslationKey::Help, current_lang),
+                                    get_shortcut_display(&help_binding)
+                                ))
+                                .clicked()
+                            {
                                 app.show_help = true;
                             }
                         });

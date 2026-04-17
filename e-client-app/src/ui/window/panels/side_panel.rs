@@ -1,6 +1,8 @@
 use crate::ui::window::RedisApp;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_basics::constants::{LOAD_MORE_BATCH_SIZE, MAX_LOADED_KEYS};
 use e_client_basics::emoji;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr};
@@ -112,7 +114,19 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             ui.horizontal(|ui| {
                 ui.heading(heading_text);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(emoji::action::ADD).clicked() {
+                    let new_key_binding = app
+                        .config
+                        .settings
+                        .shortcuts
+                        .get_binding(&ShortcutAction::NewKey);
+                    if ui
+                        .button(format!(
+                            "{}{}",
+                            emoji::action::ADD,
+                            get_shortcut_display(&new_key_binding)
+                        ))
+                        .clicked()
+                    {
                         app.new_key_dialog.reset();
                         app.new_key_dialog.show = true;
                     }
@@ -121,11 +135,21 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
             ui.horizontal(|ui| {
                 ui.label(tr(TranslationKey::Filter, current_lang));
+                let refresh_keys_binding = app
+                    .config
+                    .settings
+                    .shortcuts
+                    .get_binding(&ShortcutAction::RefreshKeys);
+                let refresh_btn = ui.button(format!(
+                    "{}{}",
+                    emoji::action::REFRESH,
+                    get_shortcut_display(&refresh_keys_binding)
+                ));
+                // Use remaining width for filter input
                 let tab = &mut app.tabs[active_tab_idx];
-                let available_width = ui.available_width() - 30.0; // Reserve space for refresh button
                 let changed = ui
                     .add_sized(
-                        egui::vec2(available_width, 20.0),
+                        egui::vec2(ui.available_width(), 20.0),
                         egui::TextEdit::singleline(&mut tab.key_filter_input)
                             .id(egui::Id::new("key_filter_input")),
                     )
@@ -149,12 +173,9 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
 
-                // Refresh keys button with F5 hint
-                let refresh_btn = ui.button(emoji::action::REFRESH);
                 if refresh_btn.clicked() {
                     app.tabs[active_tab_idx].state.spawn_load_keys();
                 }
-                refresh_btn.on_hover_text("F5");
             });
 
             // Show loading progress

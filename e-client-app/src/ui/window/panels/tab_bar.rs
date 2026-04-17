@@ -1,11 +1,18 @@
 use crate::ui::window::RedisApp;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_basics::constants::ACTIVE_TAB_BACKGROUND_COLOR;
 use e_client_basics::emoji;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr};
 use std::collections::HashSet;
 
 pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
+    let new_tab_binding = app
+        .config
+        .settings
+        .shortcuts
+        .get_binding(&ShortcutAction::NewTab);
     let mut tab_to_close: Option<usize> = None;
     let mut close_other_tabs: Option<usize> = None;
     let mut switch_to_tab: Option<usize> = None;
@@ -128,7 +135,10 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                         }
 
                         // New tab button
-                        if ui.button("+").clicked() {
+                        if ui
+                            .button(format!("+{}", get_shortcut_display(&new_tab_binding)))
+                            .clicked()
+                        {
                             app.create_new_tab();
                         }
                     });

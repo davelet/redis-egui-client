@@ -184,58 +184,68 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
         // Proportional: Microsoft YaHei for CJK. Monospace: Cascadia Code, with
         // msyh as fallback (CJK glyphs in code blocks when Cascadia is missing).
 
-        let msyh_data = std::fs::read(r"C:\Windows\Fonts\msyh.ttc").ok();
-        let cascadia_data = std::fs::read(r"C:\Windows\Fonts\CascadiaCode-Regular.ttf").ok();
+        const MSYH: &str = r"C:\Windows\Fonts\msyh.ttc";
+        const CASCADIA: &str = r"C:\Windows\Fonts\CascadiaCode-Regular.ttf";
+
+        let msyh = std::fs::read(MSYH).ok();
+        let cascadia = std::fs::read(CASCADIA).ok();
 
         fonts.families.remove(&FontFamily::Proportional);
         fonts.families.remove(&FontFamily::Monospace);
 
-        if let Some(data) = msyh_data {
-            let size_kb = data.len() / 1024;
+        if let Some(data) = &msyh {
+            let kb = data.len() / 1024;
             fonts
                 .font_data
-                .insert("msyh".to_owned(), Arc::new(FontData::from_owned(data)));
-            let entry = fonts
+                .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
+            fonts
                 .families
                 .entry(FontFamily::Proportional)
-                .or_insert_with(Vec::new);
-            entry.push("msyh".to_owned());
-            info!("Font loaded: msyh.ttc (Proportional, {size_kb} KB)");
+                .or_default()
+                .push("msyh".into());
+            info!("Font loaded: msyh.ttc (Proportional, {kb} KB)");
         } else {
             warn!("Font missing: msyh.ttc — Chinese text may not render correctly");
         }
 
-        if let Some(data) = cascadia_data {
-            let size_kb = data.len() / 1024;
-            fonts
-                .font_data
-                .insert("cascadia".to_owned(), Arc::new(FontData::from_owned(data)));
-            let entry = fonts
-                .families
-                .entry(FontFamily::Monospace)
-                .or_insert_with(Vec::new);
-            entry.push("cascadia".to_owned());
-            info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {size_kb} KB)");
-            // Append msyh as CJK fallback for monospace (Cascadia lacks CJK glyphs)
-            if msyh_data.is_some() {
-                let entry = fonts
-                    .families
-                    .entry(FontFamily::Monospace)
-                    .or_insert_with(Vec::new);
-                entry.push("msyh".to_owned());
+        match (&cascadia, &msyh) {
+            (Some(cc), Some(_)) => {
+                let kb = cc.len() / 1024;
+                fonts.font_data.insert(
+                    "cascadia".into(),
+                    Arc::new(FontData::from_owned(cc.clone())),
+                );
+                let mono = fonts.families.entry(FontFamily::Monospace).or_default();
+                mono.extend(["cascadia".into(), "msyh".into()]);
+                info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {kb} KB)");
             }
-        } else {
-            warn!("Font missing: CascadiaCode-Regular.ttf — falling back to msyh for code");
-            // Re-read msyh for the monospace fallback (it was consumed above).
-            if let Ok(data) = std::fs::read(r"C:\Windows\Fonts\msyh.ttc") {
+            (Some(cc), None) => {
+                let kb = cc.len() / 1024;
+                fonts.font_data.insert(
+                    "cascadia".into(),
+                    Arc::new(FontData::from_owned(cc.clone())),
+                );
                 fonts
-                    .font_data
-                    .insert("msyh".to_owned(), Arc::new(FontData::from_owned(data)));
-                let entry = fonts
                     .families
                     .entry(FontFamily::Monospace)
-                    .or_insert_with(Vec::new);
-                entry.push("msyh".to_owned());
+                    .or_default()
+                    .push("cascadia".into());
+                info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {kb} KB)");
+            }
+            (None, _) => {
+                warn!("Font missing: CascadiaCode-Regular.ttf — falling back to msyh for code");
+                if let Some(data) = &msyh {
+                    let kb = data.len() / 1024;
+                    fonts
+                        .font_data
+                        .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
+                    fonts
+                        .families
+                        .entry(FontFamily::Monospace)
+                        .or_default()
+                        .push("msyh".into());
+                    info!("Font loaded: msyh.ttc (Monospace fallback, {kb} KB)");
+                }
             }
         }
     }

@@ -22,7 +22,7 @@ mod log_capture;
 mod new_connection_window;
 pub mod panels;
 pub mod shortcut_manager;
-mod types;
+pub mod types;
 
 /// Main application state
 pub struct RedisApp {

@@ -3,10 +3,12 @@
 use crate::help::get_help_sections;
 use crate::ui::window::RedisApp;
 use crate::ui::window::components::markdown::render_markdown;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_basics::constants::WILD_KEY_FILTER;
 use e_client_basics::constants::{GITHUB_REPO_URL, ONLINE_DOCS_URL};
 use e_client_basics::emoji;
 use e_client_basics::emoji::web::WEB;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use std::sync::OnceLock;
@@ -210,10 +212,16 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     }
                 }
                 // Add new connection button
+                let new_conn_binding = app
+                    .config
+                    .settings
+                    .shortcuts
+                    .get_binding(&ShortcutAction::NewConnection);
                 if ui
                     .button(format!(
-                        "+ {}",
-                        tr(TranslationKey::NewConnection, current_lang)
+                        "+ {}{}",
+                        tr(TranslationKey::NewConnection, current_lang),
+                        get_shortcut_display(&new_conn_binding)
                     ))
                     .clicked()
                 {
@@ -224,7 +232,19 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             // Right side - Update indicator + Settings button
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 // Settings button (rightmost)
-                if ui.button(emoji::action::SETTINGS).clicked() {
+                let settings_binding = app
+                    .config
+                    .settings
+                    .shortcuts
+                    .get_binding(&ShortcutAction::OpenSettings);
+                if ui
+                    .button(format!(
+                        "{}{}",
+                        emoji::action::SETTINGS,
+                        get_shortcut_display(&settings_binding)
+                    ))
+                    .clicked()
+                {
                     app.show_settings = true;
                 }
 
@@ -274,8 +294,23 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
 
     // New connection dialog
     if app.new_connection.show {
-        app.new_connection
-            .render_new_connection_dialog(&mut app.config, ctx, current_lang);
+        let shortcuts_binding = app
+            .config
+            .settings
+            .shortcuts
+            .get_binding(&ShortcutAction::ConfirmNewConnection);
+        let cancel_binding = app
+            .config
+            .settings
+            .shortcuts
+            .get_binding(&ShortcutAction::CancelNewConnection);
+        app.new_connection.render_new_connection_dialog(
+            &mut app.config,
+            ctx,
+            current_lang,
+            &shortcuts_binding,
+            &cancel_binding,
+        );
     }
 }
 

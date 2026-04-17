@@ -1,4 +1,5 @@
 use crate::ui::window::RedisApp;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_basics::emoji;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
@@ -12,6 +13,7 @@ pub fn render_welcome_page(
     _ctx: &egui::Context,
     current_lang: Language,
     show_open_connections: bool,
+    new_conn_shortcut: &str,
 ) {
     ui.vertical_centered(|ui| {
         ui.add_space(50.0);
@@ -32,7 +34,7 @@ pub fn render_welcome_page(
         ui.add_space(30.0);
 
         // Get started button
-        render_new_connection_button(app, ui, current_lang);
+        render_new_connection_button(app, ui, current_lang, new_conn_shortcut);
 
         ui.add_space(10.0);
 
@@ -49,12 +51,21 @@ pub fn render_welcome_page(
 }
 
 /// Render new connection button
-fn render_new_connection_button(app: &mut RedisApp, ui: &mut egui::Ui, current_lang: Language) {
+fn render_new_connection_button(
+    app: &mut RedisApp,
+    ui: &mut egui::Ui,
+    current_lang: Language,
+    new_conn_shortcut: &str,
+) {
     if ui
         .button(
-            egui::RichText::new(tr(TranslationKey::NewConnection, current_lang))
-                .size(18.0)
-                .color(egui::Color32::WHITE),
+            egui::RichText::new(format!(
+                "{}{}",
+                tr(TranslationKey::NewConnection, current_lang),
+                get_shortcut_display(new_conn_shortcut)
+            ))
+            .size(18.0)
+            .color(egui::Color32::WHITE),
         )
         .clicked()
     {

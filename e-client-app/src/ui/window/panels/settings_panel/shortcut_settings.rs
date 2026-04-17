@@ -85,6 +85,7 @@ pub fn parse_action_from_key(key: &str) -> Option<ShortcutAction> {
         "CloseTab" => Some(ShortcutAction::CloseTab),
         "RefreshKey" => Some(ShortcutAction::RefreshKey),
         "FocusFilter" => Some(ShortcutAction::FocusFilter),
+        "NewKey" => Some(ShortcutAction::NewKey),
         "CloseSettings" => Some(ShortcutAction::CloseSettings),
         "OpenSettings" => Some(ShortcutAction::OpenSettings),
         "ToggleCommandLine" => Some(ShortcutAction::ToggleCommandLine),

@@ -135,6 +135,7 @@ pub enum TranslationKey {
     ShortcutCloseTab,
     ShortcutRefreshKey,
     ShortcutFocusFilter,
+    ShortcutNewKey,
     ShortcutPressKeys,
     ShortcutConflictsWith,
     ShortcutResetDefaults,

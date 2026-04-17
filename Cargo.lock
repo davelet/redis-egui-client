@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Rudist"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "chrono",
  "e-client-basics",

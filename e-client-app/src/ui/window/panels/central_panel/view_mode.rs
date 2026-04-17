@@ -1,6 +1,8 @@
 use crate::core::ValueData;
 use crate::ui::window::RedisApp;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_basics::emoji;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
@@ -188,7 +190,19 @@ fn render_ttl_controls(
     current_lang: Language,
 ) {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        if ui.button(emoji::action::REFRESH).clicked() {
+        let refresh_key_binding = app
+            .config
+            .settings
+            .shortcuts
+            .get_binding(&ShortcutAction::RefreshKey);
+        if ui
+            .button(format!(
+                "{}{}",
+                emoji::action::REFRESH,
+                get_shortcut_display(&refresh_key_binding)
+            ))
+            .clicked()
+        {
             app.tabs[active_tab_idx].state.spawn_load_value(
                 key.to_string(),
                 e_client_core::app_state::operations::keys::HashLoadMode::ReloadFields,

@@ -1,7 +1,7 @@
 //! Display settings UI components
 
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 use super::super::super::RedisApp;
 

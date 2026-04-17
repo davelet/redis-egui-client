@@ -1,3 +1,4 @@
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use e_client_config::config::Config;
 use e_client_config::connection::RedisConnectionConfig;
 use e_client_config::constants::DEFAULT_REDIS_PORT;
@@ -77,6 +78,8 @@ impl NewConnectionWindowWindow {
         app: &mut Config,
         ctx: &Context,
         current_lang: Language,
+        save_shortcut: &str,
+        cancel_shortcut: &str,
     ) {
         let title = if self.edit_mode {
             tr(TranslationKey::EditConnectionDialog, current_lang)
@@ -209,13 +212,21 @@ impl NewConnectionWindowWindow {
                     }
 
                     ui.horizontal(|ui| {
-                        let save_btn = tr(TranslationKey::Save, current_lang);
+                        let save_btn = format!(
+                            "{}{}",
+                            tr(TranslationKey::Save, current_lang),
+                            get_shortcut_display(save_shortcut)
+                        );
                         if ui.button(save_btn).clicked() {
                             self.try_save(app, current_lang);
                         }
 
                         if ui
-                            .button(tr(TranslationKey::Cancel, current_lang))
+                            .button(format!(
+                                "{}{}",
+                                tr(TranslationKey::Cancel, current_lang),
+                                get_shortcut_display(cancel_shortcut)
+                            ))
                             .clicked()
                         {
                             self.clear();

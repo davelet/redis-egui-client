@@ -1,11 +1,11 @@
 //! General settings UI components
 
 use crate::ui::theme_to_visuals;
-use crate::ui::window::{handle_update_action, UpdateAction};
+use crate::ui::window::{UpdateAction, handle_update_action};
 use e_client_config::config::Theme;
 use e_client_config::constants::{CHINESE, ENGLISH};
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 
 use super::super::super::RedisApp;
 

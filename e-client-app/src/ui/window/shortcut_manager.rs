@@ -1,6 +1,13 @@
 use crate::ui::window::RedisApp;
 use e_client_config::config::shortcuts::ShortcutAction;
 
+pub fn get_shortcut_display(binding: &str) -> String {
+    if binding.to_uppercase().contains("ESC") {
+        return String::new();
+    }
+    format!(" ({})", binding)
+}
+
 pub struct ShortcutManagerState {
     pub editing_shortcut: Option<String>,
     pub shortcut_input_buffer: String,
@@ -238,6 +245,15 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
             ctx.memory_mut(|mem| {
                 mem.request_focus(egui::Id::new("key_filter_input"));
             });
+        }
+        ShortcutAction::NewKey => {
+            if let Some(tab) = app.get_active_tab() {
+                let connected = app.poll_bool(tab.state.connected.clone());
+                if connected {
+                    app.new_key_dialog.reset();
+                    app.new_key_dialog.show = true;
+                }
+            }
         }
         ShortcutAction::CloseSettings => {}
         ShortcutAction::OpenSettings => {
