@@ -224,10 +224,7 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::CopyKey, tr_en_zh("Copy Key", "复制键"));
     strings.insert(TranslationKey::CopyValue, tr_en_zh("Copy Value", "复制值"));
     strings.insert(TranslationKey::CopySuccess, tr_en_zh("Copied!", "已复制！"));
-    strings.insert(
-        TranslationKey::CopyFailed,
-        tr_en_zh("Copy failed", "复制失败"),
-    );
+    strings.insert(TranslationKey::CopyFailed, tr_en_zh("Copy failed", "复制失败"));
 
     // Edit operations
     strings.insert(TranslationKey::Edit, tr_en_zh("Edit", "编辑"));

@@ -87,16 +87,16 @@ pub fn render_log_viewer(ui: &mut egui::Ui, app: &mut RedisApp, tab_idx: usize) 
         });
 }
 
-/// Choose display color based on log level keywords.
+/// Choose display color based on actual log level (matches level position in tracing format).
 fn color_by_level(line: &str) -> egui::Color32 {
-    let l = line.to_lowercase();
-    if l.contains("error") || l.contains("err:") || l.contains("failed") || l.contains("panic") {
+    // Match exact level markers with spaces around to avoid matching keywords in log content
+    if line.contains(" ERROR ") {
         egui::Color32::from_rgb(230, 50, 50)
-    } else if l.contains("warn") {
+    } else if line.contains(" WARN ") {
         egui::Color32::from_rgb(220, 160, 30)
-    } else if l.contains("debug") || l.contains("trace") {
+    } else if line.contains(" DEBUG ") || line.contains(" TRACE ") {
         egui::Color32::from_rgb(140, 140, 140)
-    } else if l.contains("info") {
+    } else if line.contains(" INFO ") {
         egui::Color32::from_rgb(60, 130, 220)
     } else {
         egui::Color32::from_rgb(80, 80, 80)

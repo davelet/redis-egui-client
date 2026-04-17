@@ -285,6 +285,14 @@ impl OpenAiRigAgent {
             "Rig agent AI request: "
         );
 
+        // 对话历史长度限制：默认保留最近20条消息（10个对话回合），避免Token溢出
+        const MAX_HISTORY_MESSAGES: usize = 20;
+        if self.history.len() >= MAX_HISTORY_MESSAGES {
+            let truncate_count = self.history.len() - MAX_HISTORY_MESSAGES + 1;
+            self.history.drain(0..truncate_count);
+            info!("Truncated chat history to {} messages (removed oldest {} messages)", MAX_HISTORY_MESSAGES, truncate_count);
+        }
+
         let result = self
             .agent
             .prompt(message)

@@ -297,14 +297,18 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                             );
                         }
                         Err(e) => {
-                            ui.label(
-                                egui::RichText::new(format!(
-                                    "{}: {}",
-                                    tr(TranslationKey::AiTestFailed, current_lang),
-                                    e
-                                ))
-                                .color(egui::Color32::from_rgb(255, 100, 100)),
+                            // Show detailed error via toast, only once
+                            app.toasts.error(
+                                "ai_model_test_failed".to_string(),
+                                format!("{}: {}", tr(TranslationKey::AiTestFailed, current_lang), e),
                             );
+                            // Show simple fail message in dialog
+                            ui.label(
+                                egui::RichText::new(tr(TranslationKey::AiTestFailed, current_lang))
+                                    .color(egui::Color32::from_rgb(255, 100, 100)),
+                            );
+                            // Clear result to avoid showing toast repeatedly
+                            app.ai_model_editor.test_result = None;
                         }
                     }
                 }

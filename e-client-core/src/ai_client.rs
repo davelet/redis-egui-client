@@ -1,6 +1,6 @@
 use e_client_config::config::ai_config::AiModel;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::{warn, info};
 
 /// AI chat message
 #[derive(Debug, Serialize)]
@@ -80,7 +80,7 @@ pub fn detect_api_provider(url: &str) -> ApiProvider {
         ApiProvider::Anthropic
     } else if url_lower.contains("openrouter.ai") {
         ApiProvider::OpenRouter
-    } else if url_lower.contains("ollama") || url_lower.contains("localhost:11434") {
+    } else if url_lower.contains("ollama") || url_lower.contains("localhost:11434") || url_lower.contains("127.0.0.1:11434") {
         ApiProvider::Ollama
     } else {
         ApiProvider::OpenAI
@@ -168,7 +168,10 @@ impl AiClient {
         context: Option<&str>,
     ) -> Result<String, String> {
         info!(model = %model.model_id, "Sending chat request to AI");
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
         // Build the request URL
         let base_url = model.get_base_url();
@@ -271,13 +274,13 @@ impl AiClient {
         let response = request_builder.send().await.map_err(|e| {
             let err_str = e.to_string();
             if err_str.contains("timeout") {
-                error!(error = %err_str, "Request timeout");
+                warn!(error = %err_str, "Request timeout");
                 "Request timeout. Please check your network connection.".to_string()
             } else if err_str.contains("connection") {
-                error!(error = %err_str, "Network error");
+                warn!(error = %err_str, "Network error");
                 "Network error. Please check your internet connection.".to_string()
             } else {
-                error!(error = %err_str, "Request failed");
+                warn!(error = %err_str, "Request failed");
                 format!("Request failed: {}", err_str)
             }
         })?;
@@ -290,7 +293,7 @@ impl AiClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            error!(status = %status, error = %text, "API request failed");
+            warn!(status = %status, error = %text, "API request failed");
             return Err(parse_api_error(status, &text));
         }
 
@@ -350,7 +353,10 @@ impl AiClient {
 
     /// Test if the API connection is working
     pub async fn test_connection(model: &AiModel) -> Result<(), String> {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
         let base_url = model.get_base_url();
         let provider = detect_api_provider(&base_url);
         let endpoint = provider.chat_endpoint();
@@ -505,6 +511,8 @@ mod tests {
             "http://localhost:11434",
             "http://localhost:11434/api",
             "http://ollama.local:11434",
+            "http://127.0.0.1:11434",
+            "http://127.0.0.1:11434/api",
         ];
         for url in urls {
             assert_eq!(
@@ -514,13 +522,6 @@ mod tests {
                 url
             );
         }
-
-        // 127.0.0.1 doesn't contain "localhost" so it's not detected as Ollama
-        assert_eq!(
-            detect_api_provider("http://127.0.0.1:11434"),
-            ApiProvider::OpenAI,
-            "127.0.0.1 should be detected as OpenAI (no localhost keyword)"
-        );
     }
 
     #[test]
