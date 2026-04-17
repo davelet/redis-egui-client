@@ -278,4 +278,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     });
                 });
         });
+
+    // Save configuration if any settings were changed in the UI
+    let _ = app.config.save_if_dirty();
 }

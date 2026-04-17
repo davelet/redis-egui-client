@@ -406,6 +406,27 @@ impl Config {
         self.dirty_settings = true;
     }
 
+    /// Save all dirty configurations only if they are actually dirty (without unconditional logging)
+    pub fn save_if_dirty(&mut self) -> Result<(), ConfigError> {
+        if self.dirty_window {
+            self.save_window_config()?;
+            self.dirty_window = false;
+        }
+        if self.dirty_settings {
+            self.save_user_settings()?;
+            self.dirty_settings = false;
+        }
+        if self.dirty_preferences {
+            self.save_connected_preferences()?;
+            self.dirty_preferences = false;
+        }
+        if self.dirty_ai_config {
+            self.save_ai_config()?;
+            self.dirty_ai_config = false;
+        }
+        Ok(())
+    }
+
     /// Save all dirty configurations (call on app exit)
     pub fn save_all_if_dirty(&mut self) -> Result<(), ConfigError> {
         info!(

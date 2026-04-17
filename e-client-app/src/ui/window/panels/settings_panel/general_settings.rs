@@ -60,6 +60,8 @@ pub fn render_general_settings(
                 if ui.checkbox(&mut global_monospace, "").changed() {
                     app.config.settings.global_monospace = global_monospace;
                     app.config.mark_settings_dirty();
+                    // Apply font change immediately
+                    crate::ui::font::setup_fonts(ctx, global_monospace);
                 }
             });
             ui.end_row();

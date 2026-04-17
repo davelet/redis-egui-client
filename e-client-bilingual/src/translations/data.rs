@@ -432,8 +432,8 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::FontWarningMissingMonospace,
         tr_en_zh(
-            "Global monospace enabled but SFNSMono font not found",
-            "已启用全局等宽但未找到 SFNSMono 字体",
+            "Global monospace enabled but no suitable monospace font was found on your system",
+            "已启用全局等宽但系统中未找到合适的等宽字体",
         ),
     );
 

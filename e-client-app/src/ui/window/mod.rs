@@ -711,6 +711,7 @@ impl RedisApp {
 
     pub fn update_language(&mut self, lang: Language) {
         self.global_language = lang;
+        self.config.update_language(&lang.to_file_string());
         // Update all tabs' language and names
         for tab in self.tabs.iter_mut() {
             *tab.state.language.blocking_write() = lang;

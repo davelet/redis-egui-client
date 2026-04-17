@@ -1,5 +1,13 @@
-use egui::{Context, FontData, FontDefinitions, FontFamily};
+use egui::{Context, FontData, FontDefinitions, FontFamily, FontTweak};
 use std::sync::Arc;
+
+fn font_data_with_tweak(data: Vec<u8>, y_offset_factor: f32, scale: f32) -> Arc<FontData> {
+    Arc::new(FontData::from_owned(data).tweak(FontTweak {
+        y_offset_factor,
+        scale,
+        ..Default::default()
+    }))
+}
 fn append_builtin_emoji_fallbacks(fonts: &mut FontDefinitions) {
     let has_noto_emoji = fonts.font_data.contains_key("NotoEmoji-Regular");
     let has_emoji_icon_font = fonts.font_data.contains_key("emoji-icon-font");
@@ -186,67 +194,128 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
 
         const MSYH: &str = r"C:\Windows\Fonts\msyh.ttc";
         const CASCADIA: &str = r"C:\Windows\Fonts\CascadiaCode-Regular.ttf";
+        const CONSOLAS: &str = r"C:\Windows\Fonts\consola.ttf";
+        const SIMSUN: &str = r"C:\Windows\Fonts\simsun.ttc";
+        const NSIMSUN: &str = r"C:\Windows\Fonts\nsimsun.ttc";
 
         let msyh = std::fs::read(MSYH).ok();
         let cascadia = std::fs::read(CASCADIA).ok();
+        let consolas = std::fs::read(CONSOLAS).ok();
+        let simsun = std::fs::read(SIMSUN).ok();
+        let nsimsun = std::fs::read(NSIMSUN).ok();
 
         fonts.families.remove(&FontFamily::Proportional);
         fonts.families.remove(&FontFamily::Monospace);
 
-        if let Some(data) = &msyh {
-            let kb = data.len() / 1024;
-            fonts
-                .font_data
-                .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
-            fonts
-                .families
-                .entry(FontFamily::Proportional)
-                .or_default()
-                .push("msyh".into());
-            info!("Font loaded: msyh.ttc (Proportional, {kb} KB)");
-        } else {
-            warn!("Font missing: msyh.ttc — Chinese text may not render correctly");
-        }
+        if global_monospace {
+            let prop = fonts.families.entry(FontFamily::Proportional).or_default();
+            let mut mono_name = None;
 
-        match (&cascadia, &msyh) {
-            (Some(cc), Some(_)) => {
-                let kb = cc.len() / 1024;
-                fonts.font_data.insert(
-                    "cascadia".into(),
-                    Arc::new(FontData::from_owned(cc.clone())),
-                );
-                let mono = fonts.families.entry(FontFamily::Monospace).or_default();
-                mono.extend(["cascadia".into(), "msyh".into()]);
-                info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {kb} KB)");
+            // Try Cascadia Code first
+            if let Some(cc) = &cascadia {
+                fonts
+                    .font_data
+                    .insert("cascadia".into(), Arc::new(FontData::from_owned(cc.clone())));
+                prop.push("cascadia".into());
+                mono_name = Some("Cascadia Code");
+            } else if let Some(con) = &consolas {
+                // Fallback to Consolas
+                fonts
+                    .font_data
+                    .insert("consolas".into(), Arc::new(FontData::from_owned(con.clone())));
+                prop.push("consolas".into());
+                mono_name = Some("Consolas");
             }
-            (Some(cc), None) => {
-                let kb = cc.len() / 1024;
-                fonts.font_data.insert(
-                    "cascadia".into(),
-                    Arc::new(FontData::from_owned(cc.clone())),
-                );
+
+            if let Some(name) = mono_name {
+                info!("Global monospace enabled: using {} as primary font", name);
+            } else {
+                missing_monospace_warning = true;
+                warn!("No suitable monospace font found for global monospace");
+            }
+
+            // For global monospace (UI), we use Microsoft YaHei as CJK fallback 
+            // instead of NSimSun because it has much better baseline alignment 
+            // with modern Latin fonts, preventing the "high-low drop" issue.
+            if let Some(data) = &msyh {
+                if !fonts.font_data.contains_key("msyh") {
+                    // Tune CJK fallback to better match Cascadia/Consolas line metrics in global
+                    // monospace mode and reduce mixed-script "high-low" visual mismatch.
+                    fonts.font_data.insert(
+                        "msyh".into(),
+                        font_data_with_tweak(data.clone(), -0.05, 0.94),
+                    );
+                }
+                prop.push("msyh".into());
+                info!("Global monospace: using Microsoft YaHei as CJK fallback for better baseline alignment");
+            }
+        } else {
+            // Normal mode: Microsoft YaHei is the primary font
+            if let Some(data) = &msyh {
+                let kb = data.len() / 1024;
+                fonts
+                    .font_data
+                    .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
                 fonts
                     .families
-                    .entry(FontFamily::Monospace)
+                    .entry(FontFamily::Proportional)
                     .or_default()
-                    .push("cascadia".into());
-                info!("Font loaded: CascadiaCode-Regular.ttf (Monospace, {kb} KB)");
+                    .push("msyh".into());
+                info!("Normal mode: loaded msyh.ttc (Proportional primary, {kb} KB)");
+            } else {
+                warn!("Font missing: msyh.ttc — Chinese text may not render correctly");
             }
-            (None, _) => {
-                warn!("Font missing: CascadiaCode-Regular.ttf — falling back to msyh for code");
-                if let Some(data) = &msyh {
-                    let kb = data.len() / 1024;
-                    fonts
-                        .font_data
-                        .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
-                    fonts
-                        .families
-                        .entry(FontFamily::Monospace)
-                        .or_default()
-                        .push("msyh".into());
-                    info!("Font loaded: msyh.ttc (Monospace fallback, {kb} KB)");
-                }
+        }
+
+        // Monospace: use true monospace fonts only, never add proportional fonts like msyh
+        // to the Monospace family or code alignment will break.
+        let mono = fonts.families.entry(FontFamily::Monospace).or_default();
+        if let Some(cc) = &cascadia {
+            if !fonts.font_data.contains_key("cascadia") {
+                fonts
+                    .font_data
+                    .insert("cascadia".into(), Arc::new(FontData::from_owned(cc.clone())));
             }
+            mono.push("cascadia".into());
+        }
+        if let Some(con) = &consolas {
+            if !fonts.font_data.contains_key("consolas") {
+                fonts
+                    .font_data
+                    .insert("consolas".into(), Arc::new(FontData::from_owned(con.clone())));
+            }
+            mono.push("consolas".into());
+        }
+
+        // Add CJK fallbacks for code blocks.
+        // We keep true monospace fonts first for ASCII alignment, and place msyh before
+        // older SimSun variants so Chinese text in code blocks remains readable.
+        if let Some(data) = &msyh {
+            if !fonts.font_data.contains_key("msyh") {
+                fonts
+                    .font_data
+                    .insert("msyh".into(), Arc::new(FontData::from_owned(data.clone())));
+            }
+            mono.push("msyh".into());
+        }
+        if let Some(ns) = &nsimsun {
+            if !fonts.font_data.contains_key("nsimsun") {
+                fonts
+                    .font_data
+                    .insert("nsimsun".into(), Arc::new(FontData::from_owned(ns.clone())));
+            }
+            mono.push("nsimsun".into());
+        } else if let Some(sun) = &simsun {
+            if !fonts.font_data.contains_key("simsun") {
+                fonts
+                    .font_data
+                    .insert("simsun".into(), Arc::new(FontData::from_owned(sun.clone())));
+            }
+            mono.push("simsun".into());
+        }
+
+        if mono.is_empty() {
+            warn!("No monospace fonts found — code alignment may be broken");
         }
     }
 
