@@ -1,4 +1,6 @@
 use crate::ui::window::RedisApp;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::constants::WILD_KEY_FILTER;
 use e_client_config::translations::{TranslationKey, tr};
 
@@ -140,7 +142,16 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 // Command line toggle button - only show when connected
                 if connected {
                     let show = app.tabs[active_tab_idx].command_line_panel.show;
-                    let button_text = "CLI";
+                    let button_text = if !show {
+                        let cli_binding = app
+                            .config
+                            .settings
+                            .shortcuts
+                            .get_binding(&ShortcutAction::ToggleCommandLine);
+                        format!("{}{}", tr(TranslationKey::CliButton, current_lang), get_shortcut_display(&cli_binding))
+                    } else {
+                        tr(TranslationKey::CliButton, current_lang).to_string()
+                    };
                     let button_color = if show {
                         egui::Color32::from_rgb(50, 200, 50) // Green when opened
                     } else {

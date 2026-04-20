@@ -1,9 +1,11 @@
 use crate::ui::window::RedisApp;
 use crate::ui::window::components::markdown::render_markdown;
 use crate::ui::window::panels::log_viewer_panel::render_log_viewer;
+use crate::ui::window::shortcut_manager::get_shortcut_display;
 use crate::ui::window::types::HistoryEntry;
 use e_client_basics::constants::REDIS_COMMANDS;
 use e_client_config::config::ai_config::AiMode;
+use e_client_config::config::shortcuts::ShortcutAction;
 use e_client_config::language::Language;
 use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use e_client_core::{AiChatResult, AiResponseError, OpenAiRigAgent};
@@ -172,9 +174,14 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     // Live Logs toggle (rightmost item)
                     let log_viewer = &mut app.tabs[active_tab_idx].command_line_panel.log_viewer;
+                    let log_binding = app
+                        .config
+                        .settings
+                        .shortcuts
+                        .get_binding(&ShortcutAction::ToggleLiveLogs);
                     ui.toggle_value(
                         &mut log_viewer.enabled,
-                        tr(TranslationKey::LiveLogsToggle, current_lang),
+                        format!("{}{}", tr(TranslationKey::LiveLogsToggle, current_lang), get_shortcut_display(&log_binding)),
                     )
                     .on_hover_text(tr(TranslationKey::LiveLogsShowHint, current_lang));
 
@@ -250,9 +257,9 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 .command_line_panel
                                 .history
                                 .iter()
-                                .map(|e| (e.command.clone(), e.result.clone(), e.translation_key))
+                                .map(|e| (e.command.clone(), e.result.clone(), e.translation_key, e.tool_calls.clone()))
                                 .collect();
-                            for (cmd, result, translation_key) in &history_snapshot {
+                            for (cmd, result, translation_key, tool_calls) in &history_snapshot {
                                 let entry_translation_key = *translation_key;
                                 let cmd = cmd;
                                 let result = result;
@@ -269,6 +276,63 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                             .monospace(),
                                     );
                                 });
+
+                                // Show tool calls if any
+                                if !tool_calls.is_empty() {
+                                    ui.add_space(4.0);
+                                    for tool_call in tool_calls {
+                                        ui.horizontal(|ui| {
+                                            ui.add_space(16.0);
+                                            
+                                            // Tool icon based on status
+                                            let (icon, color) = match tool_call.status {
+                                                crate::ui::window::types::ToolCallStatus::Running => ("⏳", egui::Color32::from_rgb(255, 200, 50)),
+                                                crate::ui::window::types::ToolCallStatus::Success => ("✅", egui::Color32::from_rgb(80, 200, 120)),
+                                                crate::ui::window::types::ToolCallStatus::Error(_) => ("❌", egui::Color32::from_rgb(255, 100, 100)),
+                                            };
+                                            
+                                            ui.label(
+                                                egui::RichText::new(icon)
+                                                    .size(12.0),
+                                            );
+                                            
+                                            // Tool name
+                                            ui.label(
+                                                egui::RichText::new(&tool_call.name)
+                                                    .color(color)
+                                                    .monospace()
+                                                    .small(),
+                                            );
+                                            
+                                            // Args summary
+                                            if !tool_call.args_summary.is_empty() {
+                                                ui.label(
+                                                    egui::RichText::new(format!("({})", tool_call.args_summary))
+                                                        .color(egui::Color32::GRAY)
+                                                        .monospace()
+                                                        .small(),
+                                                );
+                                            }
+                                            
+                                            // Duration
+                                            if let Some(ms) = tool_call.duration_ms {
+                                                let duration_text = if ms < 1000 {
+                                                    format!("{}ms", ms)
+                                                } else {
+                                                    format!("{:.1}s", ms as f64 / 1000.0)
+                                                };
+                                                ui.label(
+                                                    egui::RichText::new(duration_text)
+                                                        .color(egui::Color32::GRAY)
+                                                        .monospace()
+                                                        .small(),
+                                                );
+                                            }
+                                        });
+                                    }
+                                    ui.add_space(4.0);
+                                }
+
                                 // Result line
                                 ui.vertical(|ui| {
                                     ui.add_space(2.0);
@@ -775,6 +839,7 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     let redis_client = std::sync::Arc::new(app.tabs[tab_idx].state.redis_client.clone());
     let ai_config_clone = ai_config.clone();
     let rig_agent_arc = app.tabs[tab_idx].command_line_panel.rig_agent.clone();
+    let agent_cache_arc = app.tabs[tab_idx].command_line_panel.agent_cache.clone();
     let mode_for_task = current_mode;
     let per_tab_model_id = app.tabs[tab_idx]
         .command_line_panel
@@ -803,14 +868,23 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     // Execute AI chat with rig agent asynchronously
     let task_user_input = user_input.clone();
     let handle = tokio::task::spawn(async move {
-        // Try to get or create the rig agent
+        // Determine which model to use: per-tab > global active
+        let model_id = per_tab_model_id.or_else(|| ai_config_clone.active_model_id.clone());
+        let cache_key = format!("{}:{:?}", model_id.clone().unwrap_or_default(), mode_for_task);
+        
+        // Try to get agent from cache first
+        let mut agent_cache = agent_cache_arc.lock().await;
         let mut agent_opt = rig_agent_arc.lock().await;
-
-        // If agent doesn't exist, try to create it first
+        
+        // Check if we have a cached agent
         if agent_opt.is_none() {
-            // Determine which model to use: per-tab > global active
-            let model_id = per_tab_model_id.or_else(|| ai_config_clone.active_model_id.clone());
+            if let Some(cached_agent) = agent_cache.remove(&cache_key) {
+                *agent_opt = Some(cached_agent);
+            }
+        }
 
+        // If agent still doesn't exist, try to create it first
+        if agent_opt.is_none() {
             let mut model_with_key = match model_id {
                 Some(id) => ai_config_clone
                     .models
@@ -876,6 +950,9 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         // For Chat mode, clear the agent after each request to enforce statelessness
         if mode_for_task == AiMode::Chat {
             *agent_opt = None;
+        } else if let Some(agent) = agent_opt.take() {
+            // For Agent mode, put agent back to cache after use
+            agent_cache.insert(cache_key, agent);
         }
 
         let _ = tx.send(chat_response);
@@ -992,14 +1069,24 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                 }
             } else {
                 // Non-Redis command response — mark as markdown (AI response)
+                // Parse tool calls from logs
+                let log_lines: Vec<String> = app.tabs[tab_idx]
+                    .command_line_panel
+                    .log_viewer
+                    .log_lines
+                    .iter()
+                    .cloned()
+                    .collect();
+                let tool_calls = crate::ui::window::types::parse_tool_calls_from_logs(&log_lines);
+
                 if let Some(idx) = pending.thinking_idx {
                     app.tabs[tab_idx].command_line_panel.history[idx] =
-                        HistoryEntry::new(pending.user_input, response);
+                        HistoryEntry::new(pending.user_input, response).with_tool_calls(tool_calls);
                 } else {
                     app.tabs[tab_idx]
                         .command_line_panel
                         .history
-                        .push(HistoryEntry::new(pending.user_input, response));
+                        .push(HistoryEntry::new(pending.user_input, response).with_tool_calls(tool_calls));
                 }
                 // No Redis execution needed — stop capture with delay
                 app.tabs[tab_idx]
@@ -1032,6 +1119,12 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     .history
                     .push(HistoryEntry::new(pending.user_input, error_msg));
             }
+
+            // Error occurred — stop capture with delay
+            app.tabs[tab_idx]
+                .command_line_panel
+                .log_viewer
+                .log_cancel_time = Some(std::time::Instant::now());
         }
     }
 }

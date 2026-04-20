@@ -45,6 +45,7 @@ pub fn load_all_translations(
     // Command
     strings.insert(TranslationKey::Command, tr_en_zh("Command", "命令"));
     strings.insert(TranslationKey::Execute, tr_en_zh("Execute", "执行"));
+    strings.insert(TranslationKey::CliButton, tr_en_zh("CLI", "命令行"));
 
     // Value
     strings.insert(TranslationKey::Value, tr_en_zh("Value", "值"));

@@ -13,6 +13,7 @@ pub enum TranslationKey {
     Filter,
     Command,
     Execute,
+    CliButton,
     Value,
     Language,
     Settings,

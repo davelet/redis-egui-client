@@ -3,6 +3,8 @@ use rig::{completion::ToolDefinition, tool::Tool};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Instant;
+use tracing::info;
 
 /// Empty args struct that correctly deserializes from an empty JSON object `{}`
 /// Using `()` as Args fails because serde cannot deserialize `{}` into unit type.
@@ -125,6 +127,8 @@ impl Tool for FilterKeysTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with pattern='{}', limit={}", Self::NAME, args.pattern, args.limit);
         let mut all_keys = Vec::new();
         let mut cursor = 0u64;
 
@@ -149,6 +153,8 @@ impl Tool for FilterKeysTool {
             "keys": all_keys
         });
 
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(result.to_string())
     }
 }
@@ -196,6 +202,8 @@ impl Tool for GetKeyInfoTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}'", Self::NAME, args.key);
         let key_type = self.redis_client.get_key_type(&args.key).await?;
         let ttl = self.redis_client.get_ttl(&args.key).await?;
 
@@ -232,6 +240,8 @@ impl Tool for GetKeyInfoTool {
             "value_preview": value_preview
         });
 
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(result.to_string())
     }
 }
@@ -282,6 +292,8 @@ impl Tool for DeleteKeysTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with {} keys", Self::NAME, args.keys.len());
         let mut deleted_count = 0;
 
         for key in args.keys {
@@ -293,6 +305,8 @@ impl Tool for DeleteKeysTool {
             "deleted_count": deleted_count
         });
 
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(result.to_string())
     }
 }
@@ -340,10 +354,15 @@ impl Tool for ExecuteCommandTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        self.redis_client
+        let start = Instant::now();
+        info!("[ToolCall] {} started with command='{}'", Self::NAME, args.command);
+        let result = self.redis_client
             .execute_command(&args.command)
             .await
-            .map_err(|e| RedisToolError::RedisError(e.to_string()))
+            .map_err(|e| RedisToolError::RedisError(e.to_string()))?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
+        Ok(result)
     }
 }
 
@@ -380,6 +399,8 @@ impl Tool for GetDbStatsTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started", Self::NAME);
         let _ = args; // Consume the empty args struct
         let db_size = self.redis_client.get_db_size().await?;
 
@@ -388,6 +409,8 @@ impl Tool for GetDbStatsTool {
             "description": format!("The current database contains {} keys", db_size)
         });
 
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(result.to_string())
     }
 }
@@ -433,7 +456,11 @@ impl Tool for SetStringTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}'", Self::NAME, args.key);
         self.redis_client.set_string(&args.key, &args.value).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(
             json!({ "success": true, "message": format!("OK: Set key '{}' to value", args.key) })
                 .to_string(),
@@ -482,7 +509,11 @@ impl Tool for SetTtlTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', ttl={}", Self::NAME, args.key, args.ttl);
         self.redis_client.set_ttl(&args.key, args.ttl).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         let message = if args.ttl < 0 {
             format!("OK: Removed expiration from key '{}'", args.key)
         } else {
@@ -533,10 +564,14 @@ impl Tool for RenameKeyTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with old_key='{}', new_key='{}'", Self::NAME, args.old_key, args.new_key);
         let renamed = self
             .redis_client
             .rename_key_nx(&args.old_key, &args.new_key)
             .await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         if renamed {
             Ok(json!({ "success": true, "message": format!("OK: Renamed '{}' to '{}'", args.old_key, args.new_key) }).to_string())
         } else {
@@ -584,7 +619,11 @@ impl Tool for KeyExistsTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}'", Self::NAME, args.key);
         let exists = self.redis_client.key_exists(&args.key).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "exists": exists }).to_string())
     }
 }
@@ -632,9 +671,13 @@ impl Tool for HsetTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', field='{}'", Self::NAME, args.key, args.field);
         self.redis_client
             .hset(&args.key, &args.field, &args.value)
             .await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Set field '{}' in hash '{}'", args.field, args.key) }).to_string())
     }
 }
@@ -680,7 +723,11 @@ impl Tool for HdelTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', field='{}'", Self::NAME, args.key, args.field);
         self.redis_client.hdel(&args.key, &args.field).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Deleted field '{}' from hash '{}'", args.field, args.key) }).to_string())
     }
 }
@@ -728,9 +775,13 @@ impl Tool for LsetTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', index={}", Self::NAME, args.key, args.index);
         self.redis_client
             .lset(&args.key, args.index, &args.value)
             .await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Set element at index {} in list '{}'", args.index, args.key) }).to_string())
     }
 }
@@ -776,7 +827,11 @@ impl Tool for SaddTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
         self.redis_client.sadd(&args.key, &args.member).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Added member '{}' to set '{}'", args.member, args.key) }).to_string())
     }
 }
@@ -822,7 +877,11 @@ impl Tool for SremTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
         self.redis_client.srem(&args.key, &args.member).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Removed member '{}' from set '{}'", args.member, args.key) }).to_string())
     }
 }
@@ -870,9 +929,13 @@ impl Tool for ZaddTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', member='{}', score={}", Self::NAME, args.key, args.member, args.score);
         self.redis_client
             .zadd(&args.key, args.score, &args.member)
             .await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Added member '{}' with score {} to zset '{}'", args.member, args.score, args.key) }).to_string())
     }
 }
@@ -918,7 +981,11 @@ impl Tool for ZremTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
         self.redis_client.zrem(&args.key, &args.member).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Removed member '{}' from zset '{}'", args.member, args.key) }).to_string())
     }
 }
@@ -964,7 +1031,11 @@ impl Tool for RpushTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with key='{}'", Self::NAME, args.key);
         self.redis_client.rpush(&args.key, &args.value).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(json!({ "success": true, "message": format!("OK: Pushed value to list '{}'", args.key) }).to_string())
     }
 }
@@ -1008,7 +1079,11 @@ impl Tool for SelectDbTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let start = Instant::now();
+        info!("[ToolCall] {} started with db={}", Self::NAME, args.db);
         self.redis_client.select_db(args.db).await?;
+        let elapsed = start.elapsed();
+        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
         Ok(
             json!({ "success": true, "message": format!("OK: Switched to database {}", args.db) })
                 .to_string(),

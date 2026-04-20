@@ -353,14 +353,33 @@ impl AiClient {
 
     /// Test if the API connection is working
     pub async fn test_connection(model: &AiModel) -> Result<(), String> {
+        info!(
+            model_name = %model.name,
+            model_id = %model.model_id,
+            provider = ?model.provider,
+            "Starting AI connection test"
+        );
+
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+            .map_err(|e| {
+                warn!(error = %e, "Failed to create HTTP client");
+                format!("Failed to create HTTP client: {}", e)
+            })?;
+
         let base_url = model.get_base_url();
         let provider = detect_api_provider(&base_url);
         let endpoint = provider.chat_endpoint();
         let url = format!("{}{}", base_url.trim_end_matches('/'), endpoint);
+
+        info!(
+            base_url = %base_url,
+            detected_provider = ?provider,
+            endpoint = %endpoint,
+            full_url = %url,
+            "Connection test configuration"
+        );
 
         // Build request based on provider type
         let mut request_builder = match provider {
@@ -376,6 +395,7 @@ impl AiClient {
                     max_tokens: Some(10),
                     temperature: Some(0.7),
                 };
+                info!("Using Anthropic API format");
                 client.post(&url).json(&anthropic_request)
             }
             _ => {
@@ -388,32 +408,44 @@ impl AiClient {
                     }],
                     temperature: Some(0.7),
                 };
+                info!("Using OpenAI-compatible API format");
                 client.post(&url).json(&test_request)
             }
         };
 
         // Add appropriate headers based on provider
+        let has_api_key = model.api_key.is_some();
+        info!(has_api_key = %has_api_key, "Checking API key");
         if let Some(ref api_key) = model.api_key {
             match provider {
                 ApiProvider::Anthropic => {
+                    info!("Adding Anthropic headers (x-api-key, anthropic-version)");
                     request_builder = request_builder.header("x-api-key", api_key);
                     request_builder = request_builder.header("anthropic-version", "2023-06-01");
                     request_builder = request_builder.header("Content-Type", "application/json");
                 }
                 ApiProvider::OpenRouter => {
+                    info!("Adding OpenRouter headers (Authorization, HTTP-Referer)");
                     request_builder =
                         request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder = request_builder
+                        .header("HTTP-Referer", "https://github.com/e-client/redis-egui");
                 }
                 _ => {
+                    info!("Adding standard Authorization header (Bearer token)");
                     request_builder =
                         request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
             }
+        } else {
+            warn!("No API key provided for connection test");
         }
 
         // Send with a short timeout for testing
+        info!(url = %url, "Sending connection test request");
         let response = request_builder.send().await.map_err(|e| {
             let err_str = e.to_string();
+            warn!(error = %err_str, url = %url, "Connection test request failed");
             if err_str.contains("timeout") {
                 "Connection timeout. Please check the URL.".to_string()
             } else if err_str.contains("connection refused") {
@@ -423,14 +455,47 @@ impl AiClient {
             }
         })?;
 
+        let status = response.status();
+        info!(status = %status, "Received response from server");
+
         if !response.status().is_success() {
-            let status = response.status();
             let text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
+            warn!(
+                status = %status,
+                error_body = %text,
+                "Connection test failed with HTTP error"
+            );
             Err(parse_api_error(status, &text))
         } else {
+            let response_text = response.text().await.unwrap_or_else(|_| "".to_string());
+            info!(
+                raw_response = %response_text,
+                "Received raw response from model"
+            );
+
+            match provider {
+                ApiProvider::Anthropic => {
+                    if let Ok(anthropic_response) = serde_json::from_str::<AnthropicResponse>(&response_text) {
+                        for content in &anthropic_response.content {
+                            if let AnthropicContent::Text { text } = content {
+                                info!(model_response = %text, "Model response (Anthropic)");
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    if let Ok(chat_response) = serde_json::from_str::<ChatCompletionResponse>(&response_text) {
+                        if let Some(choice) = chat_response.choices.first() {
+                            info!(model_response = %choice.message.content, "Model response (OpenAI compatible)");
+                        }
+                    }
+                }
+            }
+
+            info!("Connection test successful!");
             Ok(())
         }
     }

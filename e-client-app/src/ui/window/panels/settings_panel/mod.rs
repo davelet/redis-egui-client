@@ -56,6 +56,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
         } else {
             // Close settings window (only if help is not open)
             app.show_settings = false;
+            let _ = app.config.save_if_dirty();
         }
     }
 
@@ -93,6 +94,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
             app.shortcut_state.editing_shortcut = None;
             app.shortcut_state.shortcut_input_buffer.clear();
             app.shortcut_state.shortcut_conflict_warning = None;
+            let _ = app.config.save_if_dirty();
         }
     }
 
@@ -262,6 +264,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                             app.show_settings = false;
                             app.shortcut_state.editing_shortcut = None;
                             app.shortcut_state.shortcut_input_buffer.clear();
+                            let _ = app.config.save_if_dirty();
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if ui
@@ -279,6 +282,4 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                 });
         });
 
-    // Save configuration if any settings were changed in the UI
-    let _ = app.config.save_if_dirty();
 }

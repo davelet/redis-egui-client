@@ -82,7 +82,7 @@ Examples:
 - User: "delete the key test" → DEL test
 - User: "list all string keys" → KEYS *"#;
 
-pub type OpenAiAgent = Agent<openai::responses_api::ResponsesCompletionModel>;
+pub type OpenAiAgent = Agent<openai::completion::CompletionModel>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AiResponseError {
@@ -182,6 +182,21 @@ pub enum AiChatResult {
     Error(AiResponseError),
 }
 
+#[derive(Debug, Clone)]
+pub struct ToolCallInfo {
+    pub name: String,
+    pub status: ToolCallStatus,
+    pub duration_ms: Option<u64>,
+    pub args_summary: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ToolCallStatus {
+    Running,
+    Success,
+    Error(String),
+}
+
 pub struct OpenAiRigAgent {
     agent: OpenAiAgent,
     llm_model: AiModel,
@@ -210,12 +225,14 @@ impl OpenAiRigAgent {
         let client = if base_url == "https://api.openai.com/v1" {
             openai::Client::new(api_key.clone())
                 .map_err(|e| format!("Failed to create OpenAI client: {}", e))?
+                .completions_api()
         } else {
             openai::Client::builder()
                 .base_url(&base_url)
                 .api_key(api_key)
                 .build()
                 .map_err(|e| format!("Failed to create API client: {}", e))?
+                .completions_api()
         };
 
         let agent = match mode {

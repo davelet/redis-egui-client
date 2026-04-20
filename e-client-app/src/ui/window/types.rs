@@ -9,6 +9,69 @@ use e_client_config::translations::{TranslationKey, tr};
 use e_client_core::AiResponseError;
 use std::sync::atomic;
 
+/// Parse tool call information from log lines
+pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
+    let mut tool_calls = Vec::new();
+    let mut running_tools: std::collections::HashMap<String, (String, String)> = std::collections::HashMap::new();
+
+    for line in log_lines {
+        if let Some(start_idx) = line.find("[ToolCall] ") {
+            let after_marker = &line[start_idx + 11..];
+            
+            if let Some(space_idx) = after_marker.find(' ') {
+                let tool_name = &after_marker[..space_idx];
+                let rest = &after_marker[space_idx + 1..];
+                
+                if rest.starts_with("started") {
+                    let args_summary = if let Some(with_idx) = rest.find(" with ") {
+                        rest[with_idx + 6..].to_string()
+                    } else {
+                        String::new()
+                    };
+                    running_tools.insert(tool_name.to_string(), (args_summary, line.clone()));
+                } else if rest.starts_with("completed in") {
+                    if let Some((args_summary, _)) = running_tools.remove(tool_name) {
+                        let duration_str = &rest[13..];
+                        let duration_ms = parse_duration_to_ms(duration_str);
+                        
+                        tool_calls.push(ToolCallInfo {
+                            name: tool_name.to_string(),
+                            status: ToolCallStatus::Success,
+                            duration_ms,
+                            args_summary,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    tool_calls
+}
+
+fn parse_duration_to_ms(duration_str: &str) -> Option<u64> {
+    let duration_str = duration_str.trim();
+    
+    if let Some(ms_idx) = duration_str.find("ms") {
+        let ms_part = &duration_str[..ms_idx].trim();
+        if let Ok(ms) = ms_part.parse::<f64>() {
+            return Some(ms as u64);
+        }
+    } else if let Some(s_idx) = duration_str.find('s') {
+        let s_part = &duration_str[..s_idx].trim();
+        if let Ok(s) = s_part.parse::<f64>() {
+            return Some((s * 1000.0) as u64);
+        }
+    } else if let Some(min_idx) = duration_str.find("min") {
+        let min_part = &duration_str[..min_idx].trim();
+        if let Ok(min) = min_part.parse::<f64>() {
+            return Some((min * 60000.0) as u64);
+        }
+    }
+    
+    None
+}
+
 /// A single entry in the CLI history.
 #[derive(Clone)]
 pub struct HistoryEntry {
@@ -16,6 +79,24 @@ pub struct HistoryEntry {
     pub result: String,
     /// Optional translation key for consistent styling across language changes
     pub translation_key: Option<TranslationKey>,
+    /// Tool call information if this entry represents a tool execution
+    pub tool_calls: Vec<ToolCallInfo>,
+}
+
+/// Information about a single tool call
+#[derive(Clone)]
+pub struct ToolCallInfo {
+    pub name: String,
+    pub status: ToolCallStatus,
+    pub duration_ms: Option<u64>,
+    pub args_summary: String,
+}
+
+#[derive(Clone)]
+pub enum ToolCallStatus {
+    Running,
+    Success,
+    Error(String),
 }
 
 impl HistoryEntry {
@@ -24,11 +105,17 @@ impl HistoryEntry {
             command: command.into(),
             result: result.into(),
             translation_key: None,
+            tool_calls: Vec::new(),
         }
     }
 
     pub fn with_translation_key(mut self, key: TranslationKey) -> Self {
         self.translation_key = Some(key);
+        self
+    }
+
+    pub fn with_tool_calls(mut self, tool_calls: Vec<ToolCallInfo>) -> Self {
+        self.tool_calls = tool_calls;
         self
     }
 }
@@ -163,8 +250,6 @@ pub struct AiChatPending {
 pub struct LogViewer {
     /// Whether log viewer feature is enabled (can be toggled)
     pub enabled: bool,
-    /// Whether the log viewer panel is visible (open/collapsed)
-    pub visible: bool,
     /// Buffered log lines (in display order)
     pub log_lines: std::collections::VecDeque<String>,
     /// Maximum number of lines to keep in buffer
@@ -185,8 +270,7 @@ const DEFAULT_MAX_LINES: usize = 300;
 impl Default for LogViewer {
     fn default() -> Self {
         Self {
-            enabled: true,
-            visible: true,
+            enabled: false,
             log_lines: std::collections::VecDeque::new(),
             max_lines: DEFAULT_MAX_LINES,
             follow_tail: true,
@@ -276,6 +360,8 @@ pub struct CommandLinePanel {
     /// Rig-based AI agent for multi-round conversation with tool calling
     /// Uses Mutex to allow mutable access from async context
     pub rig_agent: std::sync::Arc<tokio::sync::Mutex<Option<e_client_core::OpenAiRigAgent>>>,
+    /// Cache of initialized AI agents, key: model_id + mode
+    pub agent_cache: std::sync::Arc<tokio::sync::Mutex<std::collections::HashMap<String, e_client_core::OpenAiRigAgent>>>,
     /// Current AI mode (Chat or Agent) - per-tab, not persisted
     pub current_mode: AiMode,
     /// Current model ID for this tab - per-tab, not persisted
@@ -299,6 +385,7 @@ impl Default for CommandLinePanel {
             ai_chat_pending: None,
             redis_command_pending: None,
             rig_agent: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
+            agent_cache: std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             current_mode: AiMode::Agent,
             current_model_id: None,
             log_viewer: LogViewer::default(),

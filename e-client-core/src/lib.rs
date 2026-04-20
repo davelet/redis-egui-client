@@ -16,4 +16,5 @@ pub use app_state::{
 pub use redis_client::{RedisClient, ValueData};
 pub use rig_agent::{
     AiChatResult, AiResponseError, CHAT_SYSTEM_PROMPT, OpenAiRigAgent, SYSTEM_PROMPT,
+    ToolCallInfo, ToolCallStatus,
 };
