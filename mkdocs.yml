@@ -12,6 +12,7 @@ extra_css:
 nav:
   - Home: index.md
   - Install: install.md
+  - Screenshots: screenshots.md
   - AI Assistant:
     - Overview: ai/index.md
     - Configuration: ai/configuration.md
