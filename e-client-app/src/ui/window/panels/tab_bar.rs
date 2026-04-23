@@ -94,7 +94,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                     }
 
                                     // Close button - always show
-                                    if ui.small_button("×").clicked() {
+                                    if ui.small_button(emoji::action::CLOSE).clicked() {
                                         tab_to_close = Some(*idx);
                                     }
 

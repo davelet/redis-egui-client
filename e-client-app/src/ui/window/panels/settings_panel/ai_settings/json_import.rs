@@ -4,7 +4,7 @@ use e_client_basics::emoji;
 use e_client_config::config::ai_config::AiConfig;
 use e_client_config::config::json_importer;
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
 use std::path::Path;
 
 use crate::ui::window::RedisApp;
@@ -59,16 +59,27 @@ pub fn render_json_import_preview(app: &mut RedisApp, ctx: &egui::Context, curre
             ));
             ui.add_space(5.0);
 
-            // Model count
-            ui.label(format!(
-                "{}: {}",
-                tr(TranslationKey::AiImportJsonModelCount, current_lang),
-                preview.config.models.len()
-            ));
-            ui.add_space(10.0);
+            // File path
+            ui.label(
+                egui::RichText::new(tr_fmt(
+                    TranslationKey::AiImportFilePath,
+                    current_lang,
+                    &[&preview.path.display().to_string()],
+                ))
+                .weak(),
+            );
+            ui.add_space(5.0);
 
-            // Bulk selection actions
+            // Model count and select buttons on the same row
             ui.horizontal(|ui| {
+                ui.label(format!(
+                    "{}: {}",
+                    tr(TranslationKey::AiImportJsonModelCount, current_lang),
+                    preview.config.models.len()
+                ));
+
+                ui.add_space(15.0);
+
                 if ui
                     .button(tr(TranslationKey::AiImportSelectAll, current_lang))
                     .clicked()

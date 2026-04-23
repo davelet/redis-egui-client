@@ -1,6 +1,6 @@
 use crate::ui::window::RedisApp;
 use crate::ui::window::components::markdown::render_markdown;
-use crate::ui::window::panels::log_viewer_panel::render_log_viewer;
+use crate::ui::window::panels::render_log_viewer;
 use crate::ui::window::shortcut_manager::get_shortcut_display;
 use crate::ui::window::types::HistoryEntry;
 use e_client_basics::constants::REDIS_COMMANDS;
@@ -283,19 +283,19 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                     for tool_call in tool_calls {
                                         ui.horizontal(|ui| {
                                             ui.add_space(16.0);
-                                            
+
                                             // Tool icon based on status
                                             let (icon, color) = match tool_call.status {
                                                 crate::ui::window::types::ToolCallStatus::Running => ("⏳", egui::Color32::from_rgb(255, 200, 50)),
                                                 crate::ui::window::types::ToolCallStatus::Success => ("✅", egui::Color32::from_rgb(80, 200, 120)),
                                                 crate::ui::window::types::ToolCallStatus::Error(_) => ("❌", egui::Color32::from_rgb(255, 100, 100)),
                                             };
-                                            
+
                                             ui.label(
                                                 egui::RichText::new(icon)
                                                     .size(12.0),
                                             );
-                                            
+
                                             // Tool name
                                             ui.label(
                                                 egui::RichText::new(&tool_call.name)
@@ -303,7 +303,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                     .monospace()
                                                     .small(),
                                             );
-                                            
+
                                             // Args summary
                                             if !tool_call.args_summary.is_empty() {
                                                 ui.label(
@@ -313,7 +313,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                         .small(),
                                                 );
                                             }
-                                            
+
                                             // Duration
                                             if let Some(ms) = tool_call.duration_ms {
                                                 let duration_text = if ms < 1000 {
@@ -700,7 +700,7 @@ fn execute_command(app: &mut RedisApp, tab_idx: usize, input: String) {
 }
 
 /// Execute a Redis command directly
-fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
+pub(crate) fn execute_redis_command(app: &mut RedisApp, tab_idx: usize, command: String) {
     if app.tabs[tab_idx]
         .command_line_panel
         .redis_command_pending
@@ -870,12 +870,16 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
     let handle = tokio::task::spawn(async move {
         // Determine which model to use: per-tab > global active
         let model_id = per_tab_model_id.or_else(|| ai_config_clone.active_model_id.clone());
-        let cache_key = format!("{}:{:?}", model_id.clone().unwrap_or_default(), mode_for_task);
-        
+        let cache_key = format!(
+            "{}:{:?}",
+            model_id.clone().unwrap_or_default(),
+            mode_for_task
+        );
+
         // Try to get agent from cache first
         let mut agent_cache = agent_cache_arc.lock().await;
         let mut agent_opt = rig_agent_arc.lock().await;
-        
+
         // Check if we have a cached agent
         if agent_opt.is_none() {
             if let Some(cached_agent) = agent_cache.remove(&cache_key) {
@@ -1083,10 +1087,9 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
                     app.tabs[tab_idx].command_line_panel.history[idx] =
                         HistoryEntry::new(pending.user_input, response).with_tool_calls(tool_calls);
                 } else {
-                    app.tabs[tab_idx]
-                        .command_line_panel
-                        .history
-                        .push(HistoryEntry::new(pending.user_input, response).with_tool_calls(tool_calls));
+                    app.tabs[tab_idx].command_line_panel.history.push(
+                        HistoryEntry::new(pending.user_input, response).with_tool_calls(tool_calls),
+                    );
                 }
                 // No Redis execution needed — stop capture with delay
                 app.tabs[tab_idx]
@@ -1099,32 +1102,56 @@ pub fn process_ai_chat_results(app: &mut RedisApp, tab_idx: usize) {
             // Get current language for i18n
             let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
 
-            // Format error message using i18n
-            let error_msg = if let Some(detail) = e.get_detail() {
-                format!(
-                    "ERR: {}",
-                    tr_fmt(e.get_i18n_key(), current_lang, &[&detail])
-                )
-            } else {
-                format!("ERR: {}", tr(e.get_i18n_key(), current_lang))
-            };
+            match e {
+                AiResponseError::CommandNotWhitelisted(cmd) => {
+                    // Command blocked by whitelist, show confirmation dialog
+                    app.pending_unsafe_command =
+                        Some((tab_idx, cmd.clone(), pending.user_input.clone()));
+                    // Update history with temporary message
+                    let msg = format!(
+                        "⚠️  Command `{}` is not in whitelist, waiting for confirmation...",
+                        cmd
+                    );
+                    if let Some(idx) = pending.thinking_idx {
+                        app.tabs[tab_idx].command_line_panel.history[idx] =
+                            HistoryEntry::new(pending.user_input, msg);
+                    } else {
+                        app.tabs[tab_idx]
+                            .command_line_panel
+                            .history
+                            .push(HistoryEntry::new(pending.user_input, msg));
+                    }
+                    // Don't stop capture yet, wait for user decision
+                }
+                _ => {
+                    // Regular error
+                    let error_msg = if let Some(detail) = e.get_detail() {
+                        format!(
+                            "ERR: {}",
+                            tr_fmt(e.get_i18n_key(), current_lang, &[&detail])
+                        )
+                    } else {
+                        format!("ERR: {}", tr(e.get_i18n_key(), current_lang))
+                    };
 
-            // Update the thinking message with the error
-            if let Some(idx) = pending.thinking_idx {
-                app.tabs[tab_idx].command_line_panel.history[idx] =
-                    HistoryEntry::new(pending.user_input, error_msg);
-            } else {
-                app.tabs[tab_idx]
-                    .command_line_panel
-                    .history
-                    .push(HistoryEntry::new(pending.user_input, error_msg));
+                    // Update the thinking message with the error
+                    if let Some(idx) = pending.thinking_idx {
+                        app.tabs[tab_idx].command_line_panel.history[idx] =
+                            HistoryEntry::new(pending.user_input, error_msg);
+                    } else {
+                        app.tabs[tab_idx]
+                            .command_line_panel
+                            .history
+                            .push(HistoryEntry::new(pending.user_input, error_msg));
+                    }
+
+                    // Error occurred — stop capture with delay
+                    app.tabs[tab_idx]
+                        .command_line_panel
+                        .log_viewer
+                        .log_cancel_time = Some(std::time::Instant::now());
+                }
             }
-
-            // Error occurred — stop capture with delay
-            app.tabs[tab_idx]
-                .command_line_panel
-                .log_viewer
-                .log_cancel_time = Some(std::time::Instant::now());
         }
     }
 }

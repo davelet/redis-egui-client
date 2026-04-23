@@ -385,7 +385,57 @@ pub struct AiConfig {
     /// Whether to render CLI chat output as markdown (default: true)
     #[serde(default = "AiConfig::default_render_markdown")]
     pub render_markdown: bool,
+    /// User-defined custom command whitelist for raw command execution
+    #[serde(default)]
+    pub custom_command_whitelist: Vec<String>,
 }
+
+/// Built-in whitelist commands (cannot be deleted by user)
+pub const BUILTIN_WHITELIST_COMMANDS: &[&str] = &[
+    // General query commands
+    "SCAN",
+    "TYPE",
+    "TTL",
+    "PTTL",
+    "DBSIZE",
+    "EXISTS",
+    "INFO",
+    // String operations
+    "GET",
+    "SET",
+    "DEL",
+    "EXPIRE",
+    "PERSIST",
+    // Hash operations
+    "HGET",
+    "HGETALL",
+    "HMGET",
+    "HLEN",
+    "HSET",
+    "HDEL",
+    // List operations
+    "LRANGE",
+    "LLEN",
+    "LINDEX",
+    "LSET",
+    "RPUSH",
+    // Set operations
+    "SMEMBERS",
+    "SCARD",
+    "SADD",
+    "SREM",
+    "SISMEMBER",
+    // Sorted Set operations
+    "ZRANGE",
+    "ZREVRANGE",
+    "ZCARD",
+    "ZSCORE",
+    "ZADD",
+    "ZREM",
+    // Database operations
+    "SELECT",
+    "RENAMENX",
+];
 
 impl Default for AiConfig {
     fn default() -> Self {
@@ -397,6 +447,7 @@ impl Default for AiConfig {
             show_ai_thinking: true,
             max_turns: 20,
             render_markdown: true,
+            custom_command_whitelist: Vec::new(),
         }
     }
 }

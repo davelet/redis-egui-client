@@ -225,7 +225,10 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::CopyKey, tr_en_zh("Copy Key", "复制键"));
     strings.insert(TranslationKey::CopyValue, tr_en_zh("Copy Value", "复制值"));
     strings.insert(TranslationKey::CopySuccess, tr_en_zh("Copied!", "已复制！"));
-    strings.insert(TranslationKey::CopyFailed, tr_en_zh("Copy failed", "复制失败"));
+    strings.insert(
+        TranslationKey::CopyFailed,
+        tr_en_zh("Copy failed", "复制失败"),
+    );
 
     // Edit operations
     strings.insert(TranslationKey::Edit, tr_en_zh("Edit", "编辑"));
@@ -419,8 +422,8 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::GlobalMonospace,
         tr_en_zh(
-            "Use Monospace Font Globally (Restart to take effect)",
-            "全局使用等宽字体（重启后生效）",
+            "Use Monospace Font Globally",
+            "全局使用等宽字体",
         ),
     );
     strings.insert(
@@ -649,7 +652,7 @@ pub fn load_all_translations(
     );
     strings.insert(TranslationKey::AiImportSkip, tr_en_zh("Skip", "跳过"));
     // JSON Import/Export
-    strings.insert(TranslationKey::AiExportJson, tr_en_zh("Export", "导出"));
+    strings.insert(TranslationKey::AiExportJson, tr_en_zh("Export", "导出到文件"));
     strings.insert(
         TranslationKey::AiExportJsonTooltip,
         tr_en_zh("Export AI config to JSON file", "导出 AI 配置到 JSON 文件"),
@@ -658,7 +661,7 @@ pub fn load_all_translations(
         TranslationKey::AiExportSuccess,
         tr_en_zh("Export successful!", "导出成功！"),
     );
-    strings.insert(TranslationKey::AiImportJson, tr_en_zh("Import", "导入"));
+    strings.insert(TranslationKey::AiImportJson, tr_en_zh("Import", "从文件导入"));
     strings.insert(
         TranslationKey::AiImportJsonTooltip,
         tr_en_zh(
@@ -679,7 +682,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::AiImportJsonModelCount,
-        tr_en_zh("Models to import", "将导入的模型"),
+        tr_en_zh("Importable models", "可导入的模型数量"),
     );
     strings.insert(
         TranslationKey::AiImportJsonConfirm,
@@ -700,6 +703,43 @@ pub fn load_all_translations(
     strings.insert(
         TranslationKey::AiImportInvertSelection,
         tr_en_zh("Invert Selection", "反选"),
+    );
+    strings.insert(
+        TranslationKey::AiImportFilePath,
+        tr_en_zh("File path: {}", "文件路径: {}"),
+    );
+    // Command Whitelist
+    strings.insert(
+        TranslationKey::AiWhitelistTitle,
+        tr_en_zh("Command Whitelist", "命令白名单"),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistBuiltin,
+        tr_en_zh("Built-in Safe Commands", "内置白名单命令"),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistCustom,
+        tr_en_zh("Custom Allowed Commands", "自定义白名单命令"),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistAddHint,
+        tr_en_zh("Enter command to add...", "输入要添加的命令..."),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistEmpty,
+        tr_en_zh("No custom commands added yet", "尚未添加自定义命令"),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistNoMatch,
+        tr_en_zh("No commands match", "没有命令匹配"),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistFilterHint,
+        tr_en_zh("Filter commands...", "过滤命令..."),
+    );
+    strings.insert(
+        TranslationKey::AiWhitelistCopyAll,
+        tr_en_zh("Copy All", "复制全部"),
     );
     strings.insert(
         TranslationKey::AiTestFailed,

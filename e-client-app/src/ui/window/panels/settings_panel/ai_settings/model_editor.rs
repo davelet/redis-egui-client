@@ -5,8 +5,8 @@ use e_client_basics::constants::{
 };
 use e_client_config::config::ai_config::{AiModel, AiProviderType};
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr, tr_fmt};
-use e_client_core::{AiClient, detect_api_provider};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
+use e_client_core::{detect_api_provider, AiClient};
 use std::str::FromStr;
 
 use crate::ui::window::RedisApp;
@@ -300,7 +300,11 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
                             // Show detailed error via toast, only once
                             app.toasts.error(
                                 "ai_model_test_failed".to_string(),
-                                format!("{}: {}", tr(TranslationKey::AiTestFailed, current_lang), e),
+                                format!(
+                                    "{}: {}",
+                                    tr(TranslationKey::AiTestFailed, current_lang),
+                                    e
+                                ),
                             );
                             // Show simple fail message in dialog
                             ui.label(

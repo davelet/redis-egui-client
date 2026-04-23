@@ -2,3 +2,4 @@ target/
 /.idea/
 /e-client-app/dist/
 /dist/
+/.joycode/

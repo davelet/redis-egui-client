@@ -1,9 +1,11 @@
 use crate::ui::font;
 use crate::ui::window::new_connection_window::NewConnectionWindowWindow;
+use crate::ui::window::panels::command_line_panel::execute_redis_command;
+use crate::ui::window::types::HistoryEntry;
 use e_client_basics::constants::{GITHUB_RELEASES_URL, UI_REPAINT_INTERVAL_MS};
 use e_client_config::config::Config;
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_config::translations::{TranslationKey, tr};
 
 // Re-export panel functions for convenient access
 pub use panels::{
@@ -54,6 +56,12 @@ pub struct RedisApp {
     pub json_import_preview: Option<JsonImportPreview>,
     // Delete connection confirmation: (connection index, connection name)
     pub delete_connection_confirm: Option<(usize, String)>,
+    /// Pending unsafe command confirmation
+    pub pending_unsafe_command: Option<(usize, String, String)>, // (tab idx, command, original user request)
+    /// Input text for adding a new command to the custom whitelist
+    pub whitelist_new_cmd_input: String,
+    /// Filter text for searching commands in the whitelist UI
+    pub whitelist_filter: String,
     // Settings panel state - track expanded sections for mutually exclusive behavior
     pub settings_expanded_section: Option<SettingsSection>,
     // Help overlay
@@ -232,6 +240,139 @@ impl eframe::App for RedisApp {
         // Render toast notifications
         self.toasts.render(ctx);
 
+        // Handle unsafe command confirmation dialog
+        let mut action_result: Option<(usize, String, String, &'static str, bool)> = None;
+
+        if let Some(pending) = &self.pending_unsafe_command {
+            let (tab_idx, cmd, user_request) = (pending.0, pending.1.clone(), pending.2.clone());
+            let screen = ctx.viewport_rect();
+            let dialog_width = 500.0_f32.min(screen.width() - 40.0);
+            let mut should_close = false;
+            let mut action_type: Option<&'static str> = None;
+            let mut add_to_whitelist = false;
+
+            egui::Window::new("Unsafe Command Confirmation")
+                .title_bar(true)
+                .resizable(false)
+                .collapsible(false)
+                .default_width(dialog_width)
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .show(ctx, |ui| {
+                    ui.vertical(|ui| {
+                        ui.label(
+                            egui::RichText::new("⚠️  This command is not in the allowed list, it may cause data loss or server issues!")
+                                .color(egui::Color32::RED)
+                                .strong()
+                        );
+                        ui.add_space(8.0);
+
+                        ui.label(format!("Command: "));
+                        ui.add_space(4.0);
+                        ui.label(
+                            egui::RichText::new(&cmd)
+                                .monospace()
+                                .color(egui::Color32::RED)
+                        );
+                        ui.add_space(8.0);
+
+                        ui.label(format!("Request: {}", user_request));
+                        ui.add_space(16.0);
+
+                        ui.horizontal(|ui| {
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    action_type = Some("cancel");
+                                    add_to_whitelist = false;
+                                    should_close = true;
+                                }
+                                if ui.button("Run Once").clicked() {
+                                    action_type = Some("run_once");
+                                    add_to_whitelist = false;
+                                    should_close = true;
+                                }
+                                if ui.button("Allow and Remember").clicked() {
+                                    action_type = Some("run_always");
+                                    add_to_whitelist = true;
+                                    should_close = true;
+                                }
+                            });
+                        });
+                    });
+                });
+
+            if should_close {
+                action_result = Some((
+                    tab_idx,
+                    cmd,
+                    user_request,
+                    action_type.unwrap_or("cancel"),
+                    add_to_whitelist,
+                ));
+            }
+        }
+
+        // Process action after window is closed to avoid borrow checker issues
+        if let Some((tab_idx, cmd, user_request, action_type, add_to_whitelist)) = action_result {
+            self.pending_unsafe_command = None;
+
+            match action_type {
+                "cancel" => {
+                    // Update history to show cancelled
+                    let msg = format!("❌  Command `{}` was blocked by user", cmd);
+                    let history_entry = HistoryEntry::new(user_request, msg);
+                    // Update last history entry
+                    if let Some(last_idx) = self.tabs[tab_idx]
+                        .command_line_panel
+                        .history
+                        .len()
+                        .checked_sub(1)
+                    {
+                        self.tabs[tab_idx].command_line_panel.history[last_idx] = history_entry;
+                    }
+                    self.tabs[tab_idx]
+                        .command_line_panel
+                        .log_viewer
+                        .stop_capture();
+                }
+                "run_once" | "run_always" => {
+                    if add_to_whitelist {
+                        // Add command to custom whitelist
+                        let cmd_upper = cmd.to_uppercase();
+                        if !self
+                            .config
+                            .ai_config
+                            .custom_command_whitelist
+                            .iter()
+                            .any(|c| c.eq_ignore_ascii_case(&cmd_upper))
+                        {
+                            self.config
+                                .ai_config
+                                .custom_command_whitelist
+                                .push(cmd_upper);
+                            let _ = self.config.save_ai_config();
+                        }
+                    }
+
+                    // Update history to show executing
+                    let msg = format!("✅  Executing command `{}`...", cmd);
+                    let history_entry = HistoryEntry::new(user_request, msg);
+                    // Update last history entry
+                    if let Some(last_idx) = self.tabs[tab_idx]
+                        .command_line_panel
+                        .history
+                        .len()
+                        .checked_sub(1)
+                    {
+                        self.tabs[tab_idx].command_line_panel.history[last_idx] = history_entry;
+                    }
+
+                    // Execute the command directly with allow_unsafe flag
+                    execute_redis_command(self, tab_idx, cmd);
+                }
+                _ => {}
+            }
+        }
+
         // Force continuous repaint while loading to ensure smooth UI updates
         let mut any_loading = false;
         let mut any_needs_repaint = false;
@@ -349,6 +490,9 @@ impl RedisApp {
             gim_import_dialog: GimImportDialog::default(),
             json_import_preview: None,
             delete_connection_confirm: None,
+            pending_unsafe_command: None,
+            whitelist_new_cmd_input: String::new(),
+            whitelist_filter: String::new(),
             settings_expanded_section: None,
             show_help: false,
             help_selected_section: None,
@@ -756,8 +900,7 @@ fn process_pending_update_result(app: &mut RedisApp, ctx: &egui::Context) {
         app.config.update_last_check(now);
 
         match &result {
-            e_client_core::updater::UpdateCheckResult::UpdateAvailable { latest_version } => {
-                let latest_version = latest_version.clone();
+            e_client_core::updater::UpdateCheckResult::UpdateAvailable { latest_version: _ } => {
                 app.pending_update_result = Some(result);
                 // Show toast notification
                 let lang = app.global_language;

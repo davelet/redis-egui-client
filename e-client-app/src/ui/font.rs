@@ -152,7 +152,6 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
             }
         }
         if let Some(data) = stheiti_light_data {
-            let size_kb = data.len() / 1024;
             fonts.font_data.insert(
                 "stheiti_light".to_owned(),
                 Arc::new(FontData::from_owned(data)),
@@ -213,16 +212,18 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
 
             // Try Cascadia Code first
             if let Some(cc) = &cascadia {
-                fonts
-                    .font_data
-                    .insert("cascadia".into(), Arc::new(FontData::from_owned(cc.clone())));
+                fonts.font_data.insert(
+                    "cascadia".into(),
+                    Arc::new(FontData::from_owned(cc.clone())),
+                );
                 prop.push("cascadia".into());
                 mono_name = Some("Cascadia Code");
             } else if let Some(con) = &consolas {
                 // Fallback to Consolas
-                fonts
-                    .font_data
-                    .insert("consolas".into(), Arc::new(FontData::from_owned(con.clone())));
+                fonts.font_data.insert(
+                    "consolas".into(),
+                    Arc::new(FontData::from_owned(con.clone())),
+                );
                 prop.push("consolas".into());
                 mono_name = Some("Consolas");
             }
@@ -234,8 +235,8 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
                 warn!("No suitable monospace font found for global monospace");
             }
 
-            // For global monospace (UI), we use Microsoft YaHei as CJK fallback 
-            // instead of NSimSun because it has much better baseline alignment 
+            // For global monospace (UI), we use Microsoft YaHei as CJK fallback
+            // instead of NSimSun because it has much better baseline alignment
             // with modern Latin fonts, preventing the "high-low drop" issue.
             if let Some(data) = &msyh {
                 if !fonts.font_data.contains_key("msyh") {
@@ -247,7 +248,9 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
                     );
                 }
                 prop.push("msyh".into());
-                info!("Global monospace: using Microsoft YaHei as CJK fallback for better baseline alignment");
+                info!(
+                    "Global monospace: using Microsoft YaHei as CJK fallback for better baseline alignment"
+                );
             }
         } else {
             // Normal mode: Microsoft YaHei is the primary font
@@ -272,17 +275,19 @@ pub fn setup_fonts(ctx: &Context, global_monospace: bool) -> bool {
         let mono = fonts.families.entry(FontFamily::Monospace).or_default();
         if let Some(cc) = &cascadia {
             if !fonts.font_data.contains_key("cascadia") {
-                fonts
-                    .font_data
-                    .insert("cascadia".into(), Arc::new(FontData::from_owned(cc.clone())));
+                fonts.font_data.insert(
+                    "cascadia".into(),
+                    Arc::new(FontData::from_owned(cc.clone())),
+                );
             }
             mono.push("cascadia".into());
         }
         if let Some(con) = &consolas {
             if !fonts.font_data.contains_key("consolas") {
-                fonts
-                    .font_data
-                    .insert("consolas".into(), Arc::new(FontData::from_owned(con.clone())));
+                fonts.font_data.insert(
+                    "consolas".into(),
+                    Arc::new(FontData::from_owned(con.clone())),
+                );
             }
             mono.push("consolas".into());
         }

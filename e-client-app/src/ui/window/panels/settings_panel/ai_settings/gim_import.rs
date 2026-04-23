@@ -2,7 +2,7 @@
 
 use e_client_basics::emoji;
 use e_client_config::language::Language;
-use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_config::translations::{tr, tr_fmt, TranslationKey};
 
 use crate::ui::window::RedisApp;
 

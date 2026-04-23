@@ -1,4 +1,5 @@
 use crate::redis_client::RedisClient;
+use e_client_config::config::ai_config::BUILTIN_WHITELIST_COMMANDS;
 use rig::{completion::ToolDefinition, tool::Tool};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -76,7 +77,12 @@ pub enum RedisToolError {
     RedisError(String),
     #[error("Serialization error: {0}")]
     SerializationError(String),
+    #[error("{CMD_NOT_WHITELISTED_PREFIX}{0}")]
+    CommandNotWhitelisted(String),
 }
+
+/// Prefix for command not whitelisted error messages
+pub const CMD_NOT_WHITELISTED_PREFIX: &str = "Command not in whitelist: ";
 
 impl From<String> for RedisToolError {
     fn from(s: String) -> Self {
@@ -128,7 +134,12 @@ impl Tool for FilterKeysTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with pattern='{}', limit={}", Self::NAME, args.pattern, args.limit);
+        info!(
+            "[ToolCall] {} started with pattern='{}', limit={}",
+            Self::NAME,
+            args.pattern,
+            args.limit
+        );
         let mut all_keys = Vec::new();
         let mut cursor = 0u64;
 
@@ -293,20 +304,25 @@ impl Tool for DeleteKeysTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with {} keys", Self::NAME, args.keys.len());
-        let mut deleted_count = 0;
+        info!(
+            "[ToolCall] {} started with {} keys",
+            Self::NAME,
+            args.keys.len()
+        );
 
-        for key in args.keys {
-            self.redis_client.del_key(&key).await?;
-            deleted_count += 1;
-        }
+        let deleted_count = self.redis_client.del_keys(&args.keys).await?;
 
         let result = json!({
             "deleted_count": deleted_count
         });
 
         let elapsed = start.elapsed();
-        info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
+        info!(
+            "[ToolCall] {} completed in {:?}, deleted {} keys",
+            Self::NAME,
+            elapsed,
+            deleted_count
+        );
         Ok(result.to_string())
     }
 }
@@ -315,11 +331,40 @@ impl Tool for DeleteKeysTool {
 #[derive(Debug, Clone)]
 pub struct ExecuteCommandTool {
     redis_client: Arc<RedisClient>,
+    custom_whitelist: Vec<String>,
 }
 
 impl ExecuteCommandTool {
-    pub fn new(redis_client: Arc<RedisClient>) -> Self {
-        Self { redis_client }
+    pub fn new(redis_client: Arc<RedisClient>, custom_whitelist: Vec<String>) -> Self {
+        Self {
+            redis_client,
+            custom_whitelist,
+        }
+    }
+
+    /// Check if command is in whitelist
+    pub fn is_command_allowed(&self, command: &str) -> bool {
+        // Extract first token as command name, convert to uppercase
+        let command_name = command
+            .split_whitespace()
+            .next()
+            .map(|s| s.to_uppercase())
+            .unwrap_or_default();
+
+        // Validate command name is not empty
+        if command_name.is_empty() {
+            return false;
+        }
+
+        // Check built-in whitelist first
+        if BUILTIN_WHITELIST_COMMANDS.contains(&command_name.as_str()) {
+            return true;
+        }
+
+        // Check custom whitelist
+        self.custom_whitelist
+            .iter()
+            .any(|c| c.eq_ignore_ascii_case(&command_name))
     }
 }
 
@@ -327,6 +372,9 @@ impl ExecuteCommandTool {
 pub struct ExecuteCommandArgs {
     /// The complete Redis command to execute (e.g., 'GET mykey' or 'HGETALL myhash')
     command: String,
+    /// Optional: Bypass whitelist check for this single execution (for user confirmed operations)
+    #[serde(default)]
+    allow_unsafe: bool,
 }
 
 impl Tool for ExecuteCommandTool {
@@ -355,8 +403,30 @@ impl Tool for ExecuteCommandTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with command='{}'", Self::NAME, args.command);
-        let result = self.redis_client
+        info!(
+            "[ToolCall] {} started with command='{}'",
+            Self::NAME,
+            args.command
+        );
+
+        // Check whitelist before execution, skip if explicitly allowed by user
+        if !args.allow_unsafe && !self.is_command_allowed(&args.command) {
+            let command_name = args
+                .command
+                .split_whitespace()
+                .next()
+                .unwrap_or_default()
+                .to_uppercase();
+            info!(
+                "[ToolCall] {} blocked command '{}' - not in whitelist",
+                Self::NAME,
+                command_name
+            );
+            return Err(RedisToolError::CommandNotWhitelisted(command_name));
+        }
+
+        let result = self
+            .redis_client
             .execute_command(&args.command)
             .await
             .map_err(|e| RedisToolError::RedisError(e.to_string()))?;
@@ -510,7 +580,12 @@ impl Tool for SetTtlTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', ttl={}", Self::NAME, args.key, args.ttl);
+        info!(
+            "[ToolCall] {} started with key='{}', ttl={}",
+            Self::NAME,
+            args.key,
+            args.ttl
+        );
         self.redis_client.set_ttl(&args.key, args.ttl).await?;
         let elapsed = start.elapsed();
         info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
@@ -565,7 +640,12 @@ impl Tool for RenameKeyTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with old_key='{}', new_key='{}'", Self::NAME, args.old_key, args.new_key);
+        info!(
+            "[ToolCall] {} started with old_key='{}', new_key='{}'",
+            Self::NAME,
+            args.old_key,
+            args.new_key
+        );
         let renamed = self
             .redis_client
             .rename_key_nx(&args.old_key, &args.new_key)
@@ -672,7 +752,12 @@ impl Tool for HsetTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', field='{}'", Self::NAME, args.key, args.field);
+        info!(
+            "[ToolCall] {} started with key='{}', field='{}'",
+            Self::NAME,
+            args.key,
+            args.field
+        );
         self.redis_client
             .hset(&args.key, &args.field, &args.value)
             .await?;
@@ -724,7 +809,12 @@ impl Tool for HdelTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', field='{}'", Self::NAME, args.key, args.field);
+        info!(
+            "[ToolCall] {} started with key='{}', field='{}'",
+            Self::NAME,
+            args.key,
+            args.field
+        );
         self.redis_client.hdel(&args.key, &args.field).await?;
         let elapsed = start.elapsed();
         info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
@@ -776,7 +866,12 @@ impl Tool for LsetTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', index={}", Self::NAME, args.key, args.index);
+        info!(
+            "[ToolCall] {} started with key='{}', index={}",
+            Self::NAME,
+            args.key,
+            args.index
+        );
         self.redis_client
             .lset(&args.key, args.index, &args.value)
             .await?;
@@ -828,7 +923,12 @@ impl Tool for SaddTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
+        info!(
+            "[ToolCall] {} started with key='{}', member='{}'",
+            Self::NAME,
+            args.key,
+            args.member
+        );
         self.redis_client.sadd(&args.key, &args.member).await?;
         let elapsed = start.elapsed();
         info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
@@ -878,7 +978,12 @@ impl Tool for SremTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
+        info!(
+            "[ToolCall] {} started with key='{}', member='{}'",
+            Self::NAME,
+            args.key,
+            args.member
+        );
         self.redis_client.srem(&args.key, &args.member).await?;
         let elapsed = start.elapsed();
         info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);
@@ -930,7 +1035,13 @@ impl Tool for ZaddTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', member='{}', score={}", Self::NAME, args.key, args.member, args.score);
+        info!(
+            "[ToolCall] {} started with key='{}', member='{}', score={}",
+            Self::NAME,
+            args.key,
+            args.member,
+            args.score
+        );
         self.redis_client
             .zadd(&args.key, args.score, &args.member)
             .await?;
@@ -982,7 +1093,12 @@ impl Tool for ZremTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let start = Instant::now();
-        info!("[ToolCall] {} started with key='{}', member='{}'", Self::NAME, args.key, args.member);
+        info!(
+            "[ToolCall] {} started with key='{}', member='{}'",
+            Self::NAME,
+            args.key,
+            args.member
+        );
         self.redis_client.zrem(&args.key, &args.member).await?;
         let elapsed = start.elapsed();
         info!("[ToolCall] {} completed in {:?}", Self::NAME, elapsed);

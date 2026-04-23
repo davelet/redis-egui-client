@@ -12,16 +12,17 @@ use std::sync::atomic;
 /// Parse tool call information from log lines
 pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
     let mut tool_calls = Vec::new();
-    let mut running_tools: std::collections::HashMap<String, (String, String)> = std::collections::HashMap::new();
+    let mut running_tools: std::collections::HashMap<String, (String, String)> =
+        std::collections::HashMap::new();
 
     for line in log_lines {
         if let Some(start_idx) = line.find("[ToolCall] ") {
             let after_marker = &line[start_idx + 11..];
-            
+
             if let Some(space_idx) = after_marker.find(' ') {
                 let tool_name = &after_marker[..space_idx];
                 let rest = &after_marker[space_idx + 1..];
-                
+
                 if rest.starts_with("started") {
                     let args_summary = if let Some(with_idx) = rest.find(" with ") {
                         rest[with_idx + 6..].to_string()
@@ -33,7 +34,7 @@ pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
                     if let Some((args_summary, _)) = running_tools.remove(tool_name) {
                         let duration_str = &rest[13..];
                         let duration_ms = parse_duration_to_ms(duration_str);
-                        
+
                         tool_calls.push(ToolCallInfo {
                             name: tool_name.to_string(),
                             status: ToolCallStatus::Success,
@@ -51,7 +52,7 @@ pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
 
 fn parse_duration_to_ms(duration_str: &str) -> Option<u64> {
     let duration_str = duration_str.trim();
-    
+
     if let Some(ms_idx) = duration_str.find("ms") {
         let ms_part = &duration_str[..ms_idx].trim();
         if let Ok(ms) = ms_part.parse::<f64>() {
@@ -68,7 +69,7 @@ fn parse_duration_to_ms(duration_str: &str) -> Option<u64> {
             return Some((min * 60000.0) as u64);
         }
     }
-    
+
     None
 }
 
@@ -361,7 +362,9 @@ pub struct CommandLinePanel {
     /// Uses Mutex to allow mutable access from async context
     pub rig_agent: std::sync::Arc<tokio::sync::Mutex<Option<e_client_core::OpenAiRigAgent>>>,
     /// Cache of initialized AI agents, key: model_id + mode
-    pub agent_cache: std::sync::Arc<tokio::sync::Mutex<std::collections::HashMap<String, e_client_core::OpenAiRigAgent>>>,
+    pub agent_cache: std::sync::Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, e_client_core::OpenAiRigAgent>>,
+    >,
     /// Current AI mode (Chat or Agent) - per-tab, not persisted
     pub current_mode: AiMode,
     /// Current model ID for this tab - per-tab, not persisted
@@ -385,7 +388,9 @@ impl Default for CommandLinePanel {
             ai_chat_pending: None,
             redis_command_pending: None,
             rig_agent: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
-            agent_cache: std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            agent_cache: std::sync::Arc::new(tokio::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
             current_mode: AiMode::Agent,
             current_model_id: None,
             log_viewer: LogViewer::default(),

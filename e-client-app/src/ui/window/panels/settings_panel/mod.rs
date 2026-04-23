@@ -281,5 +281,4 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     });
                 });
         });
-
 }

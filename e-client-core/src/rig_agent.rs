@@ -1,7 +1,7 @@
 use crate::ai_tools::{
-    DeleteKeysTool, ExecuteCommandTool, FilterKeysTool, GetDbStatsTool, GetKeyInfoTool, HdelTool,
-    HsetTool, KeyExistsTool, LsetTool, RenameKeyTool, RpushTool, SaddTool, SelectDbTool,
-    SetStringTool, SetTtlTool, SremTool, ZaddTool, ZremTool,
+    CMD_NOT_WHITELISTED_PREFIX, DeleteKeysTool, ExecuteCommandTool, FilterKeysTool, GetDbStatsTool,
+    GetKeyInfoTool, HdelTool, HsetTool, KeyExistsTool, LsetTool, RenameKeyTool, RpushTool,
+    SaddTool, SelectDbTool, SetStringTool, SetTtlTool, SremTool, ZaddTool, ZremTool,
 };
 use crate::redis_client::RedisClient;
 use e_client_config::config::ai_config::{AiConfig, AiMode, AiModel};
@@ -95,12 +95,18 @@ pub enum AiResponseError {
     InvalidModel(String),
     ServerError(String),
     ModelNotFound,
+    CommandNotWhitelisted(String), // Command that was blocked
     Other(String),
 }
 
 impl AiResponseError {
     pub fn from_error_string(error: &str) -> Self {
         let error_lower = error.to_lowercase();
+
+        // Check for command not whitelisted first
+        if let Some(cmd) = error.strip_prefix(CMD_NOT_WHITELISTED_PREFIX) {
+            return AiResponseError::CommandNotWhitelisted(cmd.to_string());
+        }
 
         if error_lower.contains("401")
             || error_lower.contains("unauthorized")
@@ -162,7 +168,9 @@ impl AiResponseError {
             AiResponseError::InvalidModel(_) => TranslationKey::AiErrorInvalidModel,
             AiResponseError::ServerError(_) => TranslationKey::AiErrorServerError,
             AiResponseError::ModelNotFound => TranslationKey::AiErrorModelNotFound,
-            AiResponseError::Other(_) => TranslationKey::AiErrorOther,
+            AiResponseError::CommandNotWhitelisted(_) | AiResponseError::Other(_) => {
+                TranslationKey::AiErrorOther
+            }
         }
     }
 
@@ -246,7 +254,10 @@ impl OpenAiRigAgent {
                     .tool(FilterKeysTool::new(redis_client.clone()))
                     .tool(GetKeyInfoTool::new(redis_client.clone()))
                     .tool(DeleteKeysTool::new(redis_client.clone()))
-                    .tool(ExecuteCommandTool::new(redis_client.clone()))
+                    .tool(ExecuteCommandTool::new(
+                        redis_client.clone(),
+                        config.custom_command_whitelist.clone(),
+                    ))
                     .tool(GetDbStatsTool::new(redis_client.clone()))
                     .tool(SetStringTool::new(redis_client.clone()))
                     .tool(SetTtlTool::new(redis_client.clone()))
@@ -307,7 +318,10 @@ impl OpenAiRigAgent {
         if self.history.len() >= MAX_HISTORY_MESSAGES {
             let truncate_count = self.history.len() - MAX_HISTORY_MESSAGES + 1;
             self.history.drain(0..truncate_count);
-            info!("Truncated chat history to {} messages (removed oldest {} messages)", MAX_HISTORY_MESSAGES, truncate_count);
+            info!(
+                "Truncated chat history to {} messages (removed oldest {} messages)",
+                MAX_HISTORY_MESSAGES, truncate_count
+            );
         }
 
         let result = self

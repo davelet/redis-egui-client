@@ -357,6 +357,31 @@ impl RedisClient {
         }
     }
 
+    /// Batch delete multiple keys in chunks of 100 for optimal performance
+    pub async fn del_keys(&self, keys: &[String]) -> Result<usize, RedisError> {
+        if keys.is_empty() {
+            return Ok(0);
+        }
+        let mut manager = self.manager.write().await;
+        if let Some(conn) = manager.as_mut() {
+            const BATCH_SIZE: usize = 100;
+            let mut deleted_total = 0;
+
+            for chunk in keys.chunks(BATCH_SIZE) {
+                let mut cmd = redis::cmd("DEL");
+                for key in chunk {
+                    cmd.arg(key);
+                }
+                let deleted: i32 = cmd.query_async(conn).await?;
+                deleted_total += deleted as usize;
+            }
+
+            Ok(deleted_total)
+        } else {
+            Ok(0)
+        }
+    }
+
     pub async fn key_exists(&self, key: &str) -> Result<bool, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {

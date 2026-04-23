@@ -302,7 +302,7 @@ fn render_hash_value(
 fn render_set_value(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
+    _ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
     len: &usize,
@@ -349,7 +349,7 @@ fn render_set_value(
 fn render_zset_value(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
+    _ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
     len: &usize,

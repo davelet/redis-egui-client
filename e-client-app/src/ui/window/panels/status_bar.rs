@@ -148,7 +148,11 @@ pub fn render_status_bar(app: &mut RedisApp, ctx: &egui::Context) {
                             .settings
                             .shortcuts
                             .get_binding(&ShortcutAction::ToggleCommandLine);
-                        format!("{}{}", tr(TranslationKey::CliButton, current_lang), get_shortcut_display(&cli_binding))
+                        format!(
+                            "{}{}",
+                            tr(TranslationKey::CliButton, current_lang),
+                            get_shortcut_display(&cli_binding)
+                        )
                     } else {
                         tr(TranslationKey::CliButton, current_lang).to_string()
                     };

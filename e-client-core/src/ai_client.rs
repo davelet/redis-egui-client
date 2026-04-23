@@ -1,6 +1,6 @@
 use e_client_config::config::ai_config::AiModel;
 use serde::{Deserialize, Serialize};
-use tracing::{warn, info};
+use tracing::{info, warn};
 
 /// AI chat message
 #[derive(Debug, Serialize)]
@@ -80,7 +80,10 @@ pub fn detect_api_provider(url: &str) -> ApiProvider {
         ApiProvider::Anthropic
     } else if url_lower.contains("openrouter.ai") {
         ApiProvider::OpenRouter
-    } else if url_lower.contains("ollama") || url_lower.contains("localhost:11434") || url_lower.contains("127.0.0.1:11434") {
+    } else if url_lower.contains("ollama")
+        || url_lower.contains("localhost:11434")
+        || url_lower.contains("127.0.0.1:11434")
+    {
         ApiProvider::Ollama
     } else {
         ApiProvider::OpenAI
@@ -478,7 +481,9 @@ impl AiClient {
 
             match provider {
                 ApiProvider::Anthropic => {
-                    if let Ok(anthropic_response) = serde_json::from_str::<AnthropicResponse>(&response_text) {
+                    if let Ok(anthropic_response) =
+                        serde_json::from_str::<AnthropicResponse>(&response_text)
+                    {
                         for content in &anthropic_response.content {
                             if let AnthropicContent::Text { text } = content {
                                 info!(model_response = %text, "Model response (Anthropic)");
@@ -487,7 +492,9 @@ impl AiClient {
                     }
                 }
                 _ => {
-                    if let Ok(chat_response) = serde_json::from_str::<ChatCompletionResponse>(&response_text) {
+                    if let Ok(chat_response) =
+                        serde_json::from_str::<ChatCompletionResponse>(&response_text)
+                    {
                         if let Some(choice) = chat_response.choices.first() {
                             info!(model_response = %choice.message.content, "Model response (OpenAI compatible)");
                         }

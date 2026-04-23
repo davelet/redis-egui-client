@@ -14,6 +14,8 @@ pub mod action {
     pub const CANCEL: &str = "\u{274C}";
     /// Delete / Trash (🗑)
     pub const DELETE: &str = "\u{1F5D1}";
+    /// Close / Cross mark (×)
+    pub const CLOSE: &str = "\u{00D7}";
     /// Settings / Gear (⚙)
     pub const SETTINGS: &str = "\u{2699}";
     /// Warning (⚠️)

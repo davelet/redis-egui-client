@@ -183,7 +183,7 @@ fn render_header(
 fn render_ttl_controls(
     app: &mut RedisApp,
     ui: &mut egui::Ui,
-    ctx: &egui::Context,
+    _ctx: &egui::Context,
     active_tab_idx: usize,
     key: &str,
     ttl: i64,
