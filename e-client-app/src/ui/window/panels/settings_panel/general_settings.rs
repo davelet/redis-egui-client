@@ -100,6 +100,10 @@ pub fn render_general_settings(
             });
             ui.end_row();
         });
+
+    // Menu language restart hint
+    ui.add_space(8.0);
+    ui.weak(tr(TranslationKey::MenuLanguageRestartHint, current_lang));
 }
 
 /// Render update checker settings

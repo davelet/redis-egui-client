@@ -21,6 +21,7 @@ pub use types::{
 pub mod components;
 pub mod copy_feedback;
 mod log_capture;
+pub mod menus;
 mod new_connection_window;
 pub mod panels;
 pub mod shortcut_manager;
@@ -84,6 +85,9 @@ pub struct RedisApp {
     /// Shared sender for update results (used by both UI and periodic checks)
     pub background_update_sender:
         std::sync::Arc<std::sync::mpsc::Sender<e_client_core::updater::UpdateCheckResult>>,
+    /// Menu event receiver (macOS native menu)
+    #[cfg(target_os = "macos")]
+    pub menu_receiver: std::sync::mpsc::Receiver<menus::macos::MenuAction>,
 }
 
 /// Settings panel expandable sections
@@ -140,6 +144,14 @@ impl eframe::App for RedisApp {
                 tr(TranslationKey::FontWarningTitle, lang).to_string(),
                 tr(TranslationKey::FontWarningMissingMonospace, lang).to_string(),
             );
+        }
+
+        // Process macOS native menu events
+        #[cfg(target_os = "macos")]
+        {
+            while let Ok(action) = self.menu_receiver.try_recv() {
+                self.handle_menu_action(action, ctx);
+            }
         }
 
         // Trigger startup update check (only once, on first frame)
@@ -470,6 +482,13 @@ impl RedisApp {
         let (sender, receiver) = std::sync::mpsc::channel();
         let shared_sender = std::sync::Arc::new(sender);
 
+        #[cfg(target_os = "macos")]
+        let (menu_sender, menu_receiver) = std::sync::mpsc::channel();
+
+        // Initialize macOS native menu bar
+        #[cfg(target_os = "macos")]
+        menus::macos::initialize_menu_bar(menu_sender, global_language);
+
         Self {
             tabs: vec![initial_tab],
             active_tab: 0,
@@ -504,6 +523,8 @@ impl RedisApp {
             update_result_receiver: receiver,
             tokio_handle,
             background_update_sender: shared_sender,
+            #[cfg(target_os = "macos")]
+            menu_receiver,
         }
     }
 
@@ -862,6 +883,170 @@ impl RedisApp {
             // Update tab name if it's the default name
             if tab.name.starts_with("Tab ") || tab.name.starts_with("标签页") {
                 tab.name = format!("{}{}", tr(TranslationKey::Tab, lang), tab.id);
+            }
+        }
+    }
+
+    /// Handle macOS native menu bar actions
+    #[cfg(target_os = "macos")]
+    pub fn handle_menu_action(&mut self, action: menus::macos::MenuAction, ctx: &egui::Context) {
+        use e_client_config::config::shortcuts::ShortcutAction;
+        use e_client_config::translations::{tr, TranslationKey};
+        use menus::macos::MenuAction;
+
+        // Get current language
+        let current_lang = self.global_language;
+
+        // Helper to check if active tab is connected
+        let is_active_tab_connected = || -> bool {
+            if let Some(tab) = self.get_active_tab() {
+                self.poll_bool(tab.state.connected.clone())
+            } else {
+                false
+            }
+        };
+
+        match action {
+            MenuAction::CheckForUpdates => {
+                if !self.update_check_in_progress {
+                    trigger_update_check(self);
+                }
+            }
+            MenuAction::Preferences => {
+                self.set_show_settings(true);
+            }
+            MenuAction::Quit => {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+            MenuAction::NewConnection => {
+                shortcut_manager::handle_shortcut_action(
+                    self,
+                    ShortcutAction::NewConnection,
+                    ctx,
+                );
+            }
+            MenuAction::NewTab => {
+                shortcut_manager::handle_shortcut_action(self, ShortcutAction::NewTab, ctx);
+            }
+            MenuAction::CloseTab => {
+                shortcut_manager::handle_shortcut_action(self, ShortcutAction::CloseTab, ctx);
+            }
+            MenuAction::ConnectAllUnclosed => {
+                shortcut_manager::handle_shortcut_action(
+                    self,
+                    ShortcutAction::ConnectAllUnclosed,
+                    ctx,
+                );
+            }
+            MenuAction::NewKey => {
+                if is_active_tab_connected() {
+                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::NewKey, ctx);
+                } else {
+                    self.toasts.warning(
+                        tr(TranslationKey::Warning, current_lang).to_string(),
+                        tr(TranslationKey::PleaseConnectToRedisFirst, current_lang).to_string(),
+                    );
+                }
+            }
+            MenuAction::DeleteKey => {
+                if is_active_tab_connected() {
+                    // Delete key functionality will be implemented in the future
+                    self.toasts.info(
+                        tr(TranslationKey::Info, current_lang).to_string(),
+                        "Delete key functionality coming soon".to_string(),
+                    );
+                } else {
+                    self.toasts.warning(
+                        tr(TranslationKey::Warning, current_lang).to_string(),
+                        tr(TranslationKey::PleaseConnectToRedisFirst, current_lang).to_string(),
+                    );
+                }
+            }
+            MenuAction::RefreshKeys => {
+                if is_active_tab_connected() {
+                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::RefreshKeys, ctx);
+                } else {
+                    self.toasts.warning(
+                        tr(TranslationKey::Warning, current_lang).to_string(),
+                        tr(TranslationKey::PleaseConnectToRedisFirst, current_lang).to_string(),
+                    );
+                }
+            }
+            MenuAction::RefreshCurrentKey => {
+                if is_active_tab_connected() {
+                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::RefreshKey, ctx);
+                } else {
+                    self.toasts.warning(
+                        tr(TranslationKey::Warning, current_lang).to_string(),
+                        tr(TranslationKey::PleaseConnectToRedisFirst, current_lang).to_string(),
+                    );
+                }
+            }
+            MenuAction::Find => {
+                if is_active_tab_connected() {
+                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::FocusFilter, ctx);
+                } else {
+                    self.toasts.warning(
+                        tr(TranslationKey::Warning, current_lang).to_string(),
+                        tr(TranslationKey::PleaseConnectToRedisFirst, current_lang).to_string(),
+                    );
+                }
+            }
+            MenuAction::ToggleCommandLine => {
+                shortcut_manager::handle_shortcut_action(
+                    self,
+                    ShortcutAction::ToggleCommandLine,
+                    ctx,
+                );
+            }
+            MenuAction::ToggleLiveLogs => {
+                shortcut_manager::handle_shortcut_action(
+                    self,
+                    ShortcutAction::ToggleLiveLogs,
+                    ctx,
+                );
+            }
+            MenuAction::RemoveDuplicateTabs => {
+                shortcut_manager::handle_shortcut_action(
+                    self,
+                    ShortcutAction::RemoveDuplicateAndInvalidTabs,
+                    ctx,
+                );
+            }
+            MenuAction::ShowAllTabs => {
+                self.show_all_tabs_dropdown = true;
+            }
+            MenuAction::Minimize => {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+            }
+            MenuAction::Zoom => {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(
+                    !ctx.input(|i| i.viewport().maximized.unwrap_or(false)),
+                ));
+            }
+            MenuAction::NextTab => {
+                let next = (self.active_tab + 1).min(self.tabs.len().saturating_sub(1));
+                if next != self.active_tab {
+                    self.switch_to_tab(next);
+                }
+            }
+            MenuAction::PreviousTab => {
+                let prev = self.active_tab.saturating_sub(1);
+                if prev != self.active_tab {
+                    self.switch_to_tab(prev);
+                }
+            }
+            MenuAction::BringAllToFront => {
+                // Bring All to Front is handled natively by macOS
+            }
+            MenuAction::Help => {
+                // Open online help documentation
+                #[cfg(target_os = "macos")]
+                let _ = open::that("https://github.com/davelet/redis-egui-client#readme");
+            }
+            MenuAction::LocalHelp => {
+                // Open local help (same as F1 shortcut)
+                self.set_show_help(!self.show_help());
             }
         }
     }
