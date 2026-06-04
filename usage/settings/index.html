@@ -776,6 +776,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#display-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Display Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -928,6 +939,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#display-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Display Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1044,6 +1066,13 @@
 <li><strong>Large Dataset Handling</strong>: Avoid loading millions of keys at once, use filtering to narrow scope</li>
 <li><strong>Regular Refresh</strong>: Use <code>Ctrl/Cmd + R</code> to quickly refresh keys that may change</li>
 </ol>
+<h2 id="display-settings">Display Settings</h2>
+<ul>
+<li><strong>Group keys by colon</strong> - Organize keys hierarchically using <code>:</code> as separator (e.g., <code>user:123:name</code>)</li>
+<li><strong>Auto refresh TTL</strong> - Automatically refresh TTL display for keys</li>
+<li><strong>Auto expand composite types</strong> - Automatically expand Hash, List, Set, ZSet when member count is below threshold</li>
+<li><strong>Filter debounce</strong> - Delay (ms) between the last keystroke in the key filter and the actual SCAN. Range 0–2000 (default 300). 0 fires immediately on every keystroke; higher values collapse rapid typing into a single round-trip. See <a href="../data-operations/#key-filtering">Data Operations</a> for the user-facing behavior.</li>
+</ul>
 
 
 

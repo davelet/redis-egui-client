@@ -725,6 +725,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#061-2026-06-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.1] - 2026-06-04
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.1] - 2026-06-04">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#051-2026-04-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -737,7 +765,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -765,7 +793,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -804,7 +832,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1371,6 +1399,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#061-2026-06-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.1] - 2026-06-04
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.1] - 2026-06-04">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#051-2026-04-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1383,7 +1439,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1411,7 +1467,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1450,7 +1506,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -2003,8 +2059,30 @@
 
 
 <h1 id="changelog">Changelog</h1>
-<h2 id="051-2026-04-09">[0.5.1] - 2026-04-09</h2>
+<h2 id="061-2026-06-04">[0.6.1] - 2026-06-04</h2>
 <h3 id="new-features">New Features</h3>
+<p><strong>Binary-Safe Hash Fields</strong>
+- Hash field values are now read as raw bytes; non-UTF-8 content (serialized protobuf, gzipped blobs, image bytes, etc.) is shown as a hex preview placeholder <code>[Binary data, N bytes]...</code> instead of failing. UTF-8 values render and edit normally.
+- Hash field listing is now robust against very large hashes:
+  - <strong>Redis 7.4+</strong> uses <code>HSCAN ... NOVALUES</code> so the server only transfers field names.
+  - <strong>Redis &lt; 7.4</strong> falls back to <code>HKEYS</code> with a client-side glob match. The previous plain <code>HSCAN</code> returned alternating field/value pairs and could exceed the 500 ms response timeout on multi-MB hashes over WAN; the new path keeps the per-call payload small enough to always fit in the budget.
+- A 100,000-field cap prevents a pathological key from exhausting memory.</p>
+<p><strong>Configurable Key-Filter Debounce</strong>
+- New <strong>Filter debounce</strong> setting in <strong>Settings → Display</strong> (range 0–2000 ms, default 300 ms). The SCAN now fires shortly after typing stops rather than on every keystroke, so rapid typing is collapsed into a single Redis round-trip.
+- Setting it to 0 restores the previous "fire on every keystroke" behavior.
+- The pending window is rendered as a "Loading" state and the <strong>Load More</strong> button is suppressed while pending, to avoid stale clicks racing a soon-to-be-replaced key set.</p>
+<p><strong>Hash Field Loading State</strong>
+- Each per-field "Load" button now shows a "Loading..." state while its HGET is in flight and is disabled to reject duplicate clicks on the same (key, field) pair.
+- The entry is always removed at the end of the request, including on error, to avoid leaving the button stuck.</p>
+<p><strong>Asynchronous UI Repaint</strong>
+- Background tasks can now wake the UI thread directly via an <code>egui::Context</code> repaint closure installed on every tab, so lazy-load results appear without waiting for the next input event. The <code>needs_repaint</code> flag alone was insufficient when egui was idle.
+- The callback defaults to a no-op for non-UI consumers (tests, CLI tools).</p>
+<p><strong>i18n</strong>
+- Localized key-loading progress text: <code>LoadingKeysProgress</code>, <code>LoadedKeysCount</code>, <code>LoadedKeysPartial</code>, <code>AllKeysLoaded</code>, <code>LoadedKeysClickMore</code>.
+- Localized the new debounce setting label and hint (<code>KeyFilterDebounce</code>, <code>KeyFilterDebounceHint</code>).
+- All new strings have English and Chinese variants.</p>
+<h2 id="051-2026-04-09">[0.5.1] - 2026-04-09</h2>
+<h3 id="new-features_1">New Features</h3>
 <p><strong>GIM Configuration Import</strong>
 - Added "Import from GIM" button in AI settings panel
 - Automatically imports AI model configuration from <code>~/.config/gim/config.toml</code>
@@ -2012,7 +2090,7 @@
 - Imports API key and stores securely in system keychain
 - If model already exists, replaces it with imported configuration</p>
 <h2 id="050-2026-04-09">[0.5.0] - 2026-04-09</h2>
-<h3 id="new-features_1">New Features</h3>
+<h3 id="new-features_2">New Features</h3>
 <p><strong>Shortcut Customization Indicator</strong>
 - Added visual indicator for customized shortcuts in settings
 - Shortcuts with underlined names indicate they have been modified from default values
@@ -2023,7 +2101,7 @@
 - Grouped related settings: Display, Connection, Shortcuts, AI Configuration
 - Improved settings UI with clearer section headers</p>
 <h2 id="048-2026-04-07">[0.4.8] - 2026-04-07</h2>
-<h3 id="new-features_2">New Features</h3>
+<h3 id="new-features_3">New Features</h3>
 <p><strong>Quick Connect Mode</strong>
 - Added Quick Connect mode in New Connection dialog
 - Supports Redis URL format: <code>redis://[&lt;username&gt;][:&lt;password&gt;@]&lt;hostname&gt;[:port][/[&lt;db&gt;]]</code>

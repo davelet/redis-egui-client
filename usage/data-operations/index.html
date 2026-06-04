@@ -758,6 +758,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Data Type Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#binary-safe-hash-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary-Safe Hash Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1010,6 +1027,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Data Type Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#binary-safe-hash-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary-Safe Hash Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1110,6 +1144,7 @@
 <li>Automatically adds wildcards to both ends if no <code>*</code> is present</li>
 <li>Clear the filter to display all keys</li>
 </ul>
+<p>The actual SCAN is <strong>debounced</strong> — it fires shortly after you stop typing rather than on every keystroke, so rapid typing is collapsed into a single Redis round-trip. The delay is configurable in <strong>Settings → Display → Filter debounce</strong> (0–2000 ms, default 300 ms; 0 = fire on every keystroke). The pending window is rendered as a "Loading" state and the <strong>Load More</strong> button is suppressed while pending.</p>
 <h3 id="group-keys-by-colon">Group Keys by Colon</h3>
 <p>Keys can be organized in a tree structure based on the colon separator. For example, <code>user:123:profile</code> would be displayed as:</p>
 <pre><code>user/
@@ -1150,7 +1185,7 @@
 <tr>
 <td><strong>Hash</strong></td>
 <td>Field-value table</td>
-<td>Field filter search, field-level editing</td>
+<td>Field filter search, field-level editing, binary-safe value preview</td>
 </tr>
 <tr>
 <td><strong>Set</strong></td>
@@ -1164,6 +1199,14 @@
 </tr>
 </tbody>
 </table>
+<h4 id="binary-safe-hash-fields">Binary-Safe Hash Fields</h4>
+<p>Hash field values are read as raw bytes, so non-UTF-8 content (serialized protobuf, gzipped blobs, image bytes, etc.) is shown as a hex preview placeholder <code>[Binary data, N bytes]...</code> instead of failing or being mis-decoded. UTF-8 values render normally and remain fully editable.</p>
+<p>Field listing itself is also robust against very large hashes:</p>
+<ul>
+<li><strong>Redis 7.4+</strong> uses <code>HSCAN ... NOVALUES</code> so the server only transfers field names.</li>
+<li><strong>Redis &lt; 7.4</strong> falls back to <code>HKEYS</code> with a client-side glob match. The previous plain <code>HSCAN</code> returned alternating field/value pairs and could exceed the response timeout on multi-MB hashes; the new path keeps the per-call payload small enough to always fit in the budget.</li>
+</ul>
+<p>A safety cap (100,000 fields per call) prevents a pathological key from exhausting memory.</p>
 <h3 id="editing-keys">Editing Keys</h3>
 <ol>
 <li>Click the <strong>Edit</strong> button to enter edit mode</li>
