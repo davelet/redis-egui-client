@@ -62,3 +62,10 @@ When a new version is found:
 2. **Key Naming Convention**: Use consistent prefixes (e.g., `app:module:key`) for easier filtering
 3. **Large Dataset Handling**: Avoid loading millions of keys at once, use filtering to narrow scope
 4. **Regular Refresh**: Use `Ctrl/Cmd + R` to quickly refresh keys that may change
+
+## Display Settings
+
+- **Group keys by colon** - Organize keys hierarchically using `:` as separator (e.g., `user:123:name`)
+- **Auto refresh TTL** - Automatically refresh TTL display for keys
+- **Auto expand composite types** - Automatically expand Hash, List, Set, ZSet when member count is below threshold
+- **Filter debounce** - Delay (ms) between the last keystroke in the key filter and the actual SCAN. Range 0–2000 (default 300). 0 fires immediately on every keystroke; higher values collapse rapid typing into a single round-trip. See [Data Operations](data-operations.md#key-filtering) for the user-facing behavior.

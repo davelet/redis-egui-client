@@ -44,7 +44,7 @@ When the app starts, it will prompt to restore unclosed connections from the pre
 
 ### Filter Keys
 
-Enter keywords in the filter box above the key list and press `Enter`. Supports wildcard `*`.
+Enter keywords in the filter box above the key list. Supports wildcard `*`. The SCAN is debounced — the search fires shortly after you stop typing rather than on every keystroke. Configure the delay under **Settings → Display → Filter debounce** (0–2000 ms, default 300 ms; 0 = apply immediately on every keystroke).
 
 ### Refresh Key List
 
@@ -72,9 +72,13 @@ Select a key and click the copy button, or right-click and select "Copy Key".
 |------|---------|------------|
 | **String** | Plain text | Edit, Copy |
 | **List** | Indexed items | Add, remove, edit elements |
-| **Hash** | Field-value table | Add, remove, edit fields |
+| **Hash** | Field-value table | Add, remove, edit fields; lazy-load field values |
 | **Set** | Member list | Add, remove members |
 | **ZSet** | Scored members | Add, remove, edit scores |
+
+### Binary-Safe Hash Fields
+
+Hash field values are read as raw bytes, so non-UTF-8 content (serialized protobuf, gzipped blobs, image bytes, etc.) is shown as a hex preview placeholder `[Binary data, N bytes]...` instead of failing. UTF-8 values render normally.
 
 ### JSON Formatting
 
@@ -191,6 +195,7 @@ Theme changes apply immediately.
 - **Group keys by colon** - Organize keys hierarchically using `:` as separator (e.g., `user:123:name`)
 - **Auto refresh TTL** - Automatically refresh TTL display for keys
 - **Auto expand composite types** - Automatically expand Hash, List, Set, ZSet when member count is below threshold
+- **Filter debounce** - Delay (ms) between the last keystroke in the key filter and the actual SCAN. Range 0–2000 (default 300). 0 fires immediately on every keystroke; higher values collapse rapid typing into a single round-trip.
 
 ### Update Settings
 

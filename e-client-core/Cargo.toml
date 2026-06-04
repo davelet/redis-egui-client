@@ -1,6 +1,6 @@
 [package]
 name = "e-client-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
@@ -22,6 +22,7 @@ chrono = "0.4"
 rig-core = "0.33"
 rig-derive = "0.1"
 thiserror = "2"
+hex = "0.4"
 
 [dev-dependencies]
 wiremock = "0.6"

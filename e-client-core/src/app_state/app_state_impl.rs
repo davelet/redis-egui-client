@@ -8,6 +8,11 @@ use super::{EditState, operations};
 /// Type alias for the common Arc<RwLock<T>> pattern
 pub type Shared<T> = Arc<RwLock<T>>;
 
+/// Repaint signal invoked by background tasks to wake the UI thread.
+/// Defaults to a no-op so non-UI consumers (tests, CLI tools) work unchanged.
+/// The UI layer installs a closure that calls `egui::Context::request_repaint`.
+pub type RepaintFn = Arc<dyn Fn() + Send + Sync>;
+
 /// Helper function to create a new Shared<T>
 fn shared<T>(value: T) -> Shared<T> {
     Arc::new(RwLock::new(value))
@@ -46,11 +51,24 @@ pub struct AppState {
     pub loading_fields_for_edit: Shared<bool>,
     pub pending_edit_after_load: Shared<bool>,
     pub pending_edit_ttl: Shared<i64>,
+    /// (key, field) pairs whose value is currently being fetched. Used by the
+    /// UI to swap the per-field "Load" button to "Loading..." and disable it
+    /// to prevent duplicate requests. Keyed on the tuple so that switching
+    /// to a different hash mid-load does not collide.
+    pub loading_hash_fields: Shared<std::collections::HashSet<(String, String)>>,
     // Global state
     pub loading: Shared<bool>,
     pub needs_repaint: Shared<bool>, // Flag to request UI repaint (e.g., when keys change)
     pub error_message: Shared<String>,
     pub language: Shared<Language>,
+    /// Callback used by background tasks to wake the UI thread immediately
+    /// after mutating shared state. The `needs_repaint` flag only helps when
+    /// `update()` happens to be running; if egui has gone idle (no input
+    /// events) the flag is never read and the UI freezes on stale data until
+    /// the user moves the mouse. Invoking this callback issues an
+    /// `egui::Context::request_repaint` from any thread, which is the only
+    /// thread-safe way to force a repaint when egui is asleep.
+    pub repaint: Shared<Option<RepaintFn>>,
 }
 
 impl Default for AppState {
@@ -84,6 +102,8 @@ impl Default for AppState {
             loading_fields_for_edit: shared(false),
             pending_edit_after_load: shared(false),
             pending_edit_ttl: shared(-1),
+            loading_hash_fields: shared(std::collections::HashSet::new()),
+            repaint: shared(None),
         }
     }
 }
@@ -91,6 +111,24 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Install the closure that wakes the UI thread. Call once per tab from
+    /// the UI layer with `Arc::new(move || ctx.request_repaint())`.
+    pub fn set_repaint_callback(&self, cb: RepaintFn) {
+        if let Ok(mut guard) = self.repaint.try_write() {
+            *guard = Some(cb);
+        }
+    }
+
+    /// Wake the UI thread from a background task. Combined with setting
+    /// `needs_repaint = true` this guarantees the next frame observes the
+    /// state change even when egui was idle.
+    pub async fn request_repaint(&self) {
+        *self.needs_repaint.write().await = true;
+        if let Some(cb) = self.repaint.read().await.as_ref() {
+            cb();
+        }
     }
 
     // === Connection Operations ===

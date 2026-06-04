@@ -22,6 +22,8 @@ Enter keywords in the filter box at the top of the left sidebar:
 - Automatically adds wildcards to both ends if no `*` is present
 - Clear the filter to display all keys
 
+The actual SCAN is **debounced** — it fires shortly after you stop typing rather than on every keystroke, so rapid typing is collapsed into a single Redis round-trip. The delay is configurable in **Settings → Display → Filter debounce** (0–2000 ms, default 300 ms; 0 = fire on every keystroke). The pending window is rendered as a "Loading" state and the **Load More** button is suppressed while pending.
+
 ### Group Keys by Colon
 
 Keys can be organized in a tree structure based on the colon separator. For example, `user:123:profile` would be displayed as:
@@ -51,9 +53,20 @@ This makes it easier to navigate keys with hierarchical naming conventions.
 |------|----------------|------------------|
 | **String** | Text editor | View full content directly |
 | **List** | Indexed list | Lazy loading, click elements to edit |
-| **Hash** | Field-value table | Field filter search, field-level editing |
+| **Hash** | Field-value table | Field filter search, field-level editing, binary-safe value preview |
 | **Set** | Member list | Lazy loading, click elements to edit |
 | **ZSet** | Score-member list | Display sorted by score |
+
+#### Binary-Safe Hash Fields
+
+Hash field values are read as raw bytes, so non-UTF-8 content (serialized protobuf, gzipped blobs, image bytes, etc.) is shown as a hex preview placeholder `[Binary data, N bytes]...` instead of failing or being mis-decoded. UTF-8 values render normally and remain fully editable.
+
+Field listing itself is also robust against very large hashes:
+
+- **Redis 7.4+** uses `HSCAN ... NOVALUES` so the server only transfers field names.
+- **Redis < 7.4** falls back to `HKEYS` with a client-side glob match. The previous plain `HSCAN` returned alternating field/value pairs and could exceed the response timeout on multi-MB hashes; the new path keeps the per-call payload small enough to always fit in the budget.
+
+A safety cap (100,000 fields per call) prevents a pathological key from exhausting memory.
 
 ### Editing Keys
 

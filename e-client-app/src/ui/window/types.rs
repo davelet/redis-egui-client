@@ -129,6 +129,11 @@ pub struct RedisTab {
     pub selected_connection: Option<usize>,
     pub connected_color: Option<String>, // Connection color (hex) after successful connection
     pub key_filter_input: String,
+    /// Timestamp of the last edit to `key_filter_input`. The actual SCAN is
+    /// only triggered after this is at least `KEY_FILTER_DEBOUNCE_MS` ms in
+    /// the past, so rapid typing does not fire one Redis round-trip per
+    /// keystroke. `None` means there is no pending filter change.
+    pub key_filter_pending_since: Option<std::time::Instant>,
     pub side_panel_width: f32, // Current side panel width for this tab
     pub command_line_panel: CommandLinePanel, // Per-tab command line panel state
     pub last_error_shown: Option<String>, // Prevent duplicate toasts
@@ -148,6 +153,7 @@ impl RedisTab {
             selected_connection: None,
             connected_color: None,
             key_filter_input: String::new(),
+            key_filter_pending_since: None,
             side_panel_width: DEFAULT_SIDE_PANEL_WIDTH,
             command_line_panel: CommandLinePanel::default(),
             last_error_shown: None,

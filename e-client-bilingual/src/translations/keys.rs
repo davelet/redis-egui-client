@@ -373,4 +373,13 @@ pub enum TranslationKey {
     Warning,
     Info,
     PleaseConnectToRedisFirst,
+    // Key loading progress (used in side panel during SCAN)
+    LoadingKeysProgress,
+    LoadedKeysCount,
+    LoadedKeysPartial,
+    AllKeysLoaded,
+    LoadedKeysClickMore,
+    // Filter debounce setting
+    KeyFilterDebounce,
+    KeyFilterDebounceHint,
 }

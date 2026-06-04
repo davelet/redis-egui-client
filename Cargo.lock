@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Rudist"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "chrono",
  "e-client-basics",
@@ -1239,13 +1239,14 @@ dependencies = [
 
 [[package]]
 name = "e-client-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "dirs",
  "e-client-basics",
  "e-client-bilingual",
  "e-client-config",
+ "hex",
  "redis",
  "reqwest",
  "rig-core",

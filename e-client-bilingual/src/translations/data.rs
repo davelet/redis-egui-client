@@ -1210,6 +1210,45 @@ pub fn load_all_translations(
     strings.insert(TranslationKey::Warning, tr_en_zh("Warning", "警告"));
     strings.insert(TranslationKey::Info, tr_en_zh("Info", "提示"));
     strings.insert(TranslationKey::PleaseConnectToRedisFirst, tr_en_zh("Please connect to a Redis server first", "请先连接到 Redis 服务器"));
+    // Key loading progress (placeholders use {} positionally)
+    strings.insert(
+        TranslationKey::LoadingKeysProgress,
+        tr_en_zh("Loading keys... {}/{}", "正在加载键... {}/{}"),
+    );
+    strings.insert(
+        TranslationKey::LoadedKeysCount,
+        tr_en_zh("Loaded {} keys", "已加载 {} 个键"),
+    );
+    strings.insert(
+        TranslationKey::LoadedKeysPartial,
+        tr_en_zh(
+            "Loaded {} of ~{} keys. Click 'Load More' to load additional keys",
+            "已加载 {} / ~{} 个键,点击\"加载更多\"以继续",
+        ),
+    );
+    strings.insert(
+        TranslationKey::AllKeysLoaded,
+        tr_en_zh("All {} keys loaded", "已加载全部 {} 个键"),
+    );
+    strings.insert(
+        TranslationKey::LoadedKeysClickMore,
+        tr_en_zh(
+            "Loaded {} keys. Click 'Load More' to continue",
+            "已加载 {} 个键,点击\"加载更多\"以继续",
+        ),
+    );
+    // Filter debounce setting
+    strings.insert(
+        TranslationKey::KeyFilterDebounce,
+        tr_en_zh("Filter debounce", "过滤防抖延迟"),
+    );
+    strings.insert(
+        TranslationKey::KeyFilterDebounceHint,
+        tr_en_zh(
+            "Delay after typing before the key filter is applied (ms)",
+            "停止输入后多久应用过滤(毫秒)",
+        ),
+    );
 }
 
 /// Create a translation HashMap with English and Chinese variants

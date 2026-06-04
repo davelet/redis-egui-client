@@ -82,4 +82,39 @@ pub fn render_display_settings(app: &mut RedisApp, ui: &mut egui::Ui, current_la
             });
             ui.end_row();
         });
+
+    ui.separator();
+
+    // Key-filter debounce setting. The slider value is the delay (ms)
+    // between the user's last keystroke in the filter input and the actual
+    // SCAN being issued. Range 0..=2000 (0 = apply immediately on every
+    // keystroke; 2000 = wait 2s after typing stops).
+    egui::Grid::new("key_filter_debounce_grid")
+        .num_columns(2)
+        .spacing([40.0, 12.0])
+        .min_col_width(120.0)
+        .show(ui, |ui| {
+            ui.label(tr(TranslationKey::KeyFilterDebounce, current_lang));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let mut debounce = app.config.settings.key_filter_debounce_ms as f32;
+                if ui
+                    .add(egui::Slider::new(&mut debounce, 0.0..=2000.0).show_value(true))
+                    .changed()
+                {
+                    app.config.settings.key_filter_debounce_ms = debounce as u64;
+                    app.config.mark_settings_dirty();
+                }
+            });
+            ui.end_row();
+
+            // Hint goes in column 1 (under the label) so it sticks to the
+            // left edge; column 2 is left empty to avoid stretching the row.
+            ui.label(
+                egui::RichText::new(tr(TranslationKey::KeyFilterDebounceHint, current_lang))
+                    .weak()
+                    .size(11.0),
+            );
+            ui.label("");
+            ui.end_row();
+        });
 }

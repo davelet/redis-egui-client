@@ -155,22 +155,45 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     )
                     .changed();
                 if changed {
-                    let key_filter = tab.state.key_filter.clone();
-                    let input = tab.key_filter_input.clone();
-                    let input = input.trim();
+                    // Don't trigger the SCAN immediately - just record the time
+                    // of the latest edit. The trailing edge fires below once
+                    // the user pauses typing. The visible input still updates
+                    // every frame so the UI feels real-time.
+                    tab.key_filter_pending_since = Some(std::time::Instant::now());
+                }
 
-                    // Process filter: if empty, use "*"; if contains *, use as-is; otherwise add * on both sides
-                    let processed_filter = if input.is_empty() {
-                        WILD_KEY_FILTER.to_string()
-                    } else if input.contains('*') {
-                        input.to_string()
+                // Drive the trailing edge of the debounce. We need to schedule
+                // a repaint at the deadline because egui will otherwise sleep
+                // and never re-enter this branch after the user stops typing.
+                // Pull the delay straight from user settings (0..=2000 ms,
+                // matches the slider in Display Settings). A value of 0 fires
+                // the SCAN on the same frame the user stops typing.
+                let debounce_ms = app.config.settings.key_filter_debounce_ms;
+                if let Some(since) = tab.key_filter_pending_since {
+                    let debounce = std::time::Duration::from_millis(debounce_ms);
+                    let elapsed = since.elapsed();
+                    if elapsed >= debounce {
+                        tab.key_filter_pending_since = None;
+
+                        let key_filter = tab.state.key_filter.clone();
+                        let input = tab.key_filter_input.clone();
+                        let input = input.trim();
+
+                        // Process filter: empty -> "*", contains '*' -> as-is,
+                        // otherwise wrap with '*' on both sides.
+                        let processed_filter = if input.is_empty() {
+                            WILD_KEY_FILTER.to_string()
+                        } else if input.contains('*') {
+                            input.to_string()
+                        } else {
+                            format!("{}{}{}", WILD_KEY_FILTER, input, WILD_KEY_FILTER)
+                        };
+
+                        app.update_string(key_filter, processed_filter);
+                        app.tabs[active_tab_idx].state.spawn_load_keys();
                     } else {
-                        format!("{}{}{}", WILD_KEY_FILTER, input, WILD_KEY_FILTER)
-                    };
-
-                    // Release mutable borrow
-                    app.update_string(key_filter, processed_filter);
-                    app.tabs[active_tab_idx].state.spawn_load_keys();
+                        ui.ctx().request_repaint_after(debounce - elapsed);
+                    }
                 }
 
                 if refresh_btn.clicked() {
@@ -178,13 +201,30 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
             });
 
-            // Show loading progress
-            if loading && !loading_progress_text.is_empty() {
-                ui.label(egui::RichText::new(&loading_progress_text).weak());
+            // Show loading progress. We treat the debounce-pending window as
+            // "loading" too so the user gets immediate visual feedback the
+            // moment they stop typing, even before the SCAN actually starts.
+            let debounce_pending = app.tabs[active_tab_idx]
+                .key_filter_pending_since
+                .is_some();
+            let show_loading = loading || debounce_pending;
+            if show_loading {
+                if !loading_progress_text.is_empty() {
+                    ui.label(egui::RichText::new(&loading_progress_text).weak());
+                } else {
+                    // Debounce window: nothing meaningful to show yet, but make
+                    // it clear work is queued.
+                    ui.label(
+                        egui::RichText::new(tr(TranslationKey::Loading, current_lang)).weak(),
+                    );
+                }
             }
 
-            // Show "load more" button below filter (only if connected)
-            if connected && !loading {
+            // Show "load more" button below filter (only if connected and not
+            // actively loading). Suppress during the debounce window too to
+            // avoid stale "Load More" clicks firing against the soon-to-be
+            // replaced key set.
+            if connected && !show_loading {
                 let remaining_keys = if is_full_scan {
                     total_keys.saturating_sub(keys.len())
                 } else {

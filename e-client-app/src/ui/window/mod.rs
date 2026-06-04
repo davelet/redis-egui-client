@@ -27,6 +27,17 @@ pub mod panels;
 pub mod shortcut_manager;
 pub mod types;
 
+/// Wire a freshly-created tab's `AppState` so background tasks can wake the
+/// UI thread directly via `egui::Context::request_repaint`. Without this,
+/// async operations (e.g. lazy-loading a hash field value) would mutate
+/// shared state while egui is idle and the user would see stale UI until the
+/// next input event - typically a mouse move.
+fn install_repaint_callback(tab: &RedisTab, ctx: &egui::Context) {
+    let ctx = ctx.clone();
+    tab.state
+        .set_repaint_callback(std::sync::Arc::new(move || ctx.request_repaint()));
+}
+
 /// Main application state
 pub struct RedisApp {
     tabs: Vec<RedisTab>,
@@ -82,6 +93,9 @@ pub struct RedisApp {
     update_result_receiver: std::sync::mpsc::Receiver<e_client_core::updater::UpdateCheckResult>,
     /// Tokio runtime handle for spawning async tasks
     pub tokio_handle: tokio::runtime::Handle,
+    /// Clone of the egui context, used to wake the UI thread from background
+    /// tasks (see `install_repaint_callback`).
+    pub egui_ctx: egui::Context,
     /// Shared sender for update results (used by both UI and periodic checks)
     pub background_update_sender:
         std::sync::Arc<std::sync::mpsc::Sender<e_client_core::updater::UpdateCheckResult>>,
@@ -477,6 +491,7 @@ impl RedisApp {
 
         // Create initial tab
         let initial_tab = RedisTab::new(0, global_language);
+        install_repaint_callback(&initial_tab, &egui_ctx);
 
         // Create channel for update check results
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -522,6 +537,7 @@ impl RedisApp {
             startup_update_check_triggered: false,
             update_result_receiver: receiver,
             tokio_handle,
+            egui_ctx,
             background_update_sender: shared_sender,
             #[cfg(target_os = "macos")]
             menu_receiver,
@@ -531,6 +547,7 @@ impl RedisApp {
     // Other public methods
     pub fn create_new_tab(&mut self) {
         let new_tab = RedisTab::new(self.next_tab_id, self.global_language);
+        install_repaint_callback(&new_tab, &self.egui_ctx);
         self.tabs.push(new_tab);
         self.active_tab = self.tabs.len() - 1;
         self.next_tab_id += 1;
@@ -555,6 +572,7 @@ impl RedisApp {
 
         let new_tab =
             RedisTab::with_connection(self.next_tab_id, conn_idx, conn, self.global_language);
+        install_repaint_callback(&new_tab, &self.egui_ctx);
         let new_tab_idx = self.tabs.len();
         self.tabs.push(new_tab);
         self.active_tab = self.tabs.len() - 1;

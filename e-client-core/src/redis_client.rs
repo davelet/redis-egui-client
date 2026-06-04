@@ -6,15 +6,21 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{error, info, instrument, warn};
 
+const HASH_SCAN_MAX_FIELDS: usize = 100_000;
+const HASH_SCAN_COUNT_NOVALUES: usize = 500;
+const HASH_VALUE_HEX_PREVIEW_BYTES: usize = 1024;
+
 #[derive(Clone, Debug)]
 pub struct RedisClient {
     manager: Arc<RwLock<Option<ConnectionManager>>>,
+    server_version: Arc<RwLock<Option<(u32, u32, u32)>>>,
 }
 
 impl RedisClient {
     pub fn new() -> Self {
         Self {
             manager: Arc::new(RwLock::new(None)),
+            server_version: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -44,12 +50,16 @@ impl RedisClient {
     pub async fn disconnect(&self) {
         info!("Disconnecting from Redis");
         *self.manager.write().await = None;
+        *self.server_version.write().await = None;
     }
 
     pub fn disconnect_sync(&self) {
         info!("Disconnecting from Redis (sync)");
         if let Ok(mut manager) = self.manager.try_write() {
             *manager = None;
+        }
+        if let Ok(mut v) = self.server_version.try_write() {
+            *v = None;
         }
     }
 
@@ -220,29 +230,131 @@ impl RedisClient {
         }
     }
 
+    /// Fetch and cache the connected server's major.minor.patch version.
+    /// Returns None when the server is unreachable or INFO cannot be parsed.
+    async fn server_version(&self) -> Option<(u32, u32, u32)> {
+        if let Some(v) = *self.server_version.read().await {
+            return Some(v);
+        }
+        let info: String = {
+            let mut manager = self.manager.write().await;
+            let conn = manager.as_mut()?;
+            match redis::cmd("INFO")
+                .arg("server")
+                .query_async::<String>(conn)
+                .await
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    warn!(error = %e, "INFO server failed; skipping version detection");
+                    return None;
+                }
+            }
+        };
+        let parsed = parse_redis_version(&info);
+        if let Some(v) = parsed {
+            *self.server_version.write().await = Some(v);
+        }
+        parsed
+    }
+
+    /// Redis 7.4 introduced `HSCAN ... NOVALUES`.
+    async fn supports_hscan_novalues(&self) -> bool {
+        match self.server_version().await {
+            Some((maj, min, _)) => (maj, min) >= (7, 4),
+            None => false,
+        }
+    }
+
     pub async fn get_hash_fields(
         &self,
         key: &str,
         match_pattern: &str,
     ) -> Result<Vec<String>, RedisError> {
+        let pattern = match_pattern.trim();
+        let want_filter = !pattern.is_empty() && pattern != "*";
+        let supports_novalues = self.supports_hscan_novalues().await;
+
         let mut manager = self.manager.write().await;
-        if let Some(conn) = manager.as_mut() {
+        let Some(conn) = manager.as_mut() else {
+            return Ok(vec![]);
+        };
+
+        // ------------------------------------------------------------------
+        // Strategy for listing hash fields
+        // ------------------------------------------------------------------
+        //   * Redis >= 7.4 -> `HSCAN ... NOVALUES`
+        //       Server filters by MATCH and returns only field names, so the
+        //       payload stays small regardless of value size. This is the
+        //       ideal path on a modern server.
+        //
+        //   * Redis <  7.4 -> `HKEYS` + optional client-side glob match.
+        //       HKEYS also transfers field names only.
+        //
+        // Why we deliberately avoid plain `HSCAN` on pre-7.4 servers, even
+        // with a tiny COUNT:
+        //
+        //   1. `HSCAN` (without NOVALUES) returns alternating
+        //      field, value, field, value, ... pairs.
+        //
+        //   2. The `COUNT` argument is only a hint. For a `hashtable`-encoded
+        //      hash, Redis walks a whole hash-table bucket per call and emits
+        //      every entry it finds in that bucket. The actual number of
+        //      elements returned per round trip is therefore bounded by the
+        //      bucket population, not by COUNT - reducing COUNT does not
+        //      reduce the per-call payload in the worst case. For a
+        //      `ziplist`/`listpack`-encoded hash the entire hash is returned
+        //      in a single call and COUNT is ignored outright.
+        //
+        //   3. The redis crate's `ConnectionManager` defaults to a 500 ms
+        //      `response_timeout`. A hash with a handful of fields whose
+        //      values are several hundred KB each (observed in the wild:
+        //      20 fields x ~650 KB ~ 13 MB) cannot finish transferring inside
+        //      that window over a typical WAN link, so the very first
+        //      `HSCAN` call times out before any data is parsed - i.e. you
+        //      cannot list the fields at all, even though the field *names*
+        //      themselves are trivially small.
+        //
+        //   4. Raising `response_timeout` globally would mask other genuine
+        //      stalls and still wastes bandwidth pulling values the caller
+        //      did not ask for. Issuing `HGET` lazily per field (which the
+        //      UI already does) is both cheaper and respects the existing
+        //      timeout budget.
+        //
+        // `HKEYS` is O(N) on the server and briefly blocks the event loop,
+        // but for hashes that fit comfortably in memory (which is the only
+        // kind Redis supports anyway) N is small enough that the server-side
+        // cost is dominated by network round-trip time, while the bandwidth
+        // savings versus `HSCAN` are decisive. When a MATCH pattern is
+        // supplied we replicate Redis' glob semantics client-side via
+        // `glob_match`, so the external contract of this function is
+        // unchanged across server versions.
+        // ------------------------------------------------------------------
+        if supports_novalues {
             let mut all_fields = Vec::new();
             let mut cursor: u64 = 0;
-
             loop {
                 let mut cmd = redis::cmd("HSCAN");
                 cmd.arg(key).arg(cursor);
-                if !match_pattern.is_empty() && match_pattern != "*" {
-                    cmd.arg("MATCH").arg(match_pattern);
+                if want_filter {
+                    cmd.arg("MATCH").arg(pattern);
                 }
-                cmd.arg("COUNT").arg(1000);
+                cmd.arg("COUNT").arg(HASH_SCAN_COUNT_NOVALUES);
+                cmd.arg("NOVALUES");
 
-                let (new_cursor, items): (u64, Vec<String>) = cmd.query_async(conn).await?;
-                for field in items.into_iter().step_by(2) {
-                    all_fields.push(field);
+                let (new_cursor, items): (u64, Vec<redis::Value>) =
+                    cmd.query_async(conn).await?;
+                for item in &items {
+                    if let Some(bytes) = redis_value_as_bytes(item) {
+                        all_fields.push(bytes_to_display_string(bytes));
+                    } else {
+                        warn!(?item, "HSCAN NOVALUES returned unexpected variant");
+                    }
+                    if all_fields.len() >= HASH_SCAN_MAX_FIELDS {
+                        warn!(key = %key, cap = HASH_SCAN_MAX_FIELDS, "Hash field scan truncated");
+                        return Ok(all_fields);
+                    }
                 }
-
                 cursor = new_cursor;
                 if cursor == 0 {
                     break;
@@ -250,7 +362,20 @@ impl RedisClient {
             }
             Ok(all_fields)
         } else {
-            Ok(vec![])
+            // HKEYS only transfers field names, so even multi-MB values are safe.
+            let raw: Vec<Vec<u8>> = conn.hkeys(key).await?;
+            let mut fields: Vec<String> = Vec::with_capacity(raw.len());
+            for bytes in raw {
+                let s = bytes_to_display_string(bytes);
+                if !want_filter || glob_match(pattern, &s) {
+                    fields.push(s);
+                    if fields.len() >= HASH_SCAN_MAX_FIELDS {
+                        warn!(key = %key, cap = HASH_SCAN_MAX_FIELDS, "Hash field scan truncated");
+                        break;
+                    }
+                }
+            }
+            Ok(fields)
         }
     }
 
@@ -261,8 +386,41 @@ impl RedisClient {
     ) -> Result<Option<String>, RedisError> {
         let mut manager = self.manager.write().await;
         if let Some(conn) = manager.as_mut() {
-            let value: Option<String> = conn.hget(key, field).await?;
-            Ok(value)
+            // Read raw bytes rather than `Option<String>` so we don't lose
+            // fields that are not valid UTF-8 (e.g. serialized protocol
+            // buffers, gzipped blobs, image bytes). Redis treats hash field
+            // values as opaque byte strings, so callers legitimately store
+            // arbitrary content here.
+            let value: Option<Vec<u8>> = conn.hget(key, field).await?;
+            match value {
+                Some(bytes) => match String::from_utf8(bytes) {
+                    // Common case: value is text. Hand it back verbatim so
+                    // downstream string operations (search, copy, edit) work
+                    // exactly as they did before binary support existed.
+                    Ok(s) => Ok(Some(s)),
+                    Err(e) => {
+                        // Binary case: return a *human-readable* representation
+                        // (a hex preview capped at HASH_VALUE_HEX_PREVIEW_BYTES)
+                        // instead of forcing the caller to handle Vec<u8>.
+                        // The return type stays String to keep the AppState
+                        // schema unchanged; the UI displays the placeholder
+                        // header line so the user can still see the size.
+                        let raw = e.into_bytes();
+                        let total = raw.len();
+                        let preview_len = total.min(HASH_VALUE_HEX_PREVIEW_BYTES);
+                        let mut out = format!("[Binary data, {} bytes]\n", total);
+                        out.push_str(&hex::encode(&raw[..preview_len]));
+                        if total > preview_len {
+                            out.push_str(&format!(
+                                "\n... ({} more bytes truncated)",
+                                total - preview_len
+                            ));
+                        }
+                        Ok(Some(out))
+                    }
+                },
+                None => Ok(None),
+            }
         } else {
             Ok(None)
         }
@@ -557,5 +715,251 @@ fn format_redis_value(value: &redis::Value) -> String {
         redis::Value::SimpleString(s) => s.clone(),
         redis::Value::Okay => "OK".to_string(),
         _ => format!("{:?}", value),
+    }
+}
+
+/// Extract raw bytes from string-like redis::Value variants. Returns owned bytes
+/// so callers do not need to keep the source value alive.
+fn redis_value_as_bytes(value: &redis::Value) -> Option<Vec<u8>> {
+    match value {
+        redis::Value::BulkString(bytes) => Some(bytes.clone()),
+        redis::Value::SimpleString(s) => Some(s.as_bytes().to_vec()),
+        redis::Value::VerbatimString { text, .. } => Some(text.as_bytes().to_vec()),
+        _ => None,
+    }
+}
+
+/// Render bytes as a UTF-8 string when possible; otherwise emit a hex placeholder
+/// so the caller can still distinguish/select the entry.
+fn bytes_to_display_string(bytes: Vec<u8>) -> String {
+    match String::from_utf8(bytes) {
+        Ok(s) => s,
+        Err(e) => {
+            let raw = e.into_bytes();
+            format!("[binary:{}]", hex::encode(&raw))
+        }
+    }
+}
+
+/// Parse the `redis_version:` line from `INFO server` output.
+fn parse_redis_version(info: &str) -> Option<(u32, u32, u32)> {
+    let line = info
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("redis_version:"))?;
+    let mut parts = line.trim().split('.');
+    let major: u32 = parts.next()?.parse().ok()?;
+    let minor: u32 = parts.next().unwrap_or("0").parse().ok()?;
+    let patch: u32 = parts
+        .next()
+        .unwrap_or("0")
+        .split(|c: char| !c.is_ascii_digit())
+        .next()
+        .unwrap_or("0")
+        .parse()
+        .ok()?;
+    Some((major, minor, patch))
+}
+
+/// Minimal Redis-style glob matcher: `*` any-run, `?` single char, `[...]`
+/// character class (with optional leading `^` for negation), `\\` escapes
+/// the next char. Operates on bytes so non-UTF-8 input still works.
+fn glob_match(pattern: &str, text: &str) -> bool {
+    glob_match_bytes(pattern.as_bytes(), text.as_bytes())
+}
+
+fn glob_match_bytes(mut pat: &[u8], mut txt: &[u8]) -> bool {
+    // Iterative backtracking on '*'.
+    #[allow(clippy::collapsible_if, clippy::collapsible_match)]
+    {
+        let mut star_pat: Option<&[u8]> = None;
+        let mut star_txt: &[u8] = &[];
+        loop {
+            if let Some((&p0, p_rest)) = pat.split_first() {
+                match p0 {
+                    b'*' => {
+                        // Collapse consecutive '*'.
+                        let mut rest = p_rest;
+                        while let Some((&b'*', r)) = rest.split_first() {
+                            rest = r;
+                        }
+                        if rest.is_empty() {
+                            return true;
+                        }
+                        star_pat = Some(rest);
+                        star_txt = txt;
+                        pat = rest;
+                        continue;
+                    }
+                    b'?' if !txt.is_empty() => {
+                        pat = p_rest;
+                        txt = &txt[1..];
+                        continue;
+                    }
+                    b'[' if !txt.is_empty() => {
+                        if let Some((matched, consumed)) = match_class(p_rest, txt[0])
+                            && matched
+                        {
+                            pat = &p_rest[consumed..];
+                            txt = &txt[1..];
+                            continue;
+                        }
+                    }
+                    b'\\' => {
+                        if let Some((&esc, after)) = p_rest.split_first()
+                            && !txt.is_empty()
+                            && txt[0] == esc
+                        {
+                            pat = after;
+                            txt = &txt[1..];
+                            continue;
+                        }
+                    }
+                    c if !txt.is_empty() && txt[0] == c => {
+                        pat = p_rest;
+                        txt = &txt[1..];
+                        continue;
+                    }
+                    _ => {}
+                }
+            } else if txt.is_empty() {
+                return true;
+            }
+            // Mismatch: backtrack to last '*' if any.
+            if let Some(sp) = star_pat
+                && !star_txt.is_empty()
+            {
+                star_txt = &star_txt[1..];
+                pat = sp;
+                txt = star_txt;
+                continue;
+            }
+            return false;
+        }
+    }
+}
+
+/// Parse a `[...]` body starting just after the opening `[`. Returns
+/// (matched, bytes_consumed_including_closing_bracket).
+fn match_class(body: &[u8], ch: u8) -> Option<(bool, usize)> {
+    let (negate, start) = match body.first() {
+        Some(&b'^') => (true, 1),
+        _ => (false, 0),
+    };
+    let mut i = start;
+    let mut found = false;
+    while i < body.len() {
+        match body[i] {
+            b']' if i > start => return Some((found ^ negate, i + 1)),
+            b'\\' if i + 1 < body.len() => {
+                if body[i + 1] == ch {
+                    found = true;
+                }
+                i += 2;
+            }
+            c if i + 2 < body.len() && body[i + 1] == b'-' && body[i + 2] != b']' => {
+                let lo = c;
+                let hi = body[i + 2];
+                let (lo, hi) = if lo <= hi { (lo, hi) } else { (hi, lo) };
+                if ch >= lo && ch <= hi {
+                    found = true;
+                }
+                i += 3;
+            }
+            c => {
+                if c == ch {
+                    found = true;
+                }
+                i += 1;
+            }
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_standard_version() {
+        assert_eq!(parse_redis_version("redis_version:7.4.1\r\n"), Some((7, 4, 1)));
+    }
+
+    #[test]
+    fn parses_version_with_suffix() {
+        let info = "# Server\r\nredis_version:8.0.0-rc1\r\nredis_git_sha1:0\r\n";
+        assert_eq!(parse_redis_version(info), Some((8, 0, 0)));
+    }
+
+    #[test]
+    fn parses_short_version() {
+        assert_eq!(parse_redis_version("redis_version:6\r\n"), Some((6, 0, 0)));
+    }
+
+    #[test]
+    fn returns_none_when_missing() {
+        assert_eq!(parse_redis_version("# Server\r\nfoo:bar\r\n"), None);
+    }
+
+    #[test]
+    fn utf8_bytes_round_trip() {
+        assert_eq!(bytes_to_display_string(b"hello".to_vec()), "hello");
+    }
+
+    #[test]
+    fn binary_bytes_become_hex_placeholder() {
+        assert_eq!(
+            bytes_to_display_string(vec![0xff, 0x00, 0x10]),
+            "[binary:ff0010]"
+        );
+    }
+
+    #[test]
+    fn glob_exact() {
+        assert!(glob_match("abc", "abc"));
+        assert!(!glob_match("abc", "abcd"));
+        assert!(!glob_match("abc", "ab"));
+    }
+
+    #[test]
+    fn glob_star() {
+        assert!(glob_match("*", "anything"));
+        assert!(glob_match("*", ""));
+        assert!(glob_match("prefix*", "prefix_xyz"));
+        assert!(glob_match("*suffix", "abc_suffix"));
+        assert!(glob_match("*mid*", "abcmidxyz"));
+        assert!(!glob_match("prefix*", "pref"));
+    }
+
+    #[test]
+    fn glob_question() {
+        assert!(glob_match("a?c", "abc"));
+        assert!(!glob_match("a?c", "ac"));
+        assert!(!glob_match("a?c", "abbc"));
+    }
+
+    #[test]
+    fn glob_class() {
+        assert!(glob_match("[abc]", "a"));
+        assert!(glob_match("[abc]", "c"));
+        assert!(!glob_match("[abc]", "d"));
+        assert!(glob_match("[a-z]*", "hello"));
+        assert!(!glob_match("[a-z]*", "Hello"));
+        assert!(glob_match("[^0-9]*", "abc"));
+        assert!(!glob_match("[^0-9]*", "1abc"));
+    }
+
+    #[test]
+    fn glob_escape() {
+        assert!(glob_match(r"\*", "*"));
+        assert!(!glob_match(r"\*", "a"));
+    }
+
+    #[test]
+    fn glob_redis_date_pattern() {
+        // Mirrors the user's real key namespace.
+        assert!(glob_match("202605*", "20260527"));
+        assert!(!glob_match("202605*", "20260601"));
+        assert!(glob_match("2026????", "20260527"));
     }
 }

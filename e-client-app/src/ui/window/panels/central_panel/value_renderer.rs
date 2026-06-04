@@ -140,6 +140,15 @@ fn render_hash_value(
         }
     };
 
+    // Snapshot of fields currently being fetched, so the per-row button can
+    // render its "Loading..." state and reject duplicate clicks.
+    let loading_fields: std::collections::HashSet<(String, String)> = app.tabs[active_tab_idx]
+        .state
+        .loading_hash_fields
+        .try_read()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+
     ui.label(tr_fmt(
         TranslationKey::TypeHash,
         current_lang,
@@ -250,10 +259,25 @@ fn render_hash_value(
                                         }
                                     }
                                     None => {
-                                        if ui
-                                            .button(tr(TranslationKey::LoadFields, current_lang))
-                                            .clicked()
-                                        {
+                                        let is_loading = loading_fields
+                                            .contains(&(key.to_string(), field.clone()));
+                                        let label = if is_loading {
+                                            tr(TranslationKey::Loading, current_lang)
+                                        } else {
+                                            tr(TranslationKey::LoadFields, current_lang)
+                                        };
+                                        let btn = egui::Button::new(label);
+                                        // `add_enabled(!is_loading, ...)` greys out
+                                        // and ignores clicks while a fetch is in
+                                        // flight. The redundant `!is_loading` in the
+                                        // `clicked()` branch is defense-in-depth: the
+                                        // snapshot we read at the top of this frame can
+                                        // race with a background task inserting into
+                                        // `loading_hash_fields`, so we re-check the
+                                        // latest snapshot before spawning another
+                                        // `spawn_load_hash_field_value` task.
+                                        let response = ui.add_enabled(!is_loading, btn);
+                                        if response.clicked() && !is_loading {
                                             app.tabs[active_tab_idx]
                                                 .state
                                                 .spawn_load_hash_field_value(

@@ -122,6 +122,10 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     tab.name = format!("{} {}", tr(TranslationKey::Tab, current_lang), tab.id);
                     tab.connected_color = None;
                     tab.key_filter_input.clear();
+                    // Cancel any pending debounced SCAN; we are about to overwrite
+                    // key_filter with "*" below, so a delayed fire would just
+                    // cost a redundant round-trip.
+                    tab.key_filter_pending_since = None;
 
                     let key_filter = tab.state.key_filter.clone();
                     app.update_string(key_filter, WILD_KEY_FILTER.to_string());

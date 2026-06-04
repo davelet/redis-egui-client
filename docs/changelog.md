@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.1] - 2026-06-04
+
+### New Features
+
+**Binary-Safe Hash Fields**
+- Hash field values are now read as raw bytes; non-UTF-8 content (serialized protobuf, gzipped blobs, image bytes, etc.) is shown as a hex preview placeholder `[Binary data, N bytes]...` instead of failing. UTF-8 values render and edit normally.
+- Hash field listing is now robust against very large hashes:
+  - **Redis 7.4+** uses `HSCAN ... NOVALUES` so the server only transfers field names.
+  - **Redis < 7.4** falls back to `HKEYS` with a client-side glob match. The previous plain `HSCAN` returned alternating field/value pairs and could exceed the 500 ms response timeout on multi-MB hashes over WAN; the new path keeps the per-call payload small enough to always fit in the budget.
+- A 100,000-field cap prevents a pathological key from exhausting memory.
+
+**Configurable Key-Filter Debounce**
+- New **Filter debounce** setting in **Settings → Display** (range 0–2000 ms, default 300 ms). The SCAN now fires shortly after typing stops rather than on every keystroke, so rapid typing is collapsed into a single Redis round-trip.
+- Setting it to 0 restores the previous "fire on every keystroke" behavior.
+- The pending window is rendered as a "Loading" state and the **Load More** button is suppressed while pending, to avoid stale clicks racing a soon-to-be-replaced key set.
+
+**Hash Field Loading State**
+- Each per-field "Load" button now shows a "Loading..." state while its HGET is in flight and is disabled to reject duplicate clicks on the same (key, field) pair.
+- The entry is always removed at the end of the request, including on error, to avoid leaving the button stuck.
+
+**Asynchronous UI Repaint**
+- Background tasks can now wake the UI thread directly via an `egui::Context` repaint closure installed on every tab, so lazy-load results appear without waiting for the next input event. The `needs_repaint` flag alone was insufficient when egui was idle.
+- The callback defaults to a no-op for non-UI consumers (tests, CLI tools).
+
+**i18n**
+- Localized key-loading progress text: `LoadingKeysProgress`, `LoadedKeysCount`, `LoadedKeysPartial`, `AllKeysLoaded`, `LoadedKeysClickMore`.
+- Localized the new debounce setting label and hint (`KeyFilterDebounce`, `KeyFilterDebounceHint`).
+- All new strings have English and Chinese variants.
+
 ## [0.5.1] - 2026-04-09
 
 ### New Features

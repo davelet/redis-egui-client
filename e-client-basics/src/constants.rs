@@ -68,6 +68,13 @@ pub const UI_UPDATE_INTERVAL_BATCHES: usize = 2;
 pub const UI_REPAINT_INTERVAL_MS: u64 = 10;
 pub const SCAN_SLEEP_INTERVAL_MS: u64 = 10;
 pub const COPY_FEEDBACK_DURATION_MS: u64 = 500;
+/// Default delay between the user's last keystroke in the key-filter input
+/// and the actual SCAN being issued. Keeps typing snappy while collapsing
+/// rapid edits into a single Redis round-trip. The effective value is read
+/// from user settings (`ConfigOfUser::key_filter_debounce_ms`); this
+/// constant is the hard-coded fallback used when the setting cannot be
+/// loaded.
+pub const KEY_FILTER_DEBOUNCE_MS: u64 = 300;
 
 /// UI colors (RGB values)
 pub const ACTIVE_TAB_BACKGROUND_COLOR: [u8; 3] = [200, 220, 240];

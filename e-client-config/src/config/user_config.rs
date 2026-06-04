@@ -63,6 +63,12 @@ pub struct ConfigOfUser {
     pub global_monospace: bool,
     #[serde(default = "default_true")]
     pub open_connections_in_new_tab: bool,
+    /// Delay between the user's last keystroke in the key-filter input box
+    /// and the actual Redis SCAN being issued. Keeps typing responsive while
+    /// collapsing rapid edits into a single round-trip. Stored as ms;
+    /// reasonable range 0..=2000.
+    #[serde(default = "default_key_filter_debounce_ms")]
+    pub key_filter_debounce_ms: u64,
     #[serde(default)]
     pub theme: Theme,
     /// Update checker configuration
@@ -84,6 +90,7 @@ impl Default for ConfigOfUser {
             auto_expand_threshold: default_auto_expand_threshold(),
             global_monospace: true,
             open_connections_in_new_tab: true,
+            key_filter_debounce_ms: default_key_filter_debounce_ms(),
             theme: Theme::default(),
             update_config: UpdateConfig::default(),
         }
@@ -92,4 +99,8 @@ impl Default for ConfigOfUser {
 
 fn default_auto_expand_threshold() -> usize {
     2
+}
+
+fn default_key_filter_debounce_ms() -> u64 {
+    300
 }

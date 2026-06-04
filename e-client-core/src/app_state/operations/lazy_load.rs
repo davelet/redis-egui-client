@@ -15,6 +15,15 @@ pub fn spawn_load_list_range(state: &AppState, key: String, start: isize, stop: 
                 {
                     *existing = items;
                 }
+                // Explicitly release the write lock before issuing a repaint.
+                // The `needs_repaint` flag lives on the same shared state, and
+                // the spawned task here is the *only* writer for this branch,
+                // so dropping the guard up front keeps the critical section
+                // as short as possible and lets any UI-side `blocking_read`
+                // proceed while the repaint callback runs. The same pattern
+                // is used in every other spawn_* helper in this module.
+                drop(value);
+                state.request_repaint().await;
             }
             Err(_) => {}
         }
@@ -51,6 +60,8 @@ pub fn spawn_load_hash_fields(state: &AppState, key: String) {
                     *existing_fields = fields;
                     loaded_values.clear();
                 }
+                drop(value);
+                state.request_repaint().await;
             }
             Err(_) => {}
         }
@@ -90,25 +101,47 @@ pub fn spawn_load_hash_fields_preserve_values(state: &AppState, key: String) {
                     // Update fields list after building the set
                     *existing_fields = fields;
                 }
+                drop(value);
+                state.request_repaint().await;
             }
             Err(_) => {}
         }
     });
 }
 
-/// Spawn load hash field value operation
+/// Spawn load hash field value operation.
+/// While the request is in flight the `(key, field)` pair is added to
+/// `loading_hash_fields` so the UI can show a "Loading..." state and reject
+/// duplicate clicks. The entry is always removed at the end, even on error,
+/// to avoid leaving the button stuck.
 pub fn spawn_load_hash_field_value(state: &AppState, key: String, field: String) {
     let state = state.clone();
     tokio::spawn(async move {
-        match state.redis_client.get_hash_field_value(&key, &field).await {
-            Ok(Some(value_str)) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::Hash { loaded_values, .. }) = value.as_mut() {
-                    loaded_values.insert(field, value_str);
-                }
+        // Mark as loading. If another task is already loading this field, skip
+        // to avoid issuing a duplicate HGET.
+        {
+            let mut loading = state.loading_hash_fields.write().await;
+            if !loading.insert((key.clone(), field.clone())) {
+                return;
             }
-            _ => {}
         }
+        state.request_repaint().await;
+
+        let result = state.redis_client.get_hash_field_value(&key, &field).await;
+
+        if let Ok(Some(value_str)) = result {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::Hash { loaded_values, .. }) = value.as_mut() {
+                loaded_values.insert(field.clone(), value_str);
+            }
+        }
+
+        state
+            .loading_hash_fields
+            .write()
+            .await
+            .remove(&(key, field));
+        state.request_repaint().await;
     });
 }
 
@@ -147,6 +180,8 @@ pub fn spawn_load_all_hash_field_values(state: &AppState, key: String) {
                 if let Some(ValueData::Hash { loaded_values, .. }) = value.as_mut() {
                     loaded_values.insert(field, value_str);
                 }
+                drop(value);
+                state.request_repaint().await;
             }
         }
 
@@ -166,6 +201,10 @@ pub fn spawn_load_all_hash_field_values(state: &AppState, key: String) {
             // Clear the pending flag
             *state.pending_edit_after_load.write().await = false;
         }
+        // Final repaint: flushes `loading_fields_for_edit = false` and, when
+        // the caller requested it, the freshly-entered edit-mode state, so
+        // the next frame shows the editor instead of a stale loading UI.
+        state.request_repaint().await;
     });
 }
 
@@ -186,6 +225,8 @@ pub fn spawn_load_set_members(state: &AppState, key: String) {
                 {
                     *existing = members;
                 }
+                drop(value);
+                state.request_repaint().await;
             }
             Err(_) => {}
         }
@@ -205,6 +246,8 @@ pub fn spawn_load_zset_range(state: &AppState, key: String, start: isize, stop: 
                 {
                     *existing = items;
                 }
+                drop(value);
+                state.request_repaint().await;
             }
             Err(_) => {}
         }

@@ -4,6 +4,7 @@ use e_client_basics::constants::{
     LOAD_MORE_BATCH_SIZE, MAX_INITIAL_KEYS, MAX_LOADED_KEYS, SCAN_COUNT, SCAN_SLEEP_INTERVAL_MS,
     SORT_INTERVAL_KEYS, UI_UPDATE_INTERVAL_BATCHES, WILD_KEY_FILTER,
 };
+use e_client_config::translations::{TranslationKey, tr_fmt};
 
 /// Spawn load keys operation
 pub fn spawn_load_keys(state: &AppState) {
@@ -62,12 +63,21 @@ pub fn spawn_load_keys(state: &AppState) {
                     *state.scan_cursor.write().await = current_cursor;
                     *state.scan_has_more.write().await = current_cursor != 0;
 
-                    // Update progress text
+                    // Update progress text (localized)
                     let total = *state.total_keys.read().await;
+                    let lang = *state.language.read().await;
                     let progress_text = if current_cursor != 0 {
-                        format!("Loading keys... {}/{}", loaded_count, total)
+                        tr_fmt(
+                            TranslationKey::LoadingKeysProgress,
+                            lang,
+                            &[&loaded_count.to_string(), &total.to_string()],
+                        )
                     } else {
-                        format!("Loaded {} keys", loaded_count)
+                        tr_fmt(
+                            TranslationKey::LoadedKeysCount,
+                            lang,
+                            &[&loaded_count.to_string()],
+                        )
                     };
                     *state.loading_progress_text.write().await = progress_text;
 
@@ -111,17 +121,21 @@ pub fn spawn_load_keys(state: &AppState) {
             *state.total_keys.write().await = all_keys.len();
         }
 
-        // Update final progress text
+        // Update final progress text (localized)
+        let lang = *state.language.read().await;
         if current_cursor != 0 {
             let total = *state.total_keys.read().await;
-            *state.loading_progress_text.write().await = format!(
-                "Loaded {} of ~{} keys. Click 'Load More' to load additional keys",
-                all_keys.len(),
-                total
+            *state.loading_progress_text.write().await = tr_fmt(
+                TranslationKey::LoadedKeysPartial,
+                lang,
+                &[&all_keys.len().to_string(), &total.to_string()],
             );
         } else {
-            *state.loading_progress_text.write().await =
-                format!("All {} keys loaded", all_keys.len());
+            *state.loading_progress_text.write().await = tr_fmt(
+                TranslationKey::AllKeysLoaded,
+                lang,
+                &[&all_keys.len().to_string()],
+            );
         }
 
         *state.loading.write().await = false;
@@ -175,16 +189,21 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                         last_update_batch = batch_count;
                     }
 
-                    // Update progress text
+                    // Update progress text (localized)
                     let total = existing_keys.len();
+                    let lang2 = *state.language.read().await;
                     let progress_text = if current_cursor != 0 {
-                        format!(
-                            "Loading keys... {}/{}",
-                            total,
-                            *state.total_keys.read().await
+                        tr_fmt(
+                            TranslationKey::LoadingKeysProgress,
+                            lang2,
+                            &[&total.to_string(), &state.total_keys.read().await.to_string()],
                         )
                     } else {
-                        format!("Loaded {} keys", total)
+                        tr_fmt(
+                            TranslationKey::LoadedKeysCount,
+                            lang2,
+                            &[&total.to_string()],
+                        )
                     };
                     *state.loading_progress_text.write().await = progress_text;
                     *state.loaded_keys_count.write().await = total;
@@ -236,21 +255,26 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
             }
         }
 
-        // Update progress text based on scan state
+        // Update progress text based on scan state (localized)
+        let lang3 = *state.language.read().await;
         if current_cursor == 0 {
-            *state.loading_progress_text.write().await =
-                format!("All {} keys loaded", all_keys.len());
+            *state.loading_progress_text.write().await = tr_fmt(
+                TranslationKey::AllKeysLoaded,
+                lang3,
+                &[&all_keys.len().to_string()],
+            );
         }
 
         *state.keys.write().await = all_keys.clone();
         *state.needs_repaint.write().await = true;
         *state.loaded_keys_count.write().await = all_keys.len();
 
-        // Update progress text if still loading more
+        // Update progress text if still loading more (localized)
         if current_cursor != 0 && state.loading_progress_text.read().await.is_empty() {
-            *state.loading_progress_text.write().await = format!(
-                "Loaded {} keys. Click 'Load More' to continue",
-                all_keys.len()
+            *state.loading_progress_text.write().await = tr_fmt(
+                TranslationKey::LoadedKeysClickMore,
+                lang3,
+                &[&all_keys.len().to_string()],
             );
         }
 
