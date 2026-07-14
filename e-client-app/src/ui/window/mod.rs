@@ -119,8 +119,8 @@ impl eframe::App for RedisApp {
         // Collect all connected connection names (deduplicated)
         let mut connected_names = Vec::new();
         for tab in &self.tabs {
-            if let Some(conn_idx) = tab.selected_connection {
-                if let Some(conn) = self.config.connections.get(conn_idx) {
+            if let Some(conn_idx) = tab.selected_connection
+                && let Some(conn) = self.config.connections.get(conn_idx) {
                     // Check if the tab is actually connected
                     if *tab.state.connected.blocking_read() {
                         // Only add if not already present
@@ -129,7 +129,6 @@ impl eframe::App for RedisApp {
                         }
                     }
                 }
-            }
         }
 
         // Save open connections to window config
@@ -212,12 +211,11 @@ impl eframe::App for RedisApp {
                 let is_connected = tab.state.connected.try_read().map(|v| *v).unwrap_or(false);
                 if is_connected && !self.prev_connected_states[idx] {
                     // Just connected -> update name and color
-                    if let Some(conn_idx) = tab.selected_connection {
-                        if let Some(conn) = self.config.connections.get(conn_idx) {
+                    if let Some(conn_idx) = tab.selected_connection
+                        && let Some(conn) = self.config.connections.get(conn_idx) {
                             tab.name = conn.name.clone();
                             tab.connected_color = conn.color.clone();
                         }
-                    }
                 }
                 self.prev_connected_states[idx] = is_connected;
             }
@@ -292,7 +290,7 @@ impl eframe::App for RedisApp {
                         );
                         ui.add_space(8.0);
 
-                        ui.label(format!("Command: "));
+                        ui.label("Command: ".to_string());
                         ui.add_space(4.0);
                         ui.label(
                             egui::RichText::new(&cmd)
@@ -755,16 +753,13 @@ impl RedisApp {
     }
 
     fn load_connection_preferences(&mut self, tab_idx: usize) {
-        if let Some(tab) = self.tabs.get_mut(tab_idx) {
-            if let Some(conn_idx) = tab.selected_connection {
-                if let Some(conn) = self.config.connections.get(conn_idx) {
-                    if let Some(pref) = self.config.get_connection_preference(&conn.name) {
+        if let Some(tab) = self.tabs.get_mut(tab_idx)
+            && let Some(conn_idx) = tab.selected_connection
+                && let Some(conn) = self.config.connections.get(conn_idx)
+                    && let Some(pref) = self.config.get_connection_preference(&conn.name) {
                         tab.side_panel_width = pref.side_panel_width;
                         *tab.state.current_db.blocking_write() = pref.db;
                     }
-                }
-            }
-        }
     }
 
     pub fn spawn_connect_with_initial_db(&self, tab_idx: usize) {
@@ -873,22 +868,18 @@ impl RedisApp {
             tab.side_panel_width = rounded_width.max(MIN_SIDE_PANEL_WIDTH);
 
             // Sync width to all other tabs with the same connection
-            if let Some(conn_idx) = tab.selected_connection {
-                if let Some(conn) = self.config.connections.get(conn_idx) {
+            if let Some(conn_idx) = tab.selected_connection
+                && let Some(conn) = self.config.connections.get(conn_idx) {
                     let name = &conn.name;
                     for (idx, t) in self.tabs.iter_mut().enumerate() {
-                        if idx != tab_idx {
-                            if let Some(c_idx) = t.selected_connection {
-                                if let Some(c) = self.config.connections.get(c_idx) {
-                                    if c.name == *name {
+                        if idx != tab_idx
+                            && let Some(c_idx) = t.selected_connection
+                                && let Some(c) = self.config.connections.get(c_idx)
+                                    && c.name == *name {
                                         t.side_panel_width = rounded_width;
                                     }
-                                }
-                            }
-                        }
                     }
                 }
-            }
         }
     }
 
@@ -909,7 +900,7 @@ impl RedisApp {
     #[cfg(target_os = "macos")]
     pub fn handle_menu_action(&mut self, action: menus::macos::MenuAction, ctx: &egui::Context) {
         use e_client_config::config::shortcuts::ShortcutAction;
-        use e_client_config::translations::{tr, TranslationKey};
+        use e_client_config::translations::{TranslationKey, tr};
         use menus::macos::MenuAction;
 
         // Get current language
@@ -937,11 +928,7 @@ impl RedisApp {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             }
             MenuAction::NewConnection => {
-                shortcut_manager::handle_shortcut_action(
-                    self,
-                    ShortcutAction::NewConnection,
-                    ctx,
-                );
+                shortcut_manager::handle_shortcut_action(self, ShortcutAction::NewConnection, ctx);
             }
             MenuAction::NewTab => {
                 shortcut_manager::handle_shortcut_action(self, ShortcutAction::NewTab, ctx);
@@ -982,7 +969,11 @@ impl RedisApp {
             }
             MenuAction::RefreshKeys => {
                 if is_active_tab_connected() {
-                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::RefreshKeys, ctx);
+                    shortcut_manager::handle_shortcut_action(
+                        self,
+                        ShortcutAction::RefreshKeys,
+                        ctx,
+                    );
                 } else {
                     self.toasts.warning(
                         tr(TranslationKey::Warning, current_lang).to_string(),
@@ -1002,7 +993,11 @@ impl RedisApp {
             }
             MenuAction::Find => {
                 if is_active_tab_connected() {
-                    shortcut_manager::handle_shortcut_action(self, ShortcutAction::FocusFilter, ctx);
+                    shortcut_manager::handle_shortcut_action(
+                        self,
+                        ShortcutAction::FocusFilter,
+                        ctx,
+                    );
                 } else {
                     self.toasts.warning(
                         tr(TranslationKey::Warning, current_lang).to_string(),
@@ -1018,11 +1013,7 @@ impl RedisApp {
                 );
             }
             MenuAction::ToggleLiveLogs => {
-                shortcut_manager::handle_shortcut_action(
-                    self,
-                    ShortcutAction::ToggleLiveLogs,
-                    ctx,
-                );
+                shortcut_manager::handle_shortcut_action(self, ShortcutAction::ToggleLiveLogs, ctx);
             }
             MenuAction::RemoveDuplicateTabs => {
                 shortcut_manager::handle_shortcut_action(

@@ -60,14 +60,12 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
         .command_line_panel
         .log_viewer
         .log_cancel_time
-    {
-        if cancel_time.elapsed().as_secs() >= 3 {
+        && cancel_time.elapsed().as_secs() >= 3 {
             app.tabs[active_tab_idx]
                 .command_line_panel
                 .log_viewer
                 .stop_capture();
         }
-    }
 
     let current_lang = app.poll_language(app.tabs[active_tab_idx].state.language.clone());
 
@@ -192,8 +190,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             .command_line_panel
                             .rig_agent
                             .clone();
-                        if let Ok(agent_guard) = rig_agent.try_lock() {
-                            if let Some(ref agent) = *agent_guard {
+                        if let Ok(agent_guard) = rig_agent.try_lock()
+                            && let Some(ref agent) = *agent_guard {
                                 let turns = agent.turn_count();
                                 ui.separator();
                                 ui.label(
@@ -206,7 +204,6 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                     .color(egui::Color32::GRAY),
                                 );
                             }
-                        }
                     }
                 });
             });
@@ -384,7 +381,7 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                                     || result.starts_with("Error:")
                                                 {
                                                     egui::Color32::from_rgb(255, 100, 100)
-                                                } else if result.contains(&tr(
+                                                } else if result.contains(tr(
                                                     TranslationKey::AiInterrupted,
                                                     current_lang,
                                                 )) {
@@ -459,17 +456,15 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                 panel.saved_input = panel.input.clone();
                                 panel.history_index = Some(panel.history.len() - 1);
                                 history_changed = true;
-                            } else if let Some(idx) = panel.history_index {
-                                if idx > 0 {
+                            } else if let Some(idx) = panel.history_index
+                                && idx > 0 {
                                     panel.history_index = Some(idx - 1);
                                     history_changed = true;
                                 }
-                            }
-                            if history_changed {
-                                if let Some(idx) = panel.history_index {
+                            if history_changed
+                                && let Some(idx) = panel.history_index {
                                     panel.input = panel.history[idx].command.clone();
                                 }
-                            }
                         }
                     } else if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
                         let panel = &mut app.tabs[active_tab_idx].command_line_panel;
@@ -486,8 +481,8 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                         }
                     }
 
-                    if history_changed {
-                        if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
+                    if history_changed
+                        && let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
                             let ccursor = egui::text::CCursor::new(
                                 app.tabs[active_tab_idx]
                                     .command_line_panel
@@ -500,7 +495,6 @@ pub fn render_command_line_panel(app: &mut RedisApp, ctx: &egui::Context) {
                             ));
                             state.store(ui.ctx(), response.id);
                         }
-                    }
                 }
 
                 // Handle Enter key to execute command
@@ -881,11 +875,10 @@ fn execute_ai_command(app: &mut RedisApp, tab_idx: usize, trimmed_input: String)
         let mut agent_opt = rig_agent_arc.lock().await;
 
         // Check if we have a cached agent
-        if agent_opt.is_none() {
-            if let Some(cached_agent) = agent_cache.remove(&cache_key) {
+        if agent_opt.is_none()
+            && let Some(cached_agent) = agent_cache.remove(&cache_key) {
                 *agent_opt = Some(cached_agent);
             }
-        }
 
         // If agent still doesn't exist, try to create it first
         if agent_opt.is_none() {
@@ -981,15 +974,14 @@ pub fn abort_ai_chat(app: &mut RedisApp, tab_idx: usize) {
             .stop_capture();
 
         // 3. Update history if there was a thinking indicator
-        if let Some(history_idx) = pending.thinking_idx {
-            if history_idx < app.tabs[tab_idx].command_line_panel.history.len() {
+        if let Some(history_idx) = pending.thinking_idx
+            && history_idx < app.tabs[tab_idx].command_line_panel.history.len() {
                 let current_lang = app.poll_language(app.tabs[tab_idx].state.language.clone());
                 let interrupted_text = tr(TranslationKey::AiInterrupted, current_lang);
                 let entry = &mut app.tabs[tab_idx].command_line_panel.history[history_idx];
                 entry.result = format!("_({})_", interrupted_text);
                 entry.translation_key = None;
             }
-        }
     }
 }
 

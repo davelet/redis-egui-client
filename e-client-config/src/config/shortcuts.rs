@@ -391,11 +391,10 @@ impl ShortcutConfig {
     pub fn get_conflicts(&self, key: &str) -> Vec<(ShortcutAction, String)> {
         let mut conflicts = Vec::new();
         for (action_key, binding) in &self.bindings {
-            if binding == key {
-                if let Some(action) = Self::parse_action_key(action_key) {
+            if binding == key
+                && let Some(action) = Self::parse_action_key(action_key) {
                     conflicts.push((action, binding.clone()));
                 }
-            }
         }
         conflicts
     }

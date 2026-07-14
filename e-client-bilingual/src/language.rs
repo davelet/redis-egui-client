@@ -3,16 +3,13 @@ const EN_IN_FILE: &str = "en";
 const ZH_IN_FILE: &str = "zh";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Default)]
 pub enum Language {
     Chinese,
+    #[default]
     English,
 }
 
-impl Default for Language {
-    fn default() -> Self {
-        Language::English
-    }
-}
 
 impl Language {
     pub fn to_file_string(&self) -> String {

@@ -215,9 +215,9 @@ pub fn render_shortcut_settings(
                 let has_conflict = app.shortcut_state.shortcut_conflict_warning.is_some();
                 let can_save =
                     !app.shortcut_state.shortcut_input_buffer.is_empty() && !has_conflict;
-                if can_save {
-                    if let Some(current_action_str) = &app.shortcut_state.editing_shortcut {
-                        if let Some(current_action) = parse_action_from_key(current_action_str) {
+                if can_save
+                    && let Some(current_action_str) = &app.shortcut_state.editing_shortcut
+                        && let Some(current_action) = parse_action_from_key(current_action_str) {
                             app.config.settings.shortcuts.set_binding(
                                 &current_action,
                                 app.shortcut_state.shortcut_input_buffer.clone(),
@@ -227,8 +227,6 @@ pub fn render_shortcut_settings(
                             app.shortcut_state.shortcut_input_buffer.clear();
                             app.shortcut_state.shortcut_conflict_warning = None;
                         }
-                    }
-                }
             }
 
             // Check for Escape key to cancel
@@ -267,8 +265,8 @@ pub fn render_shortcut_settings(
                     app.shortcut_state.shortcut_input_buffer = parts.join("+");
 
                     // Check for conflicts
-                    if let Some(current_action_str) = &app.shortcut_state.editing_shortcut {
-                        if let Some(current_action) = parse_action_from_key(current_action_str) {
+                    if let Some(current_action_str) = &app.shortcut_state.editing_shortcut
+                        && let Some(current_action) = parse_action_from_key(current_action_str) {
                             if let Some(conflict_action) =
                                 app.config.settings.shortcuts.check_conflict(
                                     &app.shortcut_state.shortcut_input_buffer,
@@ -286,7 +284,6 @@ pub fn render_shortcut_settings(
                                 app.shortcut_state.shortcut_conflict_warning = None;
                             }
                         }
-                    }
                 }
             }
         });

@@ -247,7 +247,7 @@ impl OpenAiRigAgent {
             AiMode::Agent => {
                 // Agent mode: full tools, system prompt with tools
                 client
-                    .agent(&model.get_model_id())
+                    .agent(model.get_model_id())
                     .preamble(SYSTEM_PROMPT)
                     .default_max_turns(config.max_turns as usize)
                     .temperature(model.temperature as f64)
@@ -277,7 +277,7 @@ impl OpenAiRigAgent {
             AiMode::Chat => {
                 // Chat mode: no tools, stateless, simple command translation prompt
                 client
-                    .agent(&model.get_model_id())
+                    .agent(model.get_model_id())
                     .preamble(CHAT_SYSTEM_PROMPT)
                     .temperature(model.temperature as f64)
                     .build()
@@ -306,7 +306,7 @@ impl OpenAiRigAgent {
 
     pub async fn chat(&mut self, message: &str) -> Result<AiChatResult, AiResponseError> {
         info!(
-            url = %self.llm_model.base_url.clone().unwrap_or(String::new()),
+            url = %self.llm_model.base_url.clone().unwrap_or_default(),
             model = %self.llm_model.model_id,
             mode = ?self.mode,
             message = %message,

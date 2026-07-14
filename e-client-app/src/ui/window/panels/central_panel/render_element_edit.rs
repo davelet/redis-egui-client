@@ -49,11 +49,9 @@ pub fn render_element_edit_dialog(app: &mut RedisApp, ctx: &egui::Context, curre
 fn auto_format_json_value(app: &mut RedisApp) {
     if let Ok(json_value) =
         serde_json::from_str::<serde_json::Value>(&app.element_edit_dialog.value)
-    {
-        if let Ok(formatted) = serde_json::to_string_pretty(&json_value) {
+        && let Ok(formatted) = serde_json::to_string_pretty(&json_value) {
             app.element_edit_dialog.value = formatted;
         }
-    }
 }
 
 /// Render dialog content

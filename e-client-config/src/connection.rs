@@ -175,24 +175,22 @@ impl RedisConnectionConfig {
                 u16::MAX.to_string(),
             ]));
         }
-        if let Some(user) = self.username.as_ref() {
-            if user.len() > CONNECTION_AUTH_LIMIT {
+        if let Some(user) = self.username.as_ref()
+            && user.len() > CONNECTION_AUTH_LIMIT {
                 return Err(ConfigError::HugeParam([
                     user.len().to_string(),
                     tr(TranslationKey::ConnectionUsername, lang).to_string(),
                     CONNECTION_AUTH_LIMIT.to_string(),
                 ]));
             }
-        }
-        if let Some(pass) = self.password.as_ref() {
-            if pass.len() > CONNECTION_AUTH_LIMIT {
+        if let Some(pass) = self.password.as_ref()
+            && pass.len() > CONNECTION_AUTH_LIMIT {
                 return Err(ConfigError::HugeParam([
                     pass.len().to_string(),
                     tr(TranslationKey::ConnectionPassword, lang).to_string(),
                     CONNECTION_AUTH_LIMIT.to_string(),
                 ]));
             }
-        }
         Ok(())
     }
 }

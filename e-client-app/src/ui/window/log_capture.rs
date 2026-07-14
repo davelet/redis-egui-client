@@ -60,12 +60,11 @@ fn tail_log_file_thread(log_file: PathBuf, stop_flag: LogCaptureStop, log_tx: Se
             // Grace period: drain any remaining lines from the buffer and exit.
             // BufReader::lines() won't re-read after EOF, so this just drains
             // what's already buffered.
-            while let Some(result) = lines.next() {
-                if let Ok(line) = result {
-                    if !line.trim().is_empty() {
+            for result in lines.by_ref() {
+                if let Ok(line) = result
+                    && !line.trim().is_empty() {
                         let _ = log_tx.send(line);
                     }
-                }
             }
             break;
         }
@@ -92,7 +91,7 @@ fn find_latest_log_file(log_dir: &std::path::Path) -> Option<std::path::PathBuf>
     let entries = std::fs::read_dir(log_dir).ok()?;
     let mut log_files: Vec<_> = entries
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "log"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "log"))
         .collect();
 
     if log_files.is_empty() {

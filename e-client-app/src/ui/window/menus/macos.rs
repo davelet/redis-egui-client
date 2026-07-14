@@ -1,10 +1,7 @@
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
-use muda::{
-    AboutMetadata, Menu, MenuEvent, MenuId, MenuItem,
-    PredefinedMenuItem, Submenu,
-};
+use e_client_config::translations::{TranslationKey, tr};
 use muda::accelerator::Accelerator;
+use muda::{Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use std::sync::OnceLock;
 
 // Global menu state
@@ -95,7 +92,7 @@ pub fn initialize_menu_bar(menu_sender: std::sync::mpsc::Sender<MenuAction>, lan
 }
 
 /// Update the macOS native menu bar with new language
-pub fn update_menu_bar_language(lang: Language) {
+pub fn update_menu_bar_language(_lang: Language) {
     // We need to recreate the menu with new translations
     // First, we need to get the existing menu sender from somewhere?
     // For now, we'll just reinitialize with the existing sender, but we need to store it
@@ -108,7 +105,10 @@ fn accel(s: &str) -> Option<Accelerator> {
 }
 
 /// Create the complete macOS menu bar
-fn create_menu_bar(menu_sender: std::sync::mpsc::Sender<MenuAction>, lang: Language) -> muda::Result<Menu> {
+fn create_menu_bar(
+    menu_sender: std::sync::mpsc::Sender<MenuAction>,
+    lang: Language,
+) -> muda::Result<Menu> {
     let menu = Menu::new();
 
     // 1. App Menu (Rudist)
@@ -251,7 +251,10 @@ fn create_menu_bar(menu_sender: std::sync::mpsc::Sender<MenuAction>, lang: Langu
             accel("Cmd+Shift+Left"),
         ),
         &PredefinedMenuItem::separator(),
-        &PredefinedMenuItem::bring_all_to_front(Some(tr(TranslationKey::MenuBringAllToFront, lang))),
+        &PredefinedMenuItem::bring_all_to_front(Some(tr(
+            TranslationKey::MenuBringAllToFront,
+            lang,
+        ))),
     ])?;
     menu.append(&window_menu)?;
 

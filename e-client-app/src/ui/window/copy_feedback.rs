@@ -4,21 +4,13 @@ use std::time::Instant;
 /// Feedback tuple: (copy_success_time, copy_failure_time, action_success_time)
 type FeedbackTriple = (Option<Instant>, Option<Instant>, Option<Instant>);
 
+#[derive(Default)]
 pub struct CopyFeedbackManager {
     feedback: FeedbackTriple,
     last_copy_button_id: Option<egui::Id>,
     last_action_button_id: Option<egui::Id>,
 }
 
-impl Default for CopyFeedbackManager {
-    fn default() -> Self {
-        Self {
-            feedback: (None, None, None),
-            last_copy_button_id: None,
-            last_action_button_id: None,
-        }
-    }
-}
 
 impl CopyFeedbackManager {
     pub fn update(&mut self) {
@@ -27,23 +19,20 @@ impl CopyFeedbackManager {
         let duration = Duration::from_millis(COPY_FEEDBACK_DURATION_MS);
         let now = std::time::Instant::now();
 
-        if let Some(time) = self.feedback.0 {
-            if now.duration_since(time) >= duration {
+        if let Some(time) = self.feedback.0
+            && now.duration_since(time) >= duration {
                 self.feedback.0 = None;
             }
-        }
 
-        if let Some(time) = self.feedback.1 {
-            if now.duration_since(time) >= duration {
+        if let Some(time) = self.feedback.1
+            && now.duration_since(time) >= duration {
                 self.feedback.1 = None;
             }
-        }
 
-        if let Some(time) = self.feedback.2 {
-            if now.duration_since(time) >= duration {
+        if let Some(time) = self.feedback.2
+            && now.duration_since(time) >= duration {
                 self.feedback.2 = None;
             }
-        }
     }
 
     pub fn record_copy_success(&mut self) {
@@ -79,17 +68,15 @@ impl CopyFeedbackManager {
         let now = Instant::now();
 
         if self.last_copy_button_id == Some(button_id) {
-            if let Some(time) = success_time {
-                if now.duration_since(time) < duration {
+            if let Some(time) = success_time
+                && now.duration_since(time) < duration {
                     return egui::Color32::from_rgb(50, 200, 50); // Green
                 }
-            }
 
-            if let Some(time) = failure_time {
-                if now.duration_since(time) < duration {
+            if let Some(time) = failure_time
+                && now.duration_since(time) < duration {
                     return egui::Color32::from_rgb(220, 50, 50); // Red
                 }
-            }
         }
 
         egui::Color32::BLACK
@@ -113,27 +100,23 @@ impl CopyFeedbackManager {
 
         // Check copy feedback
         if self.last_copy_button_id == Some(button_id) {
-            if let Some(time) = success_time {
-                if now.duration_since(time) < duration {
+            if let Some(time) = success_time
+                && now.duration_since(time) < duration {
                     return tr(TranslationKey::CopySuccess, global_language).to_string();
                 }
-            }
 
-            if let Some(time) = failure_time {
-                if now.duration_since(time) < duration {
+            if let Some(time) = failure_time
+                && now.duration_since(time) < duration {
                     return tr(TranslationKey::CopyFailed, global_language).to_string();
                 }
-            }
         }
 
         // Check action feedback (e.g. "Restored")
-        if self.last_action_button_id == Some(button_id) {
-            if let Some(time) = action_time {
-                if now.duration_since(time) < duration {
+        if self.last_action_button_id == Some(button_id)
+            && let Some(time) = action_time
+                && now.duration_since(time) < duration {
                     return tr(TranslationKey::ShortcutRestored, global_language).to_string();
                 }
-            }
-        }
 
         original_text.to_string()
     }
@@ -147,13 +130,11 @@ impl CopyFeedbackManager {
         let (_, _, action_time) = self.feedback;
         let now = Instant::now();
 
-        if self.last_action_button_id == Some(button_id) {
-            if let Some(time) = action_time {
-                if now.duration_since(time) < duration {
+        if self.last_action_button_id == Some(button_id)
+            && let Some(time) = action_time
+                && now.duration_since(time) < duration {
                     return egui::Color32::from_rgb(50, 200, 50); // Green
                 }
-            }
-        }
 
         egui::Color32::BLACK
     }

@@ -494,11 +494,9 @@ impl AiClient {
                 _ => {
                     if let Ok(chat_response) =
                         serde_json::from_str::<ChatCompletionResponse>(&response_text)
-                    {
-                        if let Some(choice) = chat_response.choices.first() {
+                        && let Some(choice) = chat_response.choices.first() {
                             info!(model_response = %choice.message.content, "Model response (OpenAI compatible)");
                         }
-                    }
                 }
             }
 

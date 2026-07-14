@@ -227,7 +227,7 @@ fn render_ttl_controls(
 
         // Check if key changed while in edit mode - if so, update the value
         if *ttl_edit_mode {
-            let key_changed = ttl_edit_key.as_ref().map_or(true, |k| k != key);
+            let key_changed = ttl_edit_key.as_ref().is_none_or(|k| k != key);
             if key_changed {
                 *ttl_edit_value = ttl.to_string();
                 *ttl_edit_key = Some(key.to_string());

@@ -231,7 +231,7 @@ fn render_hash_value(
                     })
                     .body(|mut body| {
                         let widths = body.widths();
-                        let field_width = widths.get(0).copied().unwrap_or(field_width);
+                        let field_width = widths.first().copied().unwrap_or(field_width);
                         let value_width = widths.get(1).copied().unwrap_or(value_width);
 
                         app.save_hash_column_widths(field_width as u32, value_width as u32);
@@ -245,7 +245,7 @@ fn render_hash_value(
                             body.row(24.0, |mut row| {
                                 // Left: Field name
                                 row.col(|ui| {
-                                    ui.label(format!("{}", display_field));
+                                    ui.label(display_field.to_string());
                                 });
 
                                 // Middle: Value or load button

@@ -10,7 +10,7 @@ pub use json_import::render_json_import_preview;
 use e_client_basics::emoji;
 use e_client_config::config::ai_config::BUILTIN_WHITELIST_COMMANDS;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr};
 use e_client_core::{CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT};
 
 use crate::ui::window::JsonImportPreview;
@@ -145,8 +145,7 @@ pub fn render_ai_settings_section(
                         ))
                         .on_hover_text(tr(TranslationKey::AiImportJsonTooltip, current_lang))
                         .clicked()
-                    {
-                        if let Some(path) = rfd::FileDialog::new()
+                        && let Some(path) = rfd::FileDialog::new()
                             .add_filter("JSON", &["json"])
                             .pick_file()
                         {
@@ -167,9 +166,7 @@ pub fn render_ai_settings_section(
                                         }
                                     }
                                     if all_conflict {
-                                        for s in &mut selected {
-                                            *s = true;
-                                        }
+                                        selected.fill(true);
                                     }
 
                                     // Show preview and confirm dialog
@@ -187,7 +184,6 @@ pub fn render_ai_settings_section(
                                 }
                             }
                         }
-                    }
                 });
 
                 ui.add_space(8.0);
@@ -231,21 +227,20 @@ pub fn render_ai_settings_section(
                                                 model_ids_to_delete.push(model_id);
                                             }
                                             ui.label(&model.name);
-                                            ui.label(&model.get_base_url());
-                                            ui.label(&model.get_model_id());
+                                            ui.label(model.get_base_url());
+                                            ui.label(model.get_model_id());
                                             ui.end_row();
                                         }
                                         for id in model_ids_to_delete.iter() {
                                             app.config.remove_ai_model(id);
                                         }
-                                        if !model_ids_to_delete.is_empty() {
-                                            if let Err(e) = app.config.save_ai_config() {
+                                        if !model_ids_to_delete.is_empty()
+                                            && let Err(e) = app.config.save_ai_config() {
                                                 eprintln!(
                                                     "Failed to save AI config: {}",
                                                     e.to_message(current_lang)
                                                 );
                                             }
-                                        }
                                     });
                             });
                         });
@@ -261,11 +256,9 @@ pub fn render_ai_settings_section(
                             tr(TranslationKey::AiConfirmBeforeExecute, current_lang),
                         )
                         .changed()
-                    {
-                        if let Err(e) = app.config.save_ai_config() {
+                        && let Err(e) = app.config.save_ai_config() {
                             eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
                         }
-                    }
                 });
 
                 // Show AI thinking checkbox
@@ -276,11 +269,9 @@ pub fn render_ai_settings_section(
                             tr(TranslationKey::AiShowThinking, current_lang),
                         )
                         .changed()
-                    {
-                        if let Err(e) = app.config.save_ai_config() {
+                        && let Err(e) = app.config.save_ai_config() {
                             eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
                         }
-                    }
                 });
 
                 // Render markdown in CLI checkbox
@@ -291,11 +282,9 @@ pub fn render_ai_settings_section(
                             tr(TranslationKey::AiRenderMarkdown, current_lang),
                         )
                         .changed()
-                    {
-                        if let Err(e) = app.config.save_ai_config() {
+                        && let Err(e) = app.config.save_ai_config() {
                             eprintln!("Failed to save AI config: {}", e.to_message(current_lang));
                         }
-                    }
                 });
 
                 // Max tool-call turns slider
@@ -454,28 +443,27 @@ pub fn render_ai_settings_section(
                             .map(|(idx, cmd)| (idx, cmd.clone()))
                             .collect();
 
-                        egui::Frame::group(ui.style())
-                            .show(ui, |ui| {
-                                ui.set_max_width(450.0);
-                                if custom_filtered.is_empty() {
-                                    let empty_text = if filter_active {
-                                        tr(TranslationKey::AiWhitelistNoMatch, current_lang)
-                                    } else {
-                                        tr(TranslationKey::AiWhitelistEmpty, current_lang)
-                                    };
-                                    ui.label(
-                                        egui::RichText::new(empty_text)
-                                            .color(egui::Color32::GRAY)
-                                            .italics(),
-                                    );
+                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                            ui.set_max_width(450.0);
+                            if custom_filtered.is_empty() {
+                                let empty_text = if filter_active {
+                                    tr(TranslationKey::AiWhitelistNoMatch, current_lang)
                                 } else {
-                                    egui::ScrollArea::vertical()
-                                        .id_salt("custom_whitelist_scroll")
-                                        .max_height(120.0)
-                                        .show(ui, |ui| {
-                                            ui.set_max_width(450.0);
-                                            let mut to_remove: Option<usize> = None;
-                                            ui.horizontal_wrapped(|ui| {
+                                    tr(TranslationKey::AiWhitelistEmpty, current_lang)
+                                };
+                                ui.label(
+                                    egui::RichText::new(empty_text)
+                                        .color(egui::Color32::GRAY)
+                                        .italics(),
+                                );
+                            } else {
+                                egui::ScrollArea::vertical()
+                                    .id_salt("custom_whitelist_scroll")
+                                    .max_height(120.0)
+                                    .show(ui, |ui| {
+                                        ui.set_max_width(450.0);
+                                        let mut to_remove: Option<usize> = None;
+                                        ui.horizontal_wrapped(|ui| {
                                             for (idx, cmd) in &custom_filtered {
                                                 ui.label(
                                                     egui::RichText::new(cmd)
@@ -542,51 +530,51 @@ pub fn render_ai_settings_section(
                                             .wrap(),
                                         );
                                     });
-                                });
                             });
+                    });
 
-                            ui.add_space(8.0);
+                    ui.add_space(8.0);
 
-                            // --- Chat mode prompt (right) ---
-                            ui.vertical(|ui| {
-                                ui.set_width(ui.available_width().min(450.0) / 2.0 - 4.0);
-                                ui.horizontal(|ui| {
-                                    ui.label(tr(TranslationKey::AiChatSystemPrompt, current_lang));
-                                    let copy_chat_id = egui::Id::new("copy_chat_prompt");
-                                    let copy_chat_color = app.copy_button_text_color(copy_chat_id);
-                                    let copy_chat_text = app.copy_button_text(
-                                        copy_chat_id,
-                                        tr(TranslationKey::AiCopyChatPrompt, current_lang),
-                                    );
-                                    if ui
-                                        .button(egui::RichText::new(copy_chat_text).color(copy_chat_color))
-                                        .clicked()
-                                    {
-                                        ui.ctx().copy_text(CHAT_SYSTEM_PROMPT.to_string());
-                                        app.record_copy_success_with_id(copy_chat_id);
-                                    }
-                                });
-                                egui::Frame::group(ui.style())
-                                    .fill(ui.visuals().code_bg_color)
+                    // --- Chat mode prompt (right) ---
+                    ui.vertical(|ui| {
+                        ui.set_width(ui.available_width().min(450.0) / 2.0 - 4.0);
+                        ui.horizontal(|ui| {
+                            ui.label(tr(TranslationKey::AiChatSystemPrompt, current_lang));
+                            let copy_chat_id = egui::Id::new("copy_chat_prompt");
+                            let copy_chat_color = app.copy_button_text_color(copy_chat_id);
+                            let copy_chat_text = app.copy_button_text(
+                                copy_chat_id,
+                                tr(TranslationKey::AiCopyChatPrompt, current_lang),
+                            );
+                            if ui
+                                .button(egui::RichText::new(copy_chat_text).color(copy_chat_color))
+                                .clicked()
+                            {
+                                ui.ctx().copy_text(CHAT_SYSTEM_PROMPT.to_string());
+                                app.record_copy_success_with_id(copy_chat_id);
+                            }
+                        });
+                        egui::Frame::group(ui.style())
+                            .fill(ui.visuals().code_bg_color)
+                            .show(ui, |ui| {
+                                ui.set_max_width(223.0);
+                                egui::ScrollArea::vertical()
+                                    .id_salt("chat_prompt_scroll")
+                                    .max_height(200.0)
                                     .show(ui, |ui| {
                                         ui.set_max_width(223.0);
-                                        egui::ScrollArea::vertical()
-                                            .id_salt("chat_prompt_scroll")
-                                            .max_height(200.0)
-                                            .show(ui, |ui| {
-                                                ui.set_max_width(223.0);
-                                                ui.add(
-                                                    egui::Label::new(
-                                                        egui::RichText::new(CHAT_SYSTEM_PROMPT).monospace(),
-                                                    )
-                                                    .wrap(),
-                                                );
-                                            });
+                                        ui.add(
+                                            egui::Label::new(
+                                                egui::RichText::new(CHAT_SYSTEM_PROMPT).monospace(),
+                                            )
+                                            .wrap(),
+                                        );
                                     });
                             });
-                        });
                     });
                 });
+            });
+        });
 
     // Render AI model editor window
     if app.ai_model_editor.show {

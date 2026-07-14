@@ -168,15 +168,36 @@ impl ToastManager {
                         .show(ui, |ui| {
                             ui.set_max_width(400.0);
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    RichText::new(icon).color(accent_color).strong().size(16.0),
-                                );
-                                ui.add_space(4.0);
-                                ui.label(
-                                    RichText::new(&toast.owner)
-                                        .color(accent_color)
-                                        .strong()
-                                        .size(12.0),
+                                // Close button on the right side
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let close_btn = ui.add(
+                                            egui::Button::new(
+                                                RichText::new("✖")
+                                                    .size(12.0)
+                                                    .color(ui.visuals().weak_text_color()),
+                                            )
+                                            .frame(false),
+                                        );
+                                        if close_btn.clicked() {
+                                            toast.elapsed = toast.duration;
+                                        }
+
+                                        ui.label(
+                                            RichText::new(icon)
+                                                .color(accent_color)
+                                                .strong()
+                                                .size(16.0),
+                                        );
+                                        ui.add_space(4.0);
+                                        ui.label(
+                                            RichText::new(&toast.owner)
+                                                .color(accent_color)
+                                                .strong()
+                                                .size(12.0),
+                                        );
+                                    },
                                 );
                             });
                             ui.add_space(4.0);

@@ -6,26 +6,23 @@ use e_client_basics::constants::ITEMS_PER_LOAD;
 pub fn spawn_load_list_range(state: &AppState, key: String, start: isize, stop: isize) {
     let state = state.clone();
     tokio::spawn(async move {
-        match state.redis_client.get_list_range(&key, start, stop).await {
-            Ok(items) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::List {
-                    items: existing, ..
-                }) = value.as_mut()
-                {
-                    *existing = items;
-                }
-                // Explicitly release the write lock before issuing a repaint.
-                // The `needs_repaint` flag lives on the same shared state, and
-                // the spawned task here is the *only* writer for this branch,
-                // so dropping the guard up front keeps the critical section
-                // as short as possible and lets any UI-side `blocking_read`
-                // proceed while the repaint callback runs. The same pattern
-                // is used in every other spawn_* helper in this module.
-                drop(value);
-                state.request_repaint().await;
+        if let Ok(items) = state.redis_client.get_list_range(&key, start, stop).await {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::List {
+                items: existing, ..
+            }) = value.as_mut()
+            {
+                *existing = items;
             }
-            Err(_) => {}
+            // Explicitly release the write lock before issuing a repaint.
+            // The `needs_repaint` flag lives on the same shared state, and
+            // the spawned task here is the *only* writer for this branch,
+            // so dropping the guard up front keeps the critical section
+            // as short as possible and lets any UI-side `blocking_read`
+            // proceed while the repaint callback runs. The same pattern
+            // is used in every other spawn_* helper in this module.
+            drop(value);
+            state.request_repaint().await;
         }
     });
 }
@@ -44,26 +41,22 @@ pub fn spawn_load_hash_fields(state: &AppState, key: String) {
             format!("*{}*", filter)
         };
 
-        match state
+        if let Ok(fields) = state
             .redis_client
             .get_hash_fields(&key, &match_pattern)
-            .await
-        {
-            Ok(fields) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::Hash {
-                    fields: existing_fields,
-                    loaded_values,
-                    ..
-                }) = value.as_mut()
-                {
-                    *existing_fields = fields;
-                    loaded_values.clear();
-                }
-                drop(value);
-                state.request_repaint().await;
+            .await {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::Hash {
+                fields: existing_fields,
+                loaded_values,
+                ..
+            }) = value.as_mut()
+            {
+                *existing_fields = fields;
+                loaded_values.clear();
             }
-            Err(_) => {}
+            drop(value);
+            state.request_repaint().await;
         }
     });
 }
@@ -82,29 +75,25 @@ pub fn spawn_load_hash_fields_preserve_values(state: &AppState, key: String) {
             format!("*{}*", filter)
         };
 
-        match state
+        if let Ok(fields) = state
             .redis_client
             .get_hash_fields(&key, &match_pattern)
-            .await
-        {
-            Ok(fields) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::Hash {
-                    fields: existing_fields,
-                    loaded_values,
-                    ..
-                }) = value.as_mut()
-                {
-                    // Remove values for fields that no longer exist
-                    let fields_set: std::collections::HashSet<&String> = fields.iter().collect();
-                    loaded_values.retain(|field, _| fields_set.contains(field));
-                    // Update fields list after building the set
-                    *existing_fields = fields;
-                }
-                drop(value);
-                state.request_repaint().await;
+            .await {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::Hash {
+                fields: existing_fields,
+                loaded_values,
+                ..
+            }) = value.as_mut()
+            {
+                // Remove values for fields that no longer exist
+                let fields_set: std::collections::HashSet<&String> = fields.iter().collect();
+                loaded_values.retain(|field, _| fields_set.contains(field));
+                // Update fields list after building the set
+                *existing_fields = fields;
             }
-            Err(_) => {}
+            drop(value);
+            state.request_repaint().await;
         }
     });
 }
@@ -212,23 +201,19 @@ pub fn spawn_load_all_hash_field_values(state: &AppState, key: String) {
 pub fn spawn_load_set_members(state: &AppState, key: String) {
     let state = state.clone();
     tokio::spawn(async move {
-        match state
+        if let Ok((_, members)) = state
             .redis_client
             .get_set_members(&key, 0, ITEMS_PER_LOAD)
-            .await
-        {
-            Ok((_, members)) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::Set {
-                    items: existing, ..
-                }) = value.as_mut()
-                {
-                    *existing = members;
-                }
-                drop(value);
-                state.request_repaint().await;
+            .await {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::Set {
+                items: existing, ..
+            }) = value.as_mut()
+            {
+                *existing = members;
             }
-            Err(_) => {}
+            drop(value);
+            state.request_repaint().await;
         }
     });
 }
@@ -237,19 +222,16 @@ pub fn spawn_load_set_members(state: &AppState, key: String) {
 pub fn spawn_load_zset_range(state: &AppState, key: String, start: isize, stop: isize) {
     let state = state.clone();
     tokio::spawn(async move {
-        match state.redis_client.get_zset_range(&key, start, stop).await {
-            Ok(items) => {
-                let mut value = state.key_value.write().await;
-                if let Some(ValueData::ZSet {
-                    items: existing, ..
-                }) = value.as_mut()
-                {
-                    *existing = items;
-                }
-                drop(value);
-                state.request_repaint().await;
+        if let Ok(items) = state.redis_client.get_zset_range(&key, start, stop).await {
+            let mut value = state.key_value.write().await;
+            if let Some(ValueData::ZSet {
+                items: existing, ..
+            }) = value.as_mut()
+            {
+                *existing = items;
             }
-            Err(_) => {}
+            drop(value);
+            state.request_repaint().await;
         }
     });
 }

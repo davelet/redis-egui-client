@@ -102,14 +102,13 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                                     if *has_connection || app.tabs.len() > 2 {
                                         ui.menu_button("⋮", |ui| {
                                             // Copy button - show if has connection
-                                            if *has_connection {
-                                                if ui
+                                            if *has_connection
+                                                && ui
                                                     .button(tr(TranslationKey::Duplicate, lang))
                                                     .clicked()
                                                 {
                                                     duplicate_tab = Some(*idx);
                                                 }
-                                            }
 
                                             // Close others button - show if more than 2 tabs
                                             if app.tabs.len() > 2 {
@@ -127,11 +126,10 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                             });
 
                             // Scroll to this tab if needed
-                            if let Some(target_idx) = scroll_to_tab {
-                                if *idx == target_idx {
+                            if let Some(target_idx) = scroll_to_tab
+                                && *idx == target_idx {
                                     ui.scroll_to_cursor(Some(egui::Align::Center));
                                 }
-                            }
                         }
 
                         // New tab button
@@ -168,7 +166,7 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
                 if show_dropdown_via_shortcut {
                     // Force the menu to open when triggered by shortcut
                     let dropdown_id = egui::Id::new("all_tabs_dropdown");
-                    egui::Popup::open_id(&ctx, dropdown_id);
+                    egui::Popup::open_id(ctx, dropdown_id);
                 }
 
                 ui.menu_button("▼", |ui| {
@@ -237,11 +235,10 @@ pub fn render_tab_bar(app: &mut RedisApp, ctx: &egui::Context) {
     }
     if let Some(idx) = duplicate_tab {
         // Duplicate tab by creating a new tab with the same connection
-        if let Some(conn_idx) = app.tabs.get(idx).and_then(|t| t.selected_connection) {
-            if let Some(conn) = app.config.connections.get(conn_idx).cloned() {
+        if let Some(conn_idx) = app.tabs.get(idx).and_then(|t| t.selected_connection)
+            && let Some(conn) = app.config.connections.get(conn_idx).cloned() {
                 app.create_tab_with_connection(conn_idx, conn);
             }
-        }
     }
 
     // Handle remove duplicate and invalid tabs

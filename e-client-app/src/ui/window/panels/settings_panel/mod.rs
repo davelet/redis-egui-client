@@ -80,7 +80,7 @@ pub fn render_settings_window(app: &mut RedisApp, ctx: &egui::Context, current_l
                     } else {
                         i.modifiers.ctrl
                     };
-                    modifiers_match && key.map_or(false, |k| i.key_pressed(k))
+                    modifiers_match && key.is_some_and(|k| i.key_pressed(k))
                 })
             } else {
                 false

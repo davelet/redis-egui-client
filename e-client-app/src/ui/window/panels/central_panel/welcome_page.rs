@@ -80,7 +80,7 @@ fn render_saved_connections(
     current_lang: Language,
     show_open_connections: bool,
 ) {
-    let connections: Vec<_> = app.config.connections.connections.iter().cloned().collect();
+    let connections: Vec<_> = app.config.connections.connections.to_vec();
     let open_conn_names: Vec<_> = app.config.window.open_connections.connection_names.clone();
 
     if connections.is_empty() {
@@ -278,11 +278,10 @@ fn render_connection_row(
 
 /// Render color indicator
 fn render_color_indicator(ui: &mut egui::Ui, color: &Option<String>) {
-    if let Some(color_hex) = color {
-        if let Some(color) = parse_color_hex(color_hex) {
+    if let Some(color_hex) = color
+        && let Some(color) = parse_color_hex(color_hex) {
             ui.colored_label(color, emoji::status::DOT);
         }
-    }
 }
 
 /// Render connection name

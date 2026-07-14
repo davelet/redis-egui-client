@@ -8,21 +8,13 @@ pub fn get_shortcut_display(binding: &str) -> String {
     format!(" ({})", binding)
 }
 
+#[derive(Default)]
 pub struct ShortcutManagerState {
     pub editing_shortcut: Option<String>,
     pub shortcut_input_buffer: String,
     pub shortcut_conflict_warning: Option<String>,
 }
 
-impl Default for ShortcutManagerState {
-    fn default() -> Self {
-        Self {
-            editing_shortcut: None,
-            shortcut_input_buffer: String::new(),
-            shortcut_conflict_warning: None,
-        }
-    }
-}
 
 pub fn handle_shortcuts(app: &mut RedisApp, ctx: &egui::Context) {
     use e_client_config::config::shortcuts::ParsedShortcut;
@@ -200,10 +192,7 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
             let connections: Vec<_> = app
                 .config()
                 .connections
-                .connections
-                .iter()
-                .cloned()
-                .collect();
+                .connections.to_vec();
             let open_conn_names: Vec<_> = app
                 .config()
                 .window
@@ -232,14 +221,13 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
             app.close_tab(idx, ctx);
         }
         ShortcutAction::RefreshKey => {
-            if let Some(tab) = app.tabs().get(app.active_tab()) {
-                if let Some(key) = tab.state.selected_key.blocking_read().clone() {
+            if let Some(tab) = app.tabs().get(app.active_tab())
+                && let Some(key) = tab.state.selected_key.blocking_read().clone() {
                     tab.state.spawn_load_value(
                         key,
                         e_client_core::app_state::operations::keys::HashLoadMode::ReloadFields,
                     );
                 }
-            }
         }
         ShortcutAction::FocusFilter => {
             ctx.memory_mut(|mem| {
@@ -274,11 +262,10 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
         }
         ShortcutAction::CloseCommandLine => {
             let active_idx = app.active_tab();
-            if let Some(tab) = app.tabs_mut().get_mut(active_idx) {
-                if tab.command_line_panel.pending_ai_command.is_none() {
+            if let Some(tab) = app.tabs_mut().get_mut(active_idx)
+                && tab.command_line_panel.pending_ai_command.is_none() {
                     tab.command_line_panel.show = false;
                 }
-            }
         }
         ShortcutAction::SwitchToTab1
         | ShortcutAction::SwitchToTab2
@@ -304,8 +291,8 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
         | ShortcutAction::ConnectConnection9 => {
             if let Some(tab) = app.get_active_tab() {
                 let connected = app.poll_bool(tab.state.connected.clone());
-                if !connected {
-                    if let Some(conn_idx) = action.connection_index() {
+                if !connected
+                    && let Some(conn_idx) = action.connection_index() {
                         let config = app.config();
                         if conn_idx < config.connections.connections.len() {
                             let conn = config.connections.connections[conn_idx].clone();
@@ -317,7 +304,6 @@ pub fn handle_shortcut_action(app: &mut RedisApp, action: ShortcutAction, ctx: &
                             }
                         }
                     }
-                }
             }
         }
         ShortcutAction::SwitchToLastTab => {

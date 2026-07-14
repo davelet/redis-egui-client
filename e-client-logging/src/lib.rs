@@ -151,7 +151,7 @@ mod tests {
         let entries: Vec<_> = std::fs::read_dir(dir.path())
             .unwrap()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "log"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "log"))
             .collect();
         assert!(!entries.is_empty(), "No log files found");
         let log_file = std::fs::read_to_string(entries[0].path()).unwrap();

@@ -25,6 +25,7 @@ use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct Config {
     pub window: ConfigOnWindowFace,
     pub settings: ConfigOfUser,
@@ -38,21 +39,6 @@ pub struct Config {
     dirty_ai_config: bool,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            window: ConfigOnWindowFace::default(),
-            settings: ConfigOfUser::default(),
-            connections: ConfigOnConnections::default(),
-            connected_preferences: ConnectedPreferences::default(),
-            ai_config: AiConfig::default(),
-            dirty_window: false,
-            dirty_settings: false,
-            dirty_preferences: false,
-            dirty_ai_config: false,
-        }
-    }
-}
 
 impl Config {
     fn config_path() -> Result<PathBuf, ConfigError> {

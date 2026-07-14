@@ -5,8 +5,8 @@ use e_client_basics::constants::{
 };
 use e_client_config::config::ai_config::{AiModel, AiProviderType};
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, tr_fmt, TranslationKey};
-use e_client_core::{detect_api_provider, AiClient};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
+use e_client_core::{AiClient, detect_api_provider};
 use std::str::FromStr;
 
 use crate::ui::window::RedisApp;
@@ -243,13 +243,12 @@ pub fn render_ai_model_editor(app: &mut RedisApp, ctx: &egui::Context, current_l
             // Test connection button and result
             ui.horizontal(|ui| {
                 // Check for async test result
-                if let Some(receiver) = &app.ai_model_editor.test_result_receiver {
-                    if let Ok(result) = receiver.try_recv() {
+                if let Some(receiver) = &app.ai_model_editor.test_result_receiver
+                    && let Ok(result) = receiver.try_recv() {
                         app.ai_model_editor.test_result = Some(result);
                         app.ai_model_editor.testing_connection = false;
                         app.ai_model_editor.test_result_receiver = None;
                     }
-                }
 
                 let test_btn = ui.add_enabled(
                     is_valid && !app.ai_model_editor.testing_connection,

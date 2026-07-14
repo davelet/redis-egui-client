@@ -12,7 +12,7 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
     eframe::run_simple_native(env!("CARGO_PKG_NAME"), options, move |ctx, _frame| {
         use std::cell::Cell;
         thread_local! {
-            static SHOW_POPUP: Cell<bool> = Cell::new(false);
+            static SHOW_POPUP: Cell<bool> = const { Cell::new(false) };
         }
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading(egui::RichText::new(LOAD_ERROR_TITLE).color(egui::Color32::RED));
@@ -48,13 +48,13 @@ pub fn render_error_panel(err: ConfigError) -> Result<(), eframe::Error> {
 
 /// Reset problematic configuration files
 fn reset_config_files() {
-    if let Err(_) = Config::load_user_settings() {
+    if Config::load_user_settings().is_err() {
         let _ = Config::reset_user_settings();
     }
-    if let Err(_) = Config::load_window_params() {
+    if Config::load_window_params().is_err() {
         let _ = Config::reset_window_params();
     }
-    if let Err(_) = Config::load_connections() {
+    if Config::load_connections().is_err() {
         let _ = Config::clear_connections();
     }
 }

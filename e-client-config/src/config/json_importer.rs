@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(imported.models[0].model_id, "gpt-4");
         assert_eq!(imported.models[0].temperature, 0.8);
         assert!(imported.models[0].api_key.is_none()); // Key should be None after import
-        assert_eq!(imported.enabled, true);
+        assert!(imported.enabled);
 
         // Verify file doesn't contain the API key
         let file_content = fs::read_to_string(&path).unwrap();

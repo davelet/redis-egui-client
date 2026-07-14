@@ -13,7 +13,7 @@ fn append_builtin_emoji_fallbacks(fonts: &mut FontDefinitions) {
     let has_emoji_icon_font = fonts.font_data.contains_key("emoji-icon-font");
 
     for family in [FontFamily::Proportional, FontFamily::Monospace] {
-        let entry = fonts.families.entry(family).or_insert_with(Vec::new);
+        let entry = fonts.families.entry(family).or_default();
         if has_noto_emoji && !entry.iter().any(|name| name == "NotoEmoji-Regular") {
             entry.push("NotoEmoji-Regular".to_owned());
         }

@@ -99,7 +99,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             }
 
             // Heading with loaded/total key count
-            let is_full_scan = key_filter == "" || key_filter == WILD_KEY_FILTER.to_string();
+            let is_full_scan = key_filter.is_empty() || key_filter == WILD_KEY_FILTER.to_string();
             let total_display = if is_full_scan || !scan_has_more {
                 total_keys.to_string()
             } else {
@@ -204,9 +204,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
             // Show loading progress. We treat the debounce-pending window as
             // "loading" too so the user gets immediate visual feedback the
             // moment they stop typing, even before the SCAN actually starts.
-            let debounce_pending = app.tabs[active_tab_idx]
-                .key_filter_pending_since
-                .is_some();
+            let debounce_pending = app.tabs[active_tab_idx].key_filter_pending_since.is_some();
             let show_loading = loading || debounce_pending;
             if show_loading {
                 if !loading_progress_text.is_empty() {
@@ -214,9 +212,7 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 } else {
                     // Debounce window: nothing meaningful to show yet, but make
                     // it clear work is queued.
-                    ui.label(
-                        egui::RichText::new(tr(TranslationKey::Loading, current_lang)).weak(),
-                    );
+                    ui.label(egui::RichText::new(tr(TranslationKey::Loading, current_lang)).weak());
                 }
             }
 
@@ -239,14 +235,13 @@ pub fn render_side_panel(app: &mut RedisApp, ctx: &egui::Context) {
                     );
                 } else if scan_has_more {
                     ui.horizontal(|ui| {
-                        if remaining_keys > LOAD_MORE_BATCH_SIZE {
-                            if ui
+                        if remaining_keys > LOAD_MORE_BATCH_SIZE
+                            && ui
                                 .button(tr(TranslationKey::LoadMoreKeys, current_lang))
                                 .clicked()
                             {
                                 app.tabs[active_tab_idx].state.spawn_load_more_keys(false);
                             }
-                        }
                         if ui
                             .button(tr(TranslationKey::LoadAllKeys, current_lang))
                             .clicked()

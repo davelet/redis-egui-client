@@ -421,10 +421,7 @@ pub fn load_all_translations(
     );
     strings.insert(
         TranslationKey::GlobalMonospace,
-        tr_en_zh(
-            "Use Monospace Font Globally",
-            "全局使用等宽字体",
-        ),
+        tr_en_zh("Use Monospace Font Globally", "全局使用等宽字体"),
     );
     strings.insert(
         TranslationKey::FontWarningTitle,
@@ -652,7 +649,10 @@ pub fn load_all_translations(
     );
     strings.insert(TranslationKey::AiImportSkip, tr_en_zh("Skip", "跳过"));
     // JSON Import/Export
-    strings.insert(TranslationKey::AiExportJson, tr_en_zh("Export", "导出到文件"));
+    strings.insert(
+        TranslationKey::AiExportJson,
+        tr_en_zh("Export", "导出到文件"),
+    );
     strings.insert(
         TranslationKey::AiExportJsonTooltip,
         tr_en_zh("Export AI config to JSON file", "导出 AI 配置到 JSON 文件"),
@@ -661,7 +661,10 @@ pub fn load_all_translations(
         TranslationKey::AiExportSuccess,
         tr_en_zh("Export successful!", "导出成功！"),
     );
-    strings.insert(TranslationKey::AiImportJson, tr_en_zh("Import", "从文件导入"));
+    strings.insert(
+        TranslationKey::AiImportJson,
+        tr_en_zh("Import", "从文件导入"),
+    );
     strings.insert(
         TranslationKey::AiImportJsonTooltip,
         tr_en_zh(
@@ -1177,39 +1180,108 @@ pub fn load_all_translations(
     );
 
     // Menu items
-    strings.insert(TranslationKey::MenuCheckForUpdates, tr_en_zh("Check for Updates…", "检查更新…"));
-    strings.insert(TranslationKey::MenuPreferences, tr_en_zh("Preferences…", "偏好设置…"));
+    strings.insert(
+        TranslationKey::MenuCheckForUpdates,
+        tr_en_zh("Check for Updates…", "检查更新…"),
+    );
+    strings.insert(
+        TranslationKey::MenuPreferences,
+        tr_en_zh("Preferences…", "偏好设置…"),
+    );
     strings.insert(TranslationKey::MenuQuit, tr_en_zh("Quit", "退出"));
     strings.insert(TranslationKey::MenuFile, tr_en_zh("File", "文件"));
-    strings.insert(TranslationKey::MenuNewConnectionDots, tr_en_zh("New Connection…", "新建连接…"));
-    strings.insert(TranslationKey::MenuNewTab, tr_en_zh("New Tab", "新建标签页"));
-    strings.insert(TranslationKey::MenuCloseTab, tr_en_zh("Close Tab", "关闭标签页"));
-    strings.insert(TranslationKey::MenuConnectAllUnclosed, tr_en_zh("Connect All Unclosed", "连接所有未关闭的连接"));
+    strings.insert(
+        TranslationKey::MenuNewConnectionDots,
+        tr_en_zh("New Connection…", "新建连接…"),
+    );
+    strings.insert(
+        TranslationKey::MenuNewTab,
+        tr_en_zh("New Tab", "新建标签页"),
+    );
+    strings.insert(
+        TranslationKey::MenuCloseTab,
+        tr_en_zh("Close Tab", "关闭标签页"),
+    );
+    strings.insert(
+        TranslationKey::MenuConnectAllUnclosed,
+        tr_en_zh("Connect All Unclosed", "连接所有未关闭的连接"),
+    );
     strings.insert(TranslationKey::MenuOperation, tr_en_zh("Operation", "操作"));
-    strings.insert(TranslationKey::MenuNewKeyDots, tr_en_zh("New Key…", "新建键…"));
-    strings.insert(TranslationKey::MenuDeleteKey, tr_en_zh("Delete Key", "删除键"));
-    strings.insert(TranslationKey::MenuRefreshKeys, tr_en_zh("Refresh Keys", "刷新键列表"));
-    strings.insert(TranslationKey::MenuRefreshCurrentKey, tr_en_zh("Refresh Current Key", "刷新当前键"));
+    strings.insert(
+        TranslationKey::MenuNewKeyDots,
+        tr_en_zh("New Key…", "新建键…"),
+    );
+    strings.insert(
+        TranslationKey::MenuDeleteKey,
+        tr_en_zh("Delete Key", "删除键"),
+    );
+    strings.insert(
+        TranslationKey::MenuRefreshKeys,
+        tr_en_zh("Refresh Keys", "刷新键列表"),
+    );
+    strings.insert(
+        TranslationKey::MenuRefreshCurrentKey,
+        tr_en_zh("Refresh Current Key", "刷新当前键"),
+    );
     strings.insert(TranslationKey::MenuFindDots, tr_en_zh("Find…", "查找…"));
     strings.insert(TranslationKey::MenuView, tr_en_zh("View", "显示"));
-    strings.insert(TranslationKey::MenuToggleCommandLine, tr_en_zh("Toggle Command Line", "切换命令行显示"));
-    strings.insert(TranslationKey::MenuToggleLiveLogs, tr_en_zh("Toggle Live Logs", "切换实时日志显示"));
-    strings.insert(TranslationKey::MenuRemoveDuplicateTabs, tr_en_zh("Remove Duplicate Tabs", "移除重复标签页"));
-    strings.insert(TranslationKey::MenuShowAllTabs, tr_en_zh("Show All Tabs", "显示所有标签页"));
+    strings.insert(
+        TranslationKey::MenuToggleCommandLine,
+        tr_en_zh("Toggle Command Line", "切换命令行显示"),
+    );
+    strings.insert(
+        TranslationKey::MenuToggleLiveLogs,
+        tr_en_zh("Toggle Live Logs", "切换实时日志显示"),
+    );
+    strings.insert(
+        TranslationKey::MenuRemoveDuplicateTabs,
+        tr_en_zh("Remove Duplicate Tabs", "移除重复标签页"),
+    );
+    strings.insert(
+        TranslationKey::MenuShowAllTabs,
+        tr_en_zh("Show All Tabs", "显示所有标签页"),
+    );
     strings.insert(TranslationKey::MenuWindow, tr_en_zh("Window", "窗口"));
     strings.insert(TranslationKey::MenuMinimize, tr_en_zh("Minimize", "最小化"));
     strings.insert(TranslationKey::MenuZoom, tr_en_zh("Zoom", "缩放"));
-    strings.insert(TranslationKey::MenuNextTab, tr_en_zh("Next Tab", "下一个标签页"));
-    strings.insert(TranslationKey::MenuPreviousTab, tr_en_zh("Previous Tab", "上一个标签页"));
-    strings.insert(TranslationKey::MenuBringAllToFront, tr_en_zh("Bring All to Front", "前置全部窗口"));
+    strings.insert(
+        TranslationKey::MenuNextTab,
+        tr_en_zh("Next Tab", "下一个标签页"),
+    );
+    strings.insert(
+        TranslationKey::MenuPreviousTab,
+        tr_en_zh("Previous Tab", "上一个标签页"),
+    );
+    strings.insert(
+        TranslationKey::MenuBringAllToFront,
+        tr_en_zh("Bring All to Front", "前置全部窗口"),
+    );
     strings.insert(TranslationKey::MenuHelp, tr_en_zh("Help", "帮助"));
-    strings.insert(TranslationKey::MenuOnlineHelp, tr_en_zh("Online Help", "在线帮助"));
-    strings.insert(TranslationKey::MenuLocalHelp, tr_en_zh("Local Help", "本地帮助"));
+    strings.insert(
+        TranslationKey::MenuOnlineHelp,
+        tr_en_zh("Online Help", "在线帮助"),
+    );
+    strings.insert(
+        TranslationKey::MenuLocalHelp,
+        tr_en_zh("Local Help", "本地帮助"),
+    );
     strings.insert(TranslationKey::MenuFilterDots, tr_en_zh("Filter…", "过滤…"));
-    strings.insert(TranslationKey::MenuLanguageRestartHint, tr_en_zh("Menu language changes will take effect after restarting the app", "菜单语言更改需要重启应用后生效"));
+    strings.insert(
+        TranslationKey::MenuLanguageRestartHint,
+        tr_en_zh(
+            "Menu language changes will take effect after restarting the app",
+            "菜单语言更改需要重启应用后生效",
+        ),
+    );
     strings.insert(TranslationKey::Warning, tr_en_zh("Warning", "警告"));
     strings.insert(TranslationKey::Info, tr_en_zh("Info", "提示"));
-    strings.insert(TranslationKey::PleaseConnectToRedisFirst, tr_en_zh("Please connect to a Redis server first", "请先连接到 Redis 服务器"));
+    strings.insert(
+        TranslationKey::PleaseConnectToRedisFirst,
+        tr_en_zh(
+            "Please connect to a Redis server first",
+            "请先连接到 Redis 服务器",
+        ),
+    );
     // Key loading progress (placeholders use {} positionally)
     strings.insert(
         TranslationKey::LoadingKeysProgress,

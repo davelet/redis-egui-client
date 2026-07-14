@@ -30,8 +30,8 @@ pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
                         String::new()
                     };
                     running_tools.insert(tool_name.to_string(), (args_summary, line.clone()));
-                } else if rest.starts_with("completed in") {
-                    if let Some((args_summary, _)) = running_tools.remove(tool_name) {
+                } else if rest.starts_with("completed in")
+                    && let Some((args_summary, _)) = running_tools.remove(tool_name) {
                         let duration_str = &rest[13..];
                         let duration_ms = parse_duration_to_ms(duration_str);
 
@@ -42,7 +42,6 @@ pub fn parse_tool_calls_from_logs(log_lines: &[String]) -> Vec<ToolCallInfo> {
                             args_summary,
                         });
                     }
-                }
             }
         }
     }
@@ -213,6 +212,7 @@ impl Default for NewKeyDialog {
 }
 
 /// Dialog for editing an element (hash field, list item, etc.)
+#[derive(Default)]
 pub struct ElementEditDialog {
     pub show: bool,
     pub key: String,
@@ -223,19 +223,6 @@ pub struct ElementEditDialog {
     pub just_opened: bool, // Track if dialog just opened for auto-formatting
 }
 
-impl Default for ElementEditDialog {
-    fn default() -> Self {
-        Self {
-            show: false,
-            key: String::new(),
-            field: String::new(),
-            value: String::new(),
-            original_value: String::new(),
-            key_type: String::new(),
-            just_opened: false,
-        }
-    }
-}
 
 /// AI chat async result
 pub struct AiChatPending {
@@ -485,6 +472,7 @@ impl AiModelEditor {
 }
 
 /// GIM configuration import dialog state
+#[derive(Default)]
 pub struct GimImportDialog {
     /// Whether to show the import dialog
     pub show: bool,
@@ -498,17 +486,6 @@ pub struct GimImportDialog {
     pub model_exists: bool,
 }
 
-impl Default for GimImportDialog {
-    fn default() -> Self {
-        Self {
-            show: false,
-            gim_config: None,
-            converted_model: None,
-            error_message: None,
-            model_exists: false,
-        }
-    }
-}
 
 impl GimImportDialog {
     /// Open the dialog and try to load GIM config

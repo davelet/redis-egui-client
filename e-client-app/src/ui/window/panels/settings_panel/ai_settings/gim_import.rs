@@ -2,7 +2,7 @@
 
 use e_client_basics::emoji;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, tr_fmt, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 
 use crate::ui::window::RedisApp;
 
@@ -178,8 +178,8 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                     let model = gim_config.to_ai_model();
 
                     // Remove existing model with same name if exists
-                    if model_exists {
-                        if let Some(id) = app
+                    if model_exists
+                        && let Some(id) = app
                             .config
                             .ai_config
                             .models
@@ -189,7 +189,6 @@ pub fn render_gim_import_dialog(app: &mut RedisApp, ctx: &egui::Context, current
                         {
                             app.config.remove_ai_model(&id);
                         }
-                    }
 
                     // Add the new model
                     app.config.add_ai_model(model.clone());

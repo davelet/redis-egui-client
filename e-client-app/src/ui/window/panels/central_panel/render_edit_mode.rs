@@ -262,12 +262,11 @@ fn render_hash_edit(
             });
         });
 
-    if editable {
-        if let Some(idx) = delete_idx {
+    if editable
+        && let Some(idx) = delete_idx {
             fields.remove(idx);
             changed = true;
         }
-    }
 
     changed
 }
@@ -336,12 +335,11 @@ fn render_list_edit(
             });
         });
 
-    if editable {
-        if let Some(idx) = delete_idx {
+    if editable
+        && let Some(idx) = delete_idx {
             items.remove(idx);
             changed = true;
         }
-    }
 
     changed
 }
@@ -410,12 +408,11 @@ fn render_set_edit(
             });
         });
 
-    if editable {
-        if let Some(idx) = delete_idx {
+    if editable
+        && let Some(idx) = delete_idx {
             items.remove(idx);
             changed = true;
         }
-    }
 
     changed
 }
@@ -495,12 +492,11 @@ fn render_zset_edit(
             });
         });
 
-    if editable {
-        if let Some(idx) = delete_idx {
+    if editable
+        && let Some(idx) = delete_idx {
             items.remove(idx);
             changed = true;
         }
-    }
 
     changed
 }

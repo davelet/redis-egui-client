@@ -64,15 +64,12 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         ui.horizontal(|ui| {
             // Show connection color indicator for current connection
-            if let Some(idx) = selected_connection {
-                if let Some(conn) = app.config.connections.get(idx) {
-                    if let Some(color_hex) = &conn.color {
-                        if let Some(color) = parse_color_hex(color_hex) {
+            if let Some(idx) = selected_connection
+                && let Some(conn) = app.config.connections.get(idx)
+                    && let Some(color_hex) = &conn.color
+                        && let Some(color) = parse_color_hex(color_hex) {
                             ui.colored_label(color, emoji::status::DOT);
                         }
-                    }
-                }
-            }
 
             ui.label(tr(TranslationKey::ConnectionUrl, current_lang));
 
@@ -149,7 +146,7 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                                     let conn_name =
                                         app.config.connections.get(idx).map(|c| c.name.clone());
                                     if let Some(name) = conn_name {
-                                        let _ = app.update_db_for_connection(&name, db);
+                                        app.update_db_for_connection(&name, db);
                                     }
                                 }
                             }
@@ -180,20 +177,17 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
                 }
 
                 // "Open in New Tab" button
-                if let Some(idx) = selected_connection {
-                    if ui
+                if let Some(idx) = selected_connection
+                    && ui
                         .button(format!(
                             "{} {}",
                             emoji::navigation::NEW_TAB,
                             tr(TranslationKey::OpenInNewTab, current_lang)
                         ))
                         .clicked()
-                    {
-                        if let Some(conn) = app.config.connections.get(idx) {
+                        && let Some(conn) = app.config.connections.get(idx) {
                             create_new_tab_with = Some((idx, conn.clone()));
                         }
-                    }
-                }
             }
 
             ui.separator();
@@ -201,20 +195,17 @@ pub fn render_top_panel(app: &mut RedisApp, ctx: &egui::Context) {
             // Connection management buttons - disabled when connected
             ui.add_enabled_ui(!connected, |ui| {
                 // Add edit connection button
-                if let Some(selected_idx) = selected_connection {
-                    if ui
+                if let Some(selected_idx) = selected_connection
+                    && ui
                         .button(format!(
                             "{} {}",
                             emoji::action::EDIT,
                             tr(TranslationKey::EditConnection, current_lang)
                         ))
                         .clicked()
-                    {
-                        if let Some(conn) = app.config.connections.get(selected_idx) {
+                        && let Some(conn) = app.config.connections.get(selected_idx) {
                             app.new_connection.open_for_edit(conn);
                         }
-                    }
-                }
                 // Add new connection button
                 let new_conn_binding = app
                     .config

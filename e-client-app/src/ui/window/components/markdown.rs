@@ -348,9 +348,7 @@ pub fn render_markdown(text: &str, ui: &mut egui::Ui) {
                 list_indent += 1;
             }
             Event::End(TagEnd::List(_)) => {
-                if list_indent > 0 {
-                    list_indent -= 1;
-                }
+                list_indent = list_indent.saturating_sub(1);
                 ui.add_space(4.0);
             }
             Event::Start(Tag::Item) => {

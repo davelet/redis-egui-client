@@ -27,8 +27,10 @@ const KEYRING_SERVICE: &str = "com.e-client.ai";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::EnumString, strum::EnumIter)]
 #[strum(serialize_all = "PascalCase")]
+#[derive(Default)]
 pub enum AiProviderType {
     // Major providers
+    #[default]
     OpenAi,
     Anthropic,
     Meta,
@@ -65,11 +67,6 @@ pub enum AiProviderType {
     Custom,
 }
 
-impl Default for AiProviderType {
-    fn default() -> Self {
-        AiProviderType::OpenAi
-    }
-}
 
 impl std::fmt::Display for AiProviderType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

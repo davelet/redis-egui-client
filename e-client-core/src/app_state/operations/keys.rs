@@ -15,11 +15,10 @@ pub fn spawn_load_keys(state: &AppState) {
 
         // Get total key count with current pattern (this is just initial estimate)
         // It may change if keys expire during scanning
-        if pattern == WILD_KEY_FILTER.to_string() {
-            if let Ok(total) = state.redis_client.get_db_size().await {
+        if pattern == WILD_KEY_FILTER.to_string()
+            && let Ok(total) = state.redis_client.get_db_size().await {
                 *state.total_keys.write().await = total;
             }
-        }
 
         // Reset scan state
         *state.scan_cursor.write().await = 0;
@@ -196,7 +195,10 @@ pub fn spawn_load_more_keys(state: &AppState, load_all: bool) {
                         tr_fmt(
                             TranslationKey::LoadingKeysProgress,
                             lang2,
-                            &[&total.to_string(), &state.total_keys.read().await.to_string()],
+                            &[
+                                &total.to_string(),
+                                &state.total_keys.read().await.to_string(),
+                            ],
                         )
                     } else {
                         tr_fmt(
@@ -390,12 +392,11 @@ pub fn spawn_create_new_key(
                 let mut r = Ok(());
                 for item in value.lines() {
                     let item = item.trim();
-                    if !item.is_empty() {
-                        if let Err(e) = state.redis_client.rpush(&key, item).await {
+                    if !item.is_empty()
+                        && let Err(e) = state.redis_client.rpush(&key, item).await {
                             r = Err(e);
                             break;
                         }
-                    }
                 }
                 r
             }
@@ -406,12 +407,11 @@ pub fn spawn_create_new_key(
                     if let Some((field, val)) = line.split_once(':') {
                         let field = field.trim();
                         let val = val.trim();
-                        if !field.is_empty() {
-                            if let Err(e) = state.redis_client.hset(&key, field, val).await {
+                        if !field.is_empty()
+                            && let Err(e) = state.redis_client.hset(&key, field, val).await {
                                 r = Err(e);
                                 break;
                             }
-                        }
                     }
                 }
                 r
@@ -420,12 +420,11 @@ pub fn spawn_create_new_key(
                 let mut r = Ok(());
                 for item in value.lines() {
                     let item = item.trim();
-                    if !item.is_empty() {
-                        if let Err(e) = state.redis_client.sadd(&key, item).await {
+                    if !item.is_empty()
+                        && let Err(e) = state.redis_client.sadd(&key, item).await {
                             r = Err(e);
                             break;
                         }
-                    }
                 }
                 r
             }
@@ -436,12 +435,11 @@ pub fn spawn_create_new_key(
                     if let Some((score_str, member)) = line.split_once(':') {
                         let score: f64 = score_str.trim().parse().unwrap_or(0.0);
                         let member = member.trim();
-                        if !member.is_empty() {
-                            if let Err(e) = state.redis_client.zadd(&key, score, member).await {
+                        if !member.is_empty()
+                            && let Err(e) = state.redis_client.zadd(&key, score, member).await {
                                 r = Err(e);
                                 break;
                             }
-                        }
                     }
                 }
                 r

@@ -16,6 +16,12 @@ pub struct RedisClient {
     server_version: Arc<RwLock<Option<(u32, u32, u32)>>>,
 }
 
+impl Default for RedisClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RedisClient {
     pub fn new() -> Self {
         Self {
@@ -342,8 +348,7 @@ impl RedisClient {
                 cmd.arg("COUNT").arg(HASH_SCAN_COUNT_NOVALUES);
                 cmd.arg("NOVALUES");
 
-                let (new_cursor, items): (u64, Vec<redis::Value>) =
-                    cmd.query_async(conn).await?;
+                let (new_cursor, items): (u64, Vec<redis::Value>) = cmd.query_async(conn).await?;
                 for item in &items {
                     if let Some(bytes) = redis_value_as_bytes(item) {
                         all_fields.push(bytes_to_display_string(bytes));
@@ -882,7 +887,10 @@ mod tests {
 
     #[test]
     fn parses_standard_version() {
-        assert_eq!(parse_redis_version("redis_version:7.4.1\r\n"), Some((7, 4, 1)));
+        assert_eq!(
+            parse_redis_version("redis_version:7.4.1\r\n"),
+            Some((7, 4, 1))
+        );
     }
 
     #[test]

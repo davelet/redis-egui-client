@@ -23,18 +23,12 @@ impl Default for ConnectionPreference {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Default)]
 pub struct ConnectedPreferences {
     #[serde(default)]
     pub preferences: HashMap<String, ConnectionPreference>,
 }
 
-impl Default for ConnectedPreferences {
-    fn default() -> Self {
-        ConnectedPreferences {
-            preferences: HashMap::new(),
-        }
-    }
-}
 
 impl ConnectedPreferences {
     pub fn get_preference(&self, connection_name: &str) -> Option<&ConnectionPreference> {
@@ -49,7 +43,7 @@ impl ConnectedPreferences {
         let preference = self
             .preferences
             .entry(connection_name.to_string())
-            .or_insert_with(ConnectionPreference::default);
+            .or_default();
         preference.side_panel_width = width.max(250.0).min(800.0).round();
     }
 
@@ -57,7 +51,7 @@ impl ConnectedPreferences {
         let preference = self
             .preferences
             .entry(connection_name.to_string())
-            .or_insert_with(ConnectionPreference::default);
+            .or_default();
         preference.db = db;
     }
 }

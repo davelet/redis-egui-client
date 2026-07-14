@@ -4,7 +4,7 @@ use e_client_basics::emoji;
 use e_client_config::config::ai_config::AiConfig;
 use e_client_config::config::json_importer;
 use e_client_config::language::Language;
-use e_client_config::translations::{tr, tr_fmt, TranslationKey};
+use e_client_config::translations::{TranslationKey, tr, tr_fmt};
 use std::path::Path;
 
 use crate::ui::window::RedisApp;
@@ -12,14 +12,10 @@ use crate::ui::window::RedisApp;
 /// Export AI config to JSON file (API keys are excluded)
 /// Returns `Some(Ok(()))` on success, `Some(Err(_))` on failure, `None` if user cancelled.
 pub(super) fn export_ai_config_to_json(app: &mut RedisApp) -> Option<Result<(), String>> {
-    let path = match rfd::FileDialog::new()
+    let path = rfd::FileDialog::new()
         .add_filter("JSON", &["json"])
         .set_file_name("ai_config.json")
-        .save_file()
-    {
-        Some(p) => p,
-        None => return None, // User cancelled, no notification
-    };
+        .save_file()?;
 
     Some(
         json_importer::export_to_json(&app.config.ai_config, &path).map_err(|e| format!("{:?}", e)),
